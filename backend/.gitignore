@@ -1,0 +1,59 @@
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### env & 개인 설정 ###
+.env
+.env.local
+application-local.yaml
+application-local.yml
+
+### Node / React ###
+node_modules/
+dist/
+.env.production
+
+### 로그 파일 ###
+*.log
+logs/
+
+### OS 관련 ###
+.DS_Store
+Thumbs.db
+
+### 업로드 이미지 (로컬 테스트용 첨부파일 등) ###
+/uploads/
