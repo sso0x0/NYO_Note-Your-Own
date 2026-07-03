@@ -1,0 +1,12 @@
+# Mac/Windows 시스템 파일
+.DS_Store
+Thumbs.db
+
+# IDE 설정 폴더
+.idea/
+*.iml
+
+# 빌드 및 의존성 (각 하위 폴더에 있지만 안전을 위해 추가)
+node_modules/
+build/
+.gradle/
