@@ -113,7 +113,3 @@ npm run dev
 - 브랜치 전략: `main` / `develop` / `feature/기능명`
 - 커밋 메시지 컨벤션: `feat`, `fix`, `refactor`, `docs`, `chore` 등
 - PR 시 리뷰어 최소 1인 이상 지정
-
----
-
-문의사항은 팀 채널에 남겨주세요 🙌
