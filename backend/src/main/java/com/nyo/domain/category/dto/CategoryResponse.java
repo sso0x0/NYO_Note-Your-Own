@@ -1,5 +1,6 @@
-package com.nyo.domain.common.dto.response;
+package com.nyo.domain.category.dto;
 
+import com.nyo.domain.category.entity.Category;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -19,4 +20,12 @@ public class CategoryResponse {
 
     @Schema(description = "카테고리명", example = "프론트엔드")
     private String name;
+
+    /** Entity -> DTO 변환용 정적 팩토리 메서드 */
+    public static CategoryResponse from(Category category) {
+        return CategoryResponse.builder()
+                .id(category.getId())
+                .name(category.getName())
+                .build();
+    }
 }
