@@ -17,6 +17,10 @@ public enum ErrorCode {
     // course (박소현)
     COURSE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 강의입니다."),
     COURSE_CAPACITY_EXCEEDED(HttpStatus.CONFLICT, "정원이 마감된 강의입니다."),
+    COURSE_ALREADY_DELETED(HttpStatus.CONFLICT, "이미 삭제된 강의입니다."),
+
+    // category (박소현)
+    CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."),
 
     // note / community (염상환)
     NOTE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 노트입니다."),
