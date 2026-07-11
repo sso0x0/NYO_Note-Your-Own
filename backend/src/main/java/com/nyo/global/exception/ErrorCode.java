@@ -28,7 +28,8 @@ public enum ErrorCode {
     MEMBER_DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
 
     // ai / pomodoro (장예지)
-    AI_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "AI 응답 생성에 실패했습니다.");
+    AI_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "AI 응답 생성에 실패했습니다."),
+    POMODORO_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 뽀모도로 기록입니다.");
 
     private final HttpStatus status;
     private final String message;
