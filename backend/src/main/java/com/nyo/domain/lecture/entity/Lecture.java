@@ -1,34 +1,60 @@
 package com.nyo.domain.lecture.entity;
 
-import com.nyo.global.entity.BaseEntity;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-/**
- * TODO: 실제 컬럼/연관관계는 팀 DDL 확정 후 채워주세요.
- * domain/chat과 동일한 4종 폴더 구조(controller·entity·repository·service)를 맞추기 위한
- * 스캐폴딩용 placeholder 엔티티입니다.
- */
 @Entity
 @Table(name = "lectures")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Lecture extends BaseEntity {
 
+    // 강의 PK
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
 
-    /**
-     * 이 엔티티가 어떤 데이터를 표현하는지 스스로 설명합니다.
-     */
-    public String introduce() {
-        return "Lecture 엔티티: 사용자가 수강할 수 있는 강의(과목) 정보를 저장합니다. (구현 예정)";
+    }
+    // 강의 정보 수정 (관리자만 호출 가능)
+    public void update(Category category, String title, String description,
+                       String lectureUrl, String instructor, Integer capacity) {
+        this.category = category;
+        this.title = title;
+        this.description = description;
+        this.lectureUrl = lectureUrl;
+        this.instructor = instructor;
+        this.capacity = capacity;
+    }
+
+    // 강의 삭제 처리
+    public void delete() {
+        this.isDeleted = true;
+    }
+
+    // 조회수 1 증가 (중복 방지 통과 후 처리)
+    public void increaseViewCount() {
+        this.viewCount++;
+    }
+
+    // 좋아요수 1 증가
+    public void increaseLikeCount() {
+        this.likeCount++;
+    }
+
+    // 좋아요수 1 감소
+    public void decreaseLikeCount() {
+        if (this.likeCount > 0) {
+            this.likeCount--;
+        }
+    }
+
+    // 인기 강의 여부 갱신
+    public void updatePopularStatus(boolean isPopular) {
+        this.isPopular = isPopular;
     }
 }

@@ -1,4 +1,4 @@
-package com.nyo.domain.common.dto.response;
+package com.nyo.domain.user.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;

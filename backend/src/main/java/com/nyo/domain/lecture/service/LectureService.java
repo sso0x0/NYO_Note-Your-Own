@@ -1,19 +1,15 @@
 package com.nyo.domain.lecture.service;
 
-import com.nyo.domain.lecture.repository.LectureRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
-@Service
-@RequiredArgsConstructor
-public class LectureService {
 
-    private final LectureRepository lectureRepository;
 
-    /**
-     * 이 서비스가 어떤 기능을 담당하는지 스스로 설명합니다.
-     */
-    public String introduce() {
-        return "LectureService: 강의 등록·조회·수정·삭제 및 수강 관련 로직을 담당할 예정입니다.";
-    }
+
+    // 하나의 강의 조회 (id 기준)
+    LectureResponse getLecture(Long id);
+
+    // 강의 수정 (관리자만 가능)
+    LectureResponse updateLecture(Long id, LectureRequest request, Long adminId);
+
+    // 강의 삭제 (관리자만 가능)
+    void deleteLecture(Long id, Long adminId);
 }

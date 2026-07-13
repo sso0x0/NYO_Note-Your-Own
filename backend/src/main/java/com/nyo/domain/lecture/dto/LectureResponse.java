@@ -1,5 +1,6 @@
-package com.nyo.domain.common.dto.response;
+package com.nyo.domain.lecture.dto;
 
+import com.nyo.domain.lecture.entity.Lecture;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -63,4 +64,26 @@ public class LectureResponse {
 
     @Schema(description = "수정일")
     private LocalDateTime updatedAt;
+
+    /** Entity -> DTO 변환용 정적 팩토리 메서드 */
+    public static LectureResponse from(Lecture lecture) {
+        return LectureResponse.builder()
+                .id(lecture.getId())
+                .categoryId(lecture.getCategory().getId())
+                .categoryName(lecture.getCategory().getName())
+                .createdBy(lecture.getCreatedBy().getId())   // User 엔티티에서 id 꺼냄
+                .title(lecture.getTitle())
+                .description(lecture.getDescription())
+                .lectureUrl(lecture.getLectureUrl())
+                .instructor(lecture.getInstructor())
+                .capacity(lecture.getCapacity())
+                .currentEnrolled(lecture.getCurrentEnrolled())
+                .viewCount(lecture.getViewCount())
+                .likeCount(lecture.getLikeCount())
+                .isPopular(lecture.getIsPopular())
+                .isDeleted(lecture.getIsDeleted())
+                .createdAt(lecture.getCreatedAt())
+                .updatedAt(lecture.getUpdatedAt())
+                .build();
+    }
 }

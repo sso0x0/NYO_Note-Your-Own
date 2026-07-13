@@ -1,4 +1,4 @@
-package com.nyo.domain.common.dto.request;
+package com.nyo.domain.lecture.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "강의(녹화본) 등록/수정 요청 DTO (관리자 전용, createdBy는 인증 정보에서 추출)")
+@Schema(description = "강의(녹화본) 등록/수정 요청 DTO (관리자 전용)")
 public class LectureRequest {
 
     @NotNull(message = "카테고리 ID는 필수입니다.")
@@ -30,7 +30,7 @@ public class LectureRequest {
     private String description;
 
     @Size(max = 1000)
-    @Schema(description = "강의 링크", example = "https://example.com/lectures/1")
+    @Schema(description = "강의 링크", example = "https://example.com")
     private String lectureUrl;
 
     @Size(max = 100)
@@ -38,6 +38,6 @@ public class LectureRequest {
     private String instructor;
 
     @Min(value = 1, message = "정원은 1명 이상이어야 합니다.")
-    @Schema(description = "수강 정원 (미입력 시 무제한)", example = "30")
+    @Schema(description = "수강 정원 (미입력 시 무제한)")
     private Integer capacity;
 }
