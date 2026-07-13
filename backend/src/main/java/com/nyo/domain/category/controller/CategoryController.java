@@ -1,12 +1,9 @@
 package com.nyo.domain.category.controller;
 
-import com.nyo.domain.category.dto.CategoryRequest;
 import com.nyo.domain.category.dto.CategoryResponse;
 import com.nyo.domain.category.service.CategoryService;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,12 +16,6 @@ import java.util.List;
 public class CategoryController {
 
     private final CategoryService categoryService;
-
-    // 새로운 카테고리 생성
-    @PostMapping
-    public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CategoryRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(categoryService.createCategory(request));
-    }
 
     // 전체 목록 조회 (200 ok)
     @GetMapping
