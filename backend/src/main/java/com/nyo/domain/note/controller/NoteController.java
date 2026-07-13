@@ -1,5 +1,6 @@
 package com.nyo.domain.note.controller;
 
+
 import com.nyo.domain.note.dto.NoteRequest;
 import com.nyo.domain.note.dto.NoteResponse;
 import com.nyo.domain.note.service.NoteService;
@@ -68,5 +69,5 @@ public class NoteController {
             @RequestParam Long userId
     ) {
         noteService.delete(noteId, userId);
-    }
+
 }
