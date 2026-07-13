@@ -7,6 +7,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 // 카테고리 (프론트엔드/백엔드/CS/빅데이터)
+/*
+*** TODO: DB 내 삽입 필요 ***
+INSERT INTO categories (name) VALUES ('프론트엔드');
+INSERT INTO categories (name) VALUES ('백엔드');
+INSERT INTO categories (name) VALUES ('CS');
+INSERT INTO categories (name) VALUES ('빅데이터');
+ */
 @Entity
 @Table(name = "categories")
 @Getter
@@ -25,11 +32,6 @@ public class Category {
 
     @Builder
     public Category(String name) {
-        this.name = name;
-    }
-
-    // 카테고리명 수정
-    public void update(String name) {
         this.name = name;
     }
 }
