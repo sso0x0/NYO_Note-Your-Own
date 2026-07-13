@@ -17,3 +17,13 @@ spring:
 
 server:
   port: 8080
+
+springdoc:
+  swagger-ui:
+    path: /docs
+
+# AI 자동 태깅 / RAG 챗봇용 (장예지 파트)
+# .env에 OPENAI_API_KEY 추가 필요. 키가 없어도 앱 실행은 되고, AI API 호출 시에만 실패합니다.
+openai:
+  api-key: ${OPENAI_API_KEY:}
+  model: gpt-4o-mini
