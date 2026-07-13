@@ -1,7 +1,7 @@
 package com.nyo.domain.pomodoro.service;
 
-import com.nyo.domain.common.dto.request.PomodoroRecordRequest;
-import com.nyo.domain.common.dto.response.PomodoroRecordResponse;
+import com.nyo.domain.pomodoro.dto.PomodoroRecordRequest;
+import com.nyo.domain.pomodoro.dto.PomodoroRecordResponse;
 import com.nyo.domain.pomodoro.entity.PomodoroRecord;
 import com.nyo.domain.pomodoro.repository.PomodoroRecordRepository;
 import com.nyo.global.exception.BusinessException;

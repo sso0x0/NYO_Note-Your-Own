@@ -1,7 +1,7 @@
 package com.nyo.domain.pomodoro.controller;
 
-import com.nyo.domain.common.dto.request.PomodoroRecordRequest;
-import com.nyo.domain.common.dto.response.PomodoroRecordResponse;
+import com.nyo.domain.pomodoro.dto.PomodoroRecordRequest;
+import com.nyo.domain.pomodoro.dto.PomodoroRecordResponse;
 import com.nyo.domain.pomodoro.service.PomodoroService;
 import com.nyo.global.response.ApiResponse;
 import com.nyo.global.response.PageResponse;

@@ -1,34 +1,85 @@
-package com.nyo.domain.user.entity;
+package com.nyo.domain.user.entity; // 💡 주의: 현재 폴더명이 entiy로 되어있어 그대로 맞췄습니다!
 
-import com.nyo.global.entity.BaseEntity;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
-/**
- * TODO: 실제 컬럼/연관관계는 팀 DDL 확정 후 채워주세요.
- * domain/chat과 동일한 4종 폴더 구조(controller·entity·repository·service)를 맞추기 위한
- * 스캐폴딩용 placeholder 엔티티입니다.
- */
 @Entity
 @Table(name = "users")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class User extends BaseEntity {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * 이 엔티티가 어떤 데이터를 표현하는지 스스로 설명합니다.
-     */
-    public String introduce() {
-        return "User 엔티티: 회원 가입 시 생성되는 사용자 계정 정보를 저장합니다. (구현 예정)";
+    @Column(nullable = false, unique = true, length = 50)
+    private String loginId;
+
+    @Column(nullable = false)
+    private String password;
+
+    @Column(nullable = false, length = 50)
+    private String name;
+
+    @Column(nullable = false, length = 50)
+    private String nickname;
+
+    @Column(nullable = false, length = 100)
+    private String email;
+
+    @Column(length = 20)
+    private String phone;
+
+    private String role;      // USER, ADMIN
+    private String status;    // ACTIVE, WITHDRAWN
+
+    private String oauthProvider;
+    private String oauthId;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    @Builder
+    public User(String loginId, String password, String name, String nickname, String email, String phone, String role, String status) {
+        this.loginId = loginId;
+        this.password = password;
+        this.name = name;
+        this.nickname = nickname;
+        this.email = email;
+        this.phone = phone;
+        this.role = role != null ? role : "USER";
+        this.status = status != null ? status : "ACTIVE";
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // 💡 1. 회원 정보 수정 메서드 (누락되었던 부분 추가)
+    public void updateProfile(String name, String nickname, String phone) {
+        this.name = name;
+        this.nickname = nickname;
+        this.phone = phone;
+        this.updatedAt = LocalDateTime.now(); // 수정일자 업데이트
+    }
+
+    // 💡 2. 회원 탈퇴(소프트 딜리트) 처리 메서드 (괄호 안쪽으로 정상 배치)
+    public void withdraw() {
+        this.status = "WITHDRAWN"; // 상태를 '탈퇴'로 변경
+        this.updatedAt = LocalDateTime.now();
+    }
+    // 💡 3. [관리자용] 회원 권한 변경 메서드
+    public void changeRole(String role) {
+        this.role = role;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // 💡 4. [관리자용] 회원 상태 변경 (ACTIVE, SUSPENDED(정지), WITHDRAWN(강제탈퇴))
+    public void changeStatus(String status) {
+        this.status = status;
+        this.updatedAt = LocalDateTime.now();
     }
 }

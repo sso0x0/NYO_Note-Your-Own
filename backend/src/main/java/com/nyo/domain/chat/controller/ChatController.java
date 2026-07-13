@@ -1,8 +1,8 @@
 package com.nyo.domain.chat.controller;
 
 import com.nyo.domain.chat.service.ChatService;
-import com.nyo.domain.common.dto.request.ChatHistoryRequest;
-import com.nyo.domain.common.dto.response.ChatHistoryResponse;
+import com.nyo.domain.chat.dto.ChatHistoryRequest;
+import com.nyo.domain.chat.dto.ChatHistoryResponse;
 import com.nyo.global.response.ApiResponse;
 import com.nyo.global.response.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;

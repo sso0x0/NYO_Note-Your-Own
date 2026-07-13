@@ -1,5 +1,6 @@
 package com.nyo.domain.common.dto.response;
 
+import com.nyo.domain.note.dto.NoteTagResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
