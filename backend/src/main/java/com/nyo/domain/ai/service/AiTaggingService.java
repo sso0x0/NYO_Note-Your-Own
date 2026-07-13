@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nyo.domain.ai.client.OpenAiClient;
 import com.nyo.domain.common.dto.response.AiTagResponse;
-import com.nyo.domain.common.dto.response.NoteTagResponse;
+import com.nyo.domain.note.dto.NoteTagResponse ;
 import com.nyo.domain.tag.entity.NoteTag;
 import com.nyo.domain.tag.entity.NoteTagId;
 import com.nyo.domain.tag.entity.Tag;
