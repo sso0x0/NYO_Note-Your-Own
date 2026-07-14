@@ -30,15 +30,12 @@ public interface LectureService {
     // 강의 삭제 (관리자만 가능)
     void deleteLecture(Long id, Long adminId);
 
-    // 조회수 증가
-    void increaseViewCount(Long id);
+    // 조회수 증가 (하루 1회 제한)
+    void increaseViewCount(Long id, Long userId);
 
     // 좋아요
     void likeLecture(Long id, Long userId);
 
     // 좋아요 취소
     void unlikeLecture(Long id, Long userId);
-
-    // 조회수 증가 (하루 1회 제한)
-    void increaseViewCount(Long id, Long userId);
 }
