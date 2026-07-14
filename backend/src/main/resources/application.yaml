@@ -27,3 +27,7 @@ springdoc:
 openai:
   api-key: ${OPENAI_API_KEY:}
   model: gpt-4o-mini
+
+gcp:
+  storage:
+    bucket: nyo_images
