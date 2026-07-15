@@ -1,5 +1,7 @@
 package com.nyo.domain.user.dto;
 
+import com.nyo.global.enums.Role;
+import com.nyo.global.enums.UserStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -34,11 +36,13 @@ public class UserResponse {
     @Schema(description = "전화번호", example = "010-1234-5678")
     private String phone;
 
+    // 💡 FIXED: String → Role (Jackson이 자동으로 "USER"/"ADMIN" 문자열로 직렬화해서 응답 형태는 그대로예요)
     @Schema(description = "사용자/관리자 구분", example = "USER")
-    private String role;
+    private Role role;
 
+    // 💡 FIXED: String → UserStatus
     @Schema(description = "정상/정지/탈퇴 구분", example = "ACTIVE")
-    private String status;
+    private UserStatus status;
 
     @Schema(description = "소셜 로그인 제공자", example = "NONE")
     private String oauthProvider;
