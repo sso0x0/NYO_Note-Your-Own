@@ -20,7 +20,8 @@ public class User {
     @Column(nullable = false, unique = true, length = 50)
     private String loginId;
 
-    @Column(nullable = false)
+    // 💡 FIXED: 소셜 로그인 회원은 비밀번호가 없을 수 있어서 nullable = false → true로 변경
+    @Column(nullable = true)
     private String password;
 
     @Column(nullable = false, length = 50)
@@ -44,6 +45,9 @@ public class User {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    // 💡 추가: UserResponse엔 이미 있던 필드인데 엔티티에 컬럼이 없어서 못 채우고 있었음
+    private LocalDateTime withdrawnAt;
+
     @Builder
     public User(String loginId, String password, String name, String nickname, String email, String phone, String role, String status) {
         this.loginId = loginId;
@@ -58,19 +62,37 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // 💡 1. 회원 정보 수정 메서드 (누락되었던 부분 추가)
+    // 💡 추가: 구글 OAuth2 최초 로그인 시 자동 회원가입용 (일반 회원가입과 생성 경로 분리)
+    // 일반 @Builder는 oauthProvider/oauthId를 안 받는 구조라 별도 정적 팩토리로 뺐습니다.
+    public static User createOauthUser(String loginId, String name, String nickname, String email,
+                                       String oauthProvider, String oauthId) {
+        User user = User.builder()
+                .loginId(loginId)
+                .password(null) // 소셜 로그인은 비밀번호 없음
+                .name(name)
+                .nickname(nickname)
+                .email(email)
+                .build();
+        user.oauthProvider = oauthProvider;
+        user.oauthId = oauthId;
+        return user;
+    }
+
+    // 💡 1. 회원 정보 수정 메서드
     public void updateProfile(String name, String nickname, String phone) {
         this.name = name;
         this.nickname = nickname;
         this.phone = phone;
-        this.updatedAt = LocalDateTime.now(); // 수정일자 업데이트
-    }
-
-    // 💡 2. 회원 탈퇴(소프트 딜리트) 처리 메서드 (괄호 안쪽으로 정상 배치)
-    public void withdraw() {
-        this.status = "WITHDRAWN"; // 상태를 '탈퇴'로 변경
         this.updatedAt = LocalDateTime.now();
     }
+
+    // 💡 FIXED: withdraw()가 두 군데 중복 정의돼있던 걸 하나로 합침 (탈퇴 시각까지 기록)
+    public void withdraw() {
+        this.status = "WITHDRAWN";
+        this.withdrawnAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
     // 💡 3. [관리자용] 회원 권한 변경 메서드
     public void changeRole(String role) {
         this.role = role;
