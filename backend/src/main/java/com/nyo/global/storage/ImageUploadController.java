@@ -28,30 +28,30 @@ public class ImageUploadController {
     }
 }
 
-package com.nyo.global.storage;
-
-import com.nyo.domain.common.dto.response.ImageUploadResponse;
-import com.nyo.global.response.ApiResponse;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
-
-@RestController
-@RequestMapping("/api/images")
-@RequiredArgsConstructor
-public class ImageUploadController {
-
-    private final FileStorageService fileStorageService;
-
-    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<ImageUploadResponse> upload(@RequestParam("file") MultipartFile file) {
-        String imageUrl = fileStorageService.store(file);
-        return ApiResponse.success(ImageUploadResponse.builder()
-                .imageUrl(imageUrl)
-                .build());
-    }
-}
+//package com.nyo.global.storage;
+//
+//import com.nyo.domain.common.dto.response.ImageUploadResponse;
+//import com.nyo.global.response.ApiResponse;
+//import lombok.RequiredArgsConstructor;
+//import org.springframework.http.MediaType;
+//import org.springframework.web.bind.annotation.PostMapping;
+//import org.springframework.web.bind.annotation.RequestMapping;
+//import org.springframework.web.bind.annotation.RequestParam;
+//import org.springframework.web.bind.annotation.RestController;
+//import org.springframework.web.multipart.MultipartFile;
+//
+//@RestController
+//@RequestMapping("/api/images")
+//@RequiredArgsConstructor
+//public class ImageUploadController {
+//
+//    private final FileStorageService fileStorageService;
+//
+//    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+//    public ApiResponse<ImageUploadResponse> upload(@RequestParam("file") MultipartFile file) {
+//        String imageUrl = fileStorageService.store(file);
+//        return ApiResponse.success(ImageUploadResponse.builder()
+//                .imageUrl(imageUrl)
+//                .build());
+//    }
+//}
