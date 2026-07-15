@@ -43,9 +43,10 @@ public class PomodoroController {
     @Operation(summary = "타이머 기록 수정 (타이머 종료 시 endedAt 포함해 호출)")
     @PatchMapping("/{id}")
     public ApiResponse<PomodoroRecordResponse> update(
+            @RequestParam Long userId,
             @PathVariable Long id,
             @Valid @RequestBody PomodoroRecordRequest request) {
-        return ApiResponse.ok(pomodoroService.update(id, request));
+        return ApiResponse.ok(pomodoroService.update(userId, id, request));
     }
 
     @Operation(summary = "회원별 타이머 기록 목록 조회 (최신순)")
