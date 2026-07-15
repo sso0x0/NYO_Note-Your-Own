@@ -38,6 +38,9 @@ public class LectureResponse {
     @Schema(description = "강의 링크", example = "https://example.com/lectures/1")
     private String lectureUrl;
 
+    @Schema(description = "강의 대표 썸네일 이미지 URL", example = "https://example.com/thumbnail.jpg")
+    private String thumbnailUrl;
+
     @Schema(description = "강사명", example = "김강사")
     private String instructor;
 
@@ -75,6 +78,7 @@ public class LectureResponse {
                 .title(lecture.getTitle())
                 .description(lecture.getDescription())
                 .lectureUrl(lecture.getLectureUrl())
+                .thumbnailUrl(lecture.getThumbnailUrl())
                 .instructor(lecture.getInstructor())
                 .capacity(lecture.getCapacity())
                 .currentEnrolled(lecture.getCurrentEnrolled())

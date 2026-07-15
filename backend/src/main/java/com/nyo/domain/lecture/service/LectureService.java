@@ -10,7 +10,7 @@ public interface LectureService {
     // TODO: user 완료되기 전 관리자 전용은 따로 adminId를 받아옴
 
     // 새로운 강의 등록 (관리자만 가능)
-    LectureResponse createLecture(LectureRequest request, Long categoryId, Long adminId);
+    LectureResponse createLecture(LectureRequest request, Long adminId);
 
     // 전체 강의 목록 조회 (페이징)
     Page<LectureResponse> getLectureList(Pageable pageable);
