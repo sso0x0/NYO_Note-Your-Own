@@ -11,4 +11,7 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
 
     // 특정 유저의 특정 대상 좋아요 취소 (레코드 삭제)
     void deleteByUserIdAndTargetTypeAndTargetId(Long userId, TargetType targetType, Long targetId);
+
+    // 특정 대상(강의 등)에 걸린 레코드 전체 삭제 (대상 삭제 시 정리용)
+    void deleteByTargetTypeAndTargetId(TargetType targetType, Long targetId);
 }

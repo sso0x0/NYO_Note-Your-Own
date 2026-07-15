@@ -35,7 +35,7 @@ public class LectureController {
             @Valid @RequestBody LectureRequest request,
             @Parameter(description = "등록 요청 관리자 ID (임시: 인증 붙기 전까지 쿼리파라미터로 받음)")
             @RequestParam Long adminId) {
-        LectureResponse response = lectureService.createLecture(request, request.getCategoryId(), adminId);
+        LectureResponse response = lectureService.createLecture(request, adminId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
