@@ -44,6 +44,11 @@ public enum ErrorCode {
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."),
     MEMBER_DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
     MEMBER_DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
+    // 💡 추가: 회원가입/로그인/탈퇴/제재 로직에서 필요한 에러코드
+    MEMBER_DUPLICATE_LOGIN_ID(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다."),
+    MEMBER_INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "비밀번호가 일치하지 않습니다."),
+    MEMBER_INACTIVE(HttpStatus.FORBIDDEN, "로그인할 수 없는 계정 상태입니다."),
+    MEMBER_ALREADY_WITHDRAWN(HttpStatus.GONE, "이미 탈퇴한 회원입니다."),
 
     // ai / pomodoro (장예지)
     AI_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "AI 응답 생성에 실패했습니다."),
