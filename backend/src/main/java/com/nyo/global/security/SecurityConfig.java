@@ -45,7 +45,8 @@ public class SecurityConfig {
                                 "/api/users/signup", "/api/users/login",
                                 "/api/users/check-login-id", "/api/users/check-email", "/api/users/check-nickname",
                                 "/oauth2/**", "/login/oauth2/**",   // 구글 로그인 리다이렉트 경로는 인증 없이 통과
-                                "/docs/**", "/swagger-ui/**", "/v3/api-docs/**"  // 💡 springdoc 경로가 /docs로 되어있어서 반영
+                                "/docs/**", "/swagger-ui/**", "/v3/api-docs/**",  // 💡 springdoc 경로가 /docs로 되어있어서 반영
+                                "/api/lectures/**"  // TODO: 강의 컨트롤러에 실제 인증 붙으면 이 줄 제거
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN") // TODO: 관리자 파트 구현 시 활성화
                         .anyRequest().authenticated()
