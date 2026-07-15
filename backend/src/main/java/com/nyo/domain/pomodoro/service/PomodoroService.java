@@ -35,9 +35,13 @@ public class PomodoroService {
     }
 
     @Transactional
-    public PomodoroRecordResponse update(Long id, PomodoroRecordRequest request) {
+    public PomodoroRecordResponse update(Long userId, Long id, PomodoroRecordRequest request) {
         PomodoroRecord record = pomodoroRecordRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POMODORO_NOT_FOUND));
+
+        if (!record.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.POMODORO_ACCESS_DENIED);
+        }
 
         record.update(request.getLectureId(), request.getNoteId(),
                 request.getFocusMinutes(), request.getBreakMinutes(),

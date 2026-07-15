@@ -47,7 +47,8 @@ public enum ErrorCode {
 
     // ai / pomodoro (장예지)
     AI_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "AI 응답 생성에 실패했습니다."),
-    POMODORO_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 뽀모도로 기록입니다.");
+    POMODORO_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 뽀모도로 기록입니다."),
+    POMODORO_ACCESS_DENIED(HttpStatus.FORBIDDEN, "본인의 타이머 기록만 수정할 수 있습니다.");
 
     private final HttpStatus status;
     private final String message;
