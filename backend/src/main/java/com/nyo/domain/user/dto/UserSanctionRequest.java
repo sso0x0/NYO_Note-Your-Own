@@ -1,9 +1,9 @@
 package com.nyo.domain.user.dto;
 
+import com.nyo.global.enums.SanctionType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,10 +23,11 @@ public class UserSanctionRequest {
     @Schema(description = "제재 대상 회원 FK", example = "10")
     private Long userId;
 
-    @NotBlank(message = "제재 유형은 필수입니다.")
-    @Pattern(regexp = "WARNING|SUSPENSION|WITHDRAWAL", message = "제재 유형은 WARNING, SUSPENSION, WITHDRAWAL 중 하나여야 합니다.")
+    // 💡 FIXED: String + @Pattern → enum (Jackson이 "SUSPENSION" 문자열을 자동으로 enum에 매핑해줘서
+    // 잘못된 값이 오면 @Pattern 검증 전에 아예 400으로 먼저 걸러짐)
+    @NotNull(message = "제재 유형은 필수입니다.")
     @Schema(description = "경고/정지/강제 탈퇴", example = "SUSPENSION")
-    private String type;
+    private SanctionType type;
 
     @NotBlank(message = "제재 사유는 필수입니다.")
     @Size(max = 500)
