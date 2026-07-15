@@ -4,6 +4,9 @@ import com.nyo.domain.category.entity.Category;
 import com.nyo.domain.category.repository.CategoryRepository;
 import com.nyo.domain.common.dto.request.LikeRequest;
 import com.nyo.domain.common.dto.request.ViewRequest;
+import com.nyo.domain.common.entity.Like;
+import com.nyo.domain.common.entity.TargetType;
+import com.nyo.domain.common.repository.LikeRepository;
 import com.nyo.domain.common.service.LikeService;
 import com.nyo.domain.common.service.ViewService;
 import com.nyo.domain.lecture.dto.LectureRequest;
@@ -16,6 +19,7 @@ import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,11 +31,17 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class LectureServiceImpl implements LectureService {
 
+    // 인기 강의로 표시할 상위 개수 (AdminStatsController의 인기도 조회 기본값과 동일하게 맞춤)
+    private static final int POPULAR_LECTURE_COUNT = 10;
+
     private final LectureRepository lectureRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
-    private final LikeService likeService;   // 좋아요 공용 서비스 (common 도메인)
-    private final ViewService viewService;   // 조회수 공용 서비스 (common 도메인)
+    private final LikeService likeService; // 좋아요 공용 서비스 (common 도메인)
+    private final ViewService viewService; // 조회수 공용 서비스 (common 도메인)
+    // 수강신청은 좋아요와 동일한 (user, targetType, targetId) 구조라 likes 테이블을 ENROLL 타입으로 재사용
+    // (별도 테이블 대신 재활용, LikeService는 "좋아요" 전용 메시지라 우회하고 Repository 직접 사용)
+    private final LikeRepository likeRepository;
 
     // 강의 등록
     @Override
@@ -158,7 +168,7 @@ public class LectureServiceImpl implements LectureService {
                 .build());
 
         if (isNewView) {
-            lecture.increaseViewCount();   // 오늘 처음 본 경우에만 캐시된 조회수 증가
+            lecture.increaseViewCount(); // 오늘 처음 본 경우에만 캐시된 조회수 증가
         }
     }
 
@@ -192,5 +202,65 @@ public class LectureServiceImpl implements LectureService {
                 .build());
 
         lecture.decreaseLikeCount(); // 캐시된 좋아요 수 감소
+    }
+
+    // 수강신청 (likes 테이블을 ENROLL 타입으로 재사용)
+    @Override
+    @Transactional
+    public void enrollLecture(Long id, Long userId) {
+        Lecture lecture = lectureRepository.findById(id)
+                .filter(l -> !l.getIsDeleted())
+                .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND));
+
+        if (likeRepository.existsByUserIdAndTargetTypeAndTargetId(userId, TargetType.ENROLL, id)) {
+            throw new BusinessException(ErrorCode.COURSE_ALREADY_ENROLLED);
+        }
+
+        if (lecture.isFull()) {
+            throw new BusinessException(ErrorCode.COURSE_CAPACITY_EXCEEDED);
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
+        likeRepository.save(Like.builder()
+                .user(user)
+                .targetType(TargetType.ENROLL)
+                .targetId(id)
+                .build());
+
+        lecture.increaseEnrolledCount(); // 캐시된 등록 인원 증가
+    }
+
+    // 수강신청 취소
+    @Override
+    @Transactional
+    public void cancelEnrollment(Long id, Long userId) {
+        Lecture lecture = lectureRepository.findById(id)
+                .filter(l -> !l.getIsDeleted())
+                .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND));
+
+        if (!likeRepository.existsByUserIdAndTargetTypeAndTargetId(userId, TargetType.ENROLL, id)) {
+            throw new BusinessException(ErrorCode.COURSE_ENROLLMENT_NOT_FOUND);
+        }
+
+        likeRepository.deleteByUserIdAndTargetTypeAndTargetId(userId, TargetType.ENROLL, id);
+
+        lecture.decreaseEnrolledCount(); // 캐시된 등록 인원 감소
+    }
+
+    // 인기 강의 갱신 (좋아요수 desc, 조회수 desc 상위 N개만 isPopular=true)
+    @Override
+    @Transactional
+    public void refreshPopularLectures() {
+        List<Lecture> topLectures = lectureRepository
+                .findByIsDeletedFalseOrderByLikeCountDescViewCountDesc(PageRequest.of(0, POPULAR_LECTURE_COUNT));
+
+        lectureRepository.clearPopularStatus();
+
+        if (!topLectures.isEmpty()) {
+            List<Long> topIds = topLectures.stream().map(Lecture::getId).toList();
+            lectureRepository.markPopular(topIds);
+        }
     }
 }
