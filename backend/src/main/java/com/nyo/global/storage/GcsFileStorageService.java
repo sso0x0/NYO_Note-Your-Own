@@ -41,7 +41,7 @@ public class GcsFileStorageService implements FileStorageService {
         try {
             storage.create(blobInfo, file.getBytes());
         } catch (IOException e) {
-            throw new IllegalArgumentException("이미지 업로드에 실패했습니다.");
+            throw new BusinessException(ErrorCode.IMAGE_UPLOAD_FAILED);
         }
 
         return String.format("https://storage.googleapis.com/%s/%s", bucket, objectName);
@@ -49,26 +49,30 @@ public class GcsFileStorageService implements FileStorageService {
 
     @Override
     public void delete(String imageUrl) {
-        String objectName = imageUrl.substring(imageUrl.indexOf("/images/") + 1);
-        storage.delete(BlobId.of(bucket, objectName));
+        try {
+            String objectName = imageUrl.substring(imageUrl.indexOf("images/"));
+            storage.delete(BlobId.of(bucket, objectName));
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.IMAGE_DELETE_FAILED);
+        }
     }
 
     private void validate(MultipartFile file) {
         if (file.isEmpty()) {
-            throw new IllegalArgumentException("업로드할 이미지가 없습니다.");
+            throw new BusinessException(ErrorCode.IMAGE_EMPTY);
         }
         String ext = getExtension(file.getOriginalFilename()).toLowerCase();
         if (!ALLOWED_EXT.contains(ext)) {
-            throw new IllegalArgumentException("지원하지 않는 이미지 확장자입니다.");
+            throw new BusinessException(ErrorCode.IMAGE_INVALID_EXTENSION);
         }
         if (file.getSize() > MAX_SIZE) {
-            throw new IllegalArgumentException("이미지 용량이 너무 큽니다.");
+            throw new BusinessException(ErrorCode.IMAGE_TOO_LARGE);
         }
     }
 
     private String getExtension(String filename) {
         if (filename == null || !filename.contains(".")) {
-            throw new IllegalArgumentException("지원하지 않는 이미지 확장자입니다.");
+            throw new BusinessException(ErrorCode.IMAGE_INVALID_EXTENSION);
         }
         return filename.substring(filename.lastIndexOf(".") + 1);
     }
