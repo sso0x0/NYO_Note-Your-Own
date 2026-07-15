@@ -10,7 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-// 좋아요 엔티티 (노트/게시글/강의 공용)
+// 좋아요 엔티티 (노트/게시글/강의 공용, 강의 수강신청(ENROLL)도 동일 구조를 재활용)
 @Entity
 @Table(name = "likes")
 @Getter

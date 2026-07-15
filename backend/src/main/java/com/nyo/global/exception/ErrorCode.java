@@ -30,6 +30,8 @@ public enum ErrorCode {
     COURSE_CAPACITY_EXCEEDED(HttpStatus.CONFLICT, "정원이 마감된 강의입니다."),
     COURSE_ALREADY_DELETED(HttpStatus.CONFLICT, "이미 삭제된 강의입니다."),
     CAPACITY_LESS_THAN_ENROLLED(HttpStatus.BAD_REQUEST, "정원은 현재 등록 인원보다 작을 수 없습니다."),
+    COURSE_ALREADY_ENROLLED(HttpStatus.CONFLICT, "이미 수강신청한 강의입니다."),
+    COURSE_ENROLLMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "수강신청 내역이 없습니다."),
 
     // category (박소현)
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."),
