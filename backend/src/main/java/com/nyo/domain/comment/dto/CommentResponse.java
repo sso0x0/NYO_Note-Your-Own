@@ -17,28 +17,28 @@ import java.util.List;
 @Schema(description = "댓글/대댓글 응답 DTO")
 public class CommentResponse {
 
-    @Schema(description = "댓글 PK", example = "1")
+    @Schema(description = "댓글 ID", example = "1")
     private Long id;
 
-    @Schema(description = "소속 게시글 FK", example = "1")
+    @Schema(description = "게시글 ID", example = "1")
     private Long postId;
 
-    @Schema(description = "작성자 FK", example = "10")
+    @Schema(description = "작성자 ID", example = "10")
     private Long userId;
 
-    @Schema(description = "작성자 닉네임", example = "길동이")
+    @Schema(description = "작성자 닉네임", example = "길동")
     private String authorNickname;
 
-    @Schema(description = "상위 댓글 FK", example = "null")
+    @Schema(description = "상위 댓글 ID", example = "null")
     private Long parentCommentId;
 
-    @Schema(description = "댓글 내용", example = "좋은 정보 감사합니다!")
+    @Schema(description = "댓글 내용", example = "좋은 정보 감사합니다.")
     private String content;
 
     @Schema(description = "삭제 여부", example = "false")
     private Boolean isDeleted;
 
-    @Schema(description = "대댓글 목록 (최상위 댓글 조회 시 포함)")
+    @Schema(description = "대댓글 목록")
     private List<CommentResponse> replies;
 
     @Schema(description = "작성일")

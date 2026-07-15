@@ -1,5 +1,7 @@
 package com.nyo.domain.post.service;
 
+import com.nyo.domain.common.entity.Image;
+import com.nyo.domain.common.repository.ImageRepository;
 import com.nyo.domain.post.dto.PostRequest;
 import com.nyo.domain.post.dto.PostResponse;
 import com.nyo.domain.post.entity.Post;
@@ -20,10 +22,12 @@ import java.util.List;
 public class PostService {
 
     private final PostRepository postRepository;
+    private final ImageRepository imageRepository;
     private final JdbcTemplate jdbcTemplate;
 
     @Transactional
     public PostResponse create(Long userId, PostRequest request) {
+        // 게시글 기본 정보와 대표 이미지 URL을 posts 테이블에 저장할 객체로 만든다.
         Post post = Post.create(
                 userId,
                 request.getTitle(),
@@ -31,7 +35,11 @@ public class PostService {
                 request.getThumbnailUrl()
         );
 
-        return toResponse(postRepository.save(post));
+        // 게시글을 먼저 저장해야 생성된 postId를 이미지 테이블에 연결할 수 있다.
+        Post savedPost = postRepository.save(post);
+        savePostImage(savedPost.getId(), request.getThumbnailUrl());
+
+        return toResponse(savedPost);
     }
 
     public List<PostResponse> findAll() {
@@ -99,5 +107,15 @@ public class PostService {
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
                 .build();
+    }
+
+    private void savePostImage(Long postId, String imageUrl) {
+        // 이미지가 없는 게시글이면 images 테이블에는 저장하지 않는다.
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return;
+        }
+
+        // 업로드된 이미지 URL을 게시글 ID와 함께 images 테이블에 저장한다.
+        imageRepository.save(Image.createForPost(postId, imageUrl));
     }
 }

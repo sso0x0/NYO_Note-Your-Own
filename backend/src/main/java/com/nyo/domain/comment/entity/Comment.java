@@ -1,34 +1,66 @@
 package com.nyo.domain.comment.entity;
 
 import com.nyo.global.entity.BaseEntity;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * TODO: 실제 컬럼/연관관계는 팀 DDL 확정 후 채워주세요.
- * domain/chat과 동일한 4종 폴더 구조(controller·entity·repository·service)를 맞추기 위한
- * 스캐폴딩용 placeholder 엔티티입니다.
- */
-@Entity
-@Table(name = "comments")
 @Getter
+@Entity
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Table(name = "comments")
 public class Comment extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * 이 엔티티가 어떤 데이터를 표현하는지 스스로 설명합니다.
-     */
-    public String introduce() {
-        return "Comment 엔티티: 게시글에 달리는 댓글 내용을 저장합니다. (구현 예정)";
+    @Column(name = "post_id", nullable = false)
+    private Long postId;
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Column(name = "parent_comment_id")
+    private Long parentCommentId;
+
+    @Lob
+    @Column(nullable = false)
+    private String content;
+
+    @Column(name = "is_deleted", nullable = false)
+    private Integer isDeleted;
+
+    public static Comment create(Long postId, Long userId, Long parentCommentId, String content) {
+        return Comment.builder()
+                .postId(postId)
+                .userId(userId)
+                .parentCommentId(parentCommentId)
+                .content(content)
+                .isDeleted(0)
+                .build();
+    }
+
+    public void update(String content) {
+        this.content = content;
+    }
+
+    public void delete() {
+        this.isDeleted = 1;
+    }
+
+    public boolean isDeleted() {
+        return Integer.valueOf(1).equals(isDeleted);
     }
 }
