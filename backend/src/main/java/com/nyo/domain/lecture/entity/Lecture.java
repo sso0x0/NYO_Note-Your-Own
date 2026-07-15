@@ -145,4 +145,21 @@ public class Lecture {
     public void updatePopularStatus(boolean isPopular) {
         this.isPopular = isPopular;
     }
+
+    // 정원이 남아있는지 확인 (capacity가 NULL이면 무제한)
+    public boolean isFull() {
+        return capacity != null && currentEnrolled >= capacity;
+    }
+
+    // 수강신청 인원 1 증가
+    public void increaseEnrolledCount() {
+        this.currentEnrolled++;
+    }
+
+    // 수강신청 인원 1 감소
+    public void decreaseEnrolledCount() {
+        if (this.currentEnrolled > 0) {
+            this.currentEnrolled--;
+        }
+    }
 }
