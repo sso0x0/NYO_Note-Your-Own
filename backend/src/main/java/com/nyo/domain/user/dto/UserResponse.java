@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+// 회원 정보 조회/수정 API 공통 응답 (마이페이지 조회, 관리자 회원 조회/목록, 권한변경 결과 등에서 재사용)
 @Schema(description = "회원 정보 응답 DTO")
 public class UserResponse {
 

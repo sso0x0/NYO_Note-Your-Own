@@ -5,9 +5,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
+/** 회원(User) 엔티티 조회/중복확인용 리포지토리. 회원가입/로그인/마이페이지/관리자 기능 전반에서 사용. */
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    // 회원가입, 실시간 중복체크(check-*) API에서 사용
     boolean existsByLoginId(String loginId);
     boolean existsByEmail(String email);
     boolean existsByNickname(String nickname);
