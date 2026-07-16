@@ -4,6 +4,8 @@ import lombok.Builder;
 
 @Builder
 public record ImageUploadResponse(
-        String imageUrl
+        String imageUrl,
+        String originalName,
+        Long fileSize
 ) {
 }

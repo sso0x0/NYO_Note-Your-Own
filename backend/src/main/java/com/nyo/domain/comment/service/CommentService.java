@@ -58,7 +58,7 @@ public class CommentService {
         Comment comment = getComment(commentId);
 
         if (!comment.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT);
+            throw new BusinessException(ErrorCode.COMMENT_ACCESS_DENIED);
         }
 
         comment.update(request.getContent());
@@ -70,7 +70,7 @@ public class CommentService {
         Comment comment = getComment(commentId);
 
         if (!comment.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT);
+            throw new BusinessException(ErrorCode.COMMENT_ACCESS_DENIED);
         }
 
         comment.delete();
@@ -102,7 +102,7 @@ public class CommentService {
 
     private Comment getComment(Long commentId) {
         return commentRepository.findByIdAndIsDeleted(commentId, 0)
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT));
+                .orElseThrow(() -> new BusinessException(ErrorCode.COMMENT_NOT_FOUND));
     }
 
     private void validatePost(Long postId) {
@@ -117,6 +117,7 @@ public class CommentService {
 
         Comment parent = getComment(parentCommentId);
         if (!parent.getPostId().equals(postId)) {
+            // 대댓글은 같은 게시글 안의 댓글에만 연결할 수 있다.
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
     }

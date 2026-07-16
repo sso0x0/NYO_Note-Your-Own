@@ -42,6 +42,7 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // JWT는 세션 안 씀
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/api/notes/**", "/api/posts/**", "/api/comments/**", "/api/images/**", //테스트용 임시 삭제필요
                                 "/api/users/signup", "/api/users/login",
                                 "/api/users/check-login-id", "/api/users/check-email", "/api/users/check-nickname",
                                 "/oauth2/**", "/login/oauth2/**",   // 구글 로그인 리다이렉트 경로는 인증 없이 통과

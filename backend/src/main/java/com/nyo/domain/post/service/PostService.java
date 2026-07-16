@@ -1,13 +1,19 @@
 package com.nyo.domain.post.service;
 
+import com.nyo.domain.common.dto.request.LikeRequest;
+import com.nyo.domain.common.dto.request.ContentImageRequest;
+import com.nyo.domain.common.dto.request.ViewRequest;
 import com.nyo.domain.common.entity.Image;
 import com.nyo.domain.common.repository.ImageRepository;
+import com.nyo.domain.common.service.LikeService;
+import com.nyo.domain.common.service.ViewService;
 import com.nyo.domain.post.dto.PostRequest;
 import com.nyo.domain.post.dto.PostResponse;
 import com.nyo.domain.post.entity.Post;
 import com.nyo.domain.post.repository.PostRepository;
 import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
+import com.nyo.global.storage.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -15,6 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +31,9 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final ImageRepository imageRepository;
+    private final LikeService likeService;
+    private final ViewService viewService;
+    private final FileStorageService fileStorageService;
     private final JdbcTemplate jdbcTemplate;
 
     @Transactional
@@ -37,7 +48,8 @@ public class PostService {
 
         // 게시글을 먼저 저장해야 생성된 postId를 이미지 테이블에 연결할 수 있다.
         Post savedPost = postRepository.save(post);
-        savePostImage(savedPost.getId(), request.getThumbnailUrl());
+        savePostImage(savedPost.getId(), request.getThumbnailUrl(), request.getImageOriginalName(), request.getImageFileSize());
+        savePostContentImages(savedPost.getId(), request.getContentImages());
 
         return toResponse(savedPost);
     }
@@ -54,14 +66,59 @@ public class PostService {
     }
 
     @Transactional
+    public void increaseViewCount(Long postId, Long userId) {
+        getPost(postId);
+
+        // common의 view_logs에 오늘 조회 기록이 없을 때만 posts.view_count를 증가시킨다.
+        boolean isNewView = viewService.recordView(userId, ViewRequest.builder()
+                .targetType("POST")
+                .targetId(postId)
+                .build());
+
+        if (isNewView) {
+            // 카운트 전용 쿼리라 최종 수정일(updatedAt)은 변경되지 않는다.
+            postRepository.increaseViewCountOnly(postId);
+        }
+    }
+
+    @Transactional
+    public void likePost(Long postId, Long userId) {
+        getPost(postId);
+
+        // common의 likes 테이블에 POST 좋아요 기록을 저장하고 캐시 카운트를 올린다.
+        likeService.like(userId, LikeRequest.builder()
+                .targetType("POST")
+                .targetId(postId)
+                .build());
+        // 카운트 전용 쿼리라 최종 수정일(updatedAt)은 변경되지 않는다.
+        postRepository.increaseLikeCountOnly(postId);
+    }
+
+    @Transactional
+    public void unlikePost(Long postId, Long userId) {
+        getPost(postId);
+
+        // common의 likes 테이블에서 POST 좋아요 기록을 삭제하고 캐시 카운트를 내린다.
+        likeService.unlike(userId, LikeRequest.builder()
+                .targetType("POST")
+                .targetId(postId)
+                .build());
+        // 카운트 전용 쿼리라 최종 수정일(updatedAt)은 변경되지 않는다.
+        postRepository.decreaseLikeCountOnly(postId);
+    }
+
+    @Transactional
     public PostResponse update(Long postId, Long userId, PostRequest request) {
         Post post = getPost(postId);
 
         if (!post.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT);
+            throw new BusinessException(ErrorCode.POST_ACCESS_DENIED);
         }
 
+        String previousThumbnailUrl = post.getThumbnailUrl();
         post.update(request.getTitle(), request.getContent(), request.getThumbnailUrl());
+        saveChangedPostImage(postId, previousThumbnailUrl, request);
+        savePostContentImages(postId, request.getContentImages());
         return toResponse(post);
     }
 
@@ -70,9 +127,10 @@ public class PostService {
         Post post = getPost(postId);
 
         if (!post.getUserId().equals(userId) && !isAdmin(userId)) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT);
+            throw new BusinessException(ErrorCode.POST_ACCESS_DENIED);
         }
 
+        deletePostImages(postId, post.getThumbnailUrl());
         postRepository.delete(post);
     }
 
@@ -109,13 +167,76 @@ public class PostService {
                 .build();
     }
 
-    private void savePostImage(Long postId, String imageUrl) {
+    private void savePostImage(Long postId, String imageUrl, String originalName, Long fileSize) {
         // 이미지가 없는 게시글이면 images 테이블에는 저장하지 않는다.
         if (imageUrl == null || imageUrl.isBlank()) {
             return;
         }
 
-        // 업로드된 이미지 URL을 게시글 ID와 함께 images 테이블에 저장한다.
-        imageRepository.save(Image.createForPost(postId, imageUrl));
+        // 업로드된 이미지 URL, 원본 파일명, 파일 크기를 게시글 ID와 함께 images 테이블에 저장한다.
+        imageRepository.save(Image.createForPost(postId, imageUrl, originalName, fileSize));
+    }
+
+    private void saveChangedPostImage(Long postId, String previousImageUrl, PostRequest request) {
+        String newImageUrl = request.getThumbnailUrl();
+        if (newImageUrl == null || newImageUrl.isBlank() || newImageUrl.equals(previousImageUrl)) {
+            return;
+        }
+
+        deletePostImageUrl(postId, previousImageUrl);
+        // 게시글 수정에서 이미지가 바뀌면 기존 GCS 이미지를 삭제하고 새 이미지 정보를 저장한다.
+        imageRepository.save(Image.createForPost(postId, newImageUrl, request.getImageOriginalName(), request.getImageFileSize()));
+    }
+
+    private void savePostContentImages(Long postId, List<ContentImageRequest> contentImages) {
+        if (contentImages == null || contentImages.isEmpty()) {
+            return;
+        }
+
+        for (int i = 0; i < contentImages.size(); i++) {
+            ContentImageRequest image = contentImages.get(i);
+            if (image.getImageUrl() == null || image.getImageUrl().isBlank()) {
+                continue;
+            }
+
+            // 본문 중간에 삽입된 여러 이미지를 순서와 함께 images 테이블에 저장한다.
+            imageRepository.save(Image.createForPost(
+                    postId,
+                    image.getImageUrl(),
+                    image.getOriginalName(),
+                    image.getFileSize(),
+                    image.getDisplayOrder() == null ? i + 1 : image.getDisplayOrder()
+            ));
+        }
+    }
+
+    private void deletePostImageUrl(Long postId, String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return;
+        }
+
+        // 썸네일 교체 시에는 본문 이미지는 유지하고 기존 썸네일 URL만 GCS와 DB에서 삭제한다.
+        fileStorageService.delete(imageUrl);
+        imageRepository.deleteAll(imageRepository.findByPostIdAndImageUrl(postId, imageUrl));
+    }
+
+    private void deletePostImages(Long postId, String thumbnailUrl) {
+        List<Image> images = imageRepository.findByPostId(postId);
+        Set<String> imageUrls = new LinkedHashSet<>();
+
+        if (thumbnailUrl != null && !thumbnailUrl.isBlank()) {
+            imageUrls.add(thumbnailUrl);
+        }
+
+        for (Image image : images) {
+            imageUrls.add(image.getImageUrl());
+        }
+
+        for (String imageUrl : imageUrls) {
+            // images 테이블과 게시글 대표 이미지 URL을 모두 확인해서 GCS 파일을 삭제한다.
+            fileStorageService.delete(imageUrl);
+        }
+
+        imageRepository.deleteAll(images);
     }
 }
