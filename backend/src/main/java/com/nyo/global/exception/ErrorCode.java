@@ -44,11 +44,18 @@ public enum ErrorCode {
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."),
     MEMBER_DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
     MEMBER_DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
-    // 💡 추가: 회원가입/로그인/탈퇴/제재 로직에서 필요한 에러코드
     MEMBER_DUPLICATE_LOGIN_ID(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다."),
-    MEMBER_INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "비밀번호가 일치하지 않습니다."),
+    // 로그인 실패 시 계정 존재 여부가 드러나지 않도록 아이디 없음/비밀번호 틀림을 구분하지 않고 공통으로 사용
+    MEMBER_LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 일치하지 않습니다."),
+    MEMBER_LOGIN_LOCKED(HttpStatus.TOO_MANY_REQUESTS, "로그인 시도 횟수를 초과했습니다. 잠시 후 다시 시도해주세요."),
     MEMBER_INACTIVE(HttpStatus.FORBIDDEN, "로그인할 수 없는 계정 상태입니다."),
     MEMBER_ALREADY_WITHDRAWN(HttpStatus.GONE, "이미 탈퇴한 회원입니다."),
+    MEMBER_SIGNUP_CONFLICT(HttpStatus.CONFLICT, "이미 처리 중인 요청입니다. 잠시 후 다시 시도해주세요."),
+    MEMBER_CANNOT_SANCTION_SELF(HttpStatus.BAD_REQUEST, "관리자는 자기 자신을 제재할 수 없습니다."),
+    MEMBER_CANNOT_CHANGE_OWN_ROLE(HttpStatus.BAD_REQUEST, "관리자는 자기 자신의 권한을 변경할 수 없습니다."),
+    MEMBER_CURRENT_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "현재 비밀번호가 일치하지 않습니다."),
+    MEMBER_OAUTH_PASSWORD_CHANGE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "소셜 로그인 계정은 비밀번호를 변경할 수 없습니다."),
+    MEMBER_INVALID_NEW_PASSWORD(HttpStatus.BAD_REQUEST, "새 비밀번호는 8자 이상 72자 이하로 입력해주세요."),
 
     // ai / pomodoro (장예지)
     AI_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "AI 응답 생성에 실패했습니다."),

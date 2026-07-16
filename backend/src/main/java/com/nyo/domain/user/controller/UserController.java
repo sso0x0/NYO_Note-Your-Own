@@ -14,6 +14,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 일반 회원용 API. 전부 본인 관련 기능만 다루며(마이페이지 등), 다른 회원 정보 조회/수정은 불가능하다.
+ * signup/login/check-* 는 SecurityConfig에서 permitAll로 열려있고, 나머지(/me)는 JWT 인증 필요.
+ * 관리자 전용 회원 관리 기능은 AdminUserController 참고.
+ */
 @Tag(name = "User", description = "회원 인증 API")
 @RestController
 @RequestMapping("/api/users")
@@ -21,12 +26,6 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
-
-    @Operation(summary = "이 도메인이 어떤 기능을 담당하는지 자기소개")
-    @GetMapping("/intro")
-    public ApiResponse<String> introduce() {
-        return ApiResponse.ok(userService.introduce());
-    }
 
     // 💡 회원가입: 아이디/이메일/닉네임 중복이면 Service에서 예외 발생
     @Operation(summary = "회원가입")
@@ -69,7 +68,7 @@ public class UserController {
         return ApiResponse.ok(userService.getMyInfo(userId));
     }
 
-    // 💡 추가: 마이페이지 - 개인정보 수정 (이름/닉네임/전화번호)
+    // 💡 추가: 마이페이지 - 개인정보 수정 (이름/닉네임/전화번호, 선택적으로 비밀번호까지 같이 변경 가능)
     @Operation(summary = "마이페이지 - 개인정보 수정")
     @PutMapping("/me")
     public ApiResponse<UserResponse> updateMyProfile(@Valid @RequestBody UserProfileUpdateRequest request) {

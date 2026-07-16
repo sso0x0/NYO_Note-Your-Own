@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+// PATCH /api/admin/users/{userId}/role 요청 바디. 자기 자신에게는 사용 불가(UserService.adminChangeRole에서 차단)
 @Schema(description = "관리자 - 회원 권한 변경 요청 DTO")
 public class UserRoleUpdateRequest {
 

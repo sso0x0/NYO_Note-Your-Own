@@ -50,5 +50,7 @@ jwt:
   access-token-validity-ms: 3600000 # 1시간
 
 app:
+  cors:
+    allowed-origins: http://localhost:3000
   oauth2:
     redirect-uri: http://localhost:3000/oauth2/redirect
