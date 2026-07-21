@@ -15,6 +15,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 관리자 전용 회원 관리 API. SecurityConfig에서 "/api/admin/**" → hasRole("ADMIN")으로 보호되므로
+ * 여기 메서드들은 인증/권한 체크를 따로 하지 않는다 (필터 단에서 이미 걸러짐).
+ * 권한 변경/제재 등록은 관리자가 자기 자신을 대상으로는 할 수 없도록 UserService에서 막고 있다.
+ */
 @Tag(name = "Admin - User", description = "관리자 회원 관리 API")
 @RestController
 @RequestMapping("/api/admin/users")
@@ -37,12 +42,13 @@ public class AdminUserController {
         return ApiResponse.ok(userService.adminGetUser(userId));
     }
 
-    // 💡 권한 변경 (USER ↔ ADMIN)
+    // 💡 권한 변경 (USER ↔ ADMIN) - 자기 자신 강등 방지를 위해 adminId도 함께 전달
     @Operation(summary = "회원 권한 변경")
     @PatchMapping("/{userId}/role")
     public ApiResponse<UserResponse> changeRole(@PathVariable Long userId,
                                                 @Valid @RequestBody UserRoleUpdateRequest request) {
-        return ApiResponse.ok(userService.adminChangeRole(userId, request.getRole()));
+        Long adminId = SecurityUtil.getCurrentUserId();
+        return ApiResponse.ok(userService.adminChangeRole(adminId, userId, request.getRole()));
     }
 
     // 💡 제재 등록 (경고/정지/강제탈퇴) - adminId는 요청 바디가 아니라 로그인 토큰에서 추출

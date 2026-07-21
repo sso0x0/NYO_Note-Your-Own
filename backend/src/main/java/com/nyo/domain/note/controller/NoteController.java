@@ -52,6 +52,33 @@ public class NoteController {
         return noteService.findOne(noteId);
     }
 
+    // 노트 상세 진입 시 호출하면 common.view_logs로 중복 조회를 막고 조회수를 증가시킨다.
+    @PostMapping("/{noteId}/view")
+    public void increaseViewCount(
+            @PathVariable Long noteId,
+            @RequestParam Long userId
+    ) {
+        noteService.increaseViewCount(noteId, userId);
+    }
+
+    // 노트 좋아요 등록: common.likes에 NOTE 타입으로 저장한다.
+    @PostMapping("/{noteId}/like")
+    public void like(
+            @PathVariable Long noteId,
+            @RequestParam Long userId
+    ) {
+        noteService.likeNote(noteId, userId);
+    }
+
+    // 노트 좋아요 취소: common.likes의 NOTE 기록을 삭제한다.
+    @DeleteMapping("/{noteId}/like")
+    public void unlike(
+            @PathVariable Long noteId,
+            @RequestParam Long userId
+    ) {
+        noteService.unlikeNote(noteId, userId);
+    }
+
     // 노트 수정
     @PutMapping("/{noteId}")
     public NoteResponse update(

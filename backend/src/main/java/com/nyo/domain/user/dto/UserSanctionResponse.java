@@ -1,5 +1,6 @@
 package com.nyo.domain.user.dto;
 
+import com.nyo.global.enums.SanctionType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+// 관리자 제재 등록 결과 / 제재 이력 조회(GET /api/admin/users/{userId}/sanctions) 응답
 @Schema(description = "회원 제재 이력 응답 DTO")
 public class UserSanctionResponse {
 
@@ -25,8 +27,9 @@ public class UserSanctionResponse {
     @Schema(description = "제재를 처리한 관리자 FK", example = "1")
     private Long adminId;
 
+    // 💡 FIXED: String → SanctionType (UserSanction 엔티티가 이미 enum으로 바뀌어서 여기도 맞춰야 함)
     @Schema(description = "경고/정지/강제 탈퇴", example = "SUSPENSION")
-    private String type;
+    private SanctionType type;
 
     @Schema(description = "제재 처리 사유", example = "커뮤니티 이용 규칙 위반")
     private String reason;

@@ -1,5 +1,6 @@
 package com.nyo.domain.post.dto;
 
+import com.nyo.domain.common.dto.request.ContentImageRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -8,11 +9,13 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "커뮤니티 게시글 등록/수정 요청 DTO (userId는 인증 정보에서 추출)")
+@Schema(description = "커뮤니티 게시글 등록/수정 요청 DTO")
 public class PostRequest {
 
     @NotBlank(message = "게시글 제목은 필수입니다.")
@@ -25,6 +28,16 @@ public class PostRequest {
     private String content;
 
     @Size(max = 1000)
-    @Schema(description = "게시글 대표 썸네일 이미지 URL")
+    @Schema(description = "게시글 이미지 URL")
     private String thumbnailUrl;
+
+    @Size(max = 255)
+    @Schema(description = "업로드한 이미지 원본 파일명")
+    private String imageOriginalName;
+
+    @Schema(description = "업로드한 이미지 파일 크기(byte)")
+    private Long imageFileSize;
+
+    @Schema(description = "본문 중간에 삽입된 이미지 목록")
+    private List<ContentImageRequest> contentImages;
 }

@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.validator.constraints.URL;
 
 @Getter
 @Builder
@@ -26,12 +27,19 @@ public class LectureRequest {
     @Schema(description = "강의명", example = "스프링 부트 마스터 클래스")
     private String title;
 
+    @Size(max = 5000, message = "강의 설명은 5000자를 초과할 수 없습니다.")
     @Schema(description = "강의 설명")
     private String description;
 
     @Size(max = 1000)
+    @URL(message = "강의 링크는 올바른 URL 형식이어야 합니다.")
     @Schema(description = "강의 링크", example = "https://example.com")
     private String lectureUrl;
+
+    @Size(max = 1000)
+    @URL(message = "썸네일 URL은 올바른 URL 형식이어야 합니다.")
+    @Schema(description = "강의 대표 썸네일 이미지 URL", example = "https://example.com/thumbnail.jpg")
+    private String thumbnailUrl;
 
     @Size(max = 100)
     @Schema(description = "강사명", example = "김강사")

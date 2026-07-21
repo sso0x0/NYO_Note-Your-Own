@@ -40,9 +40,11 @@ public class Image {
     @Column(name = "image_url", nullable = false, length = 1000)
     private String imageUrl;
 
+    // 사용자가 업로드한 원본 파일명
     @Column(name = "original_name", length = 255)
     private String originalName;
 
+    // 사용자가 업로드한 파일 크기(byte)
     @Column(name = "file_size")
     private Long fileSize;
 
@@ -54,12 +56,35 @@ public class Image {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // 게시글 작성 시 thumbnailUrl을 images 테이블에 저장하기 위한 생성 메서드
-    public static Image createForPost(Long postId, String imageUrl) {
+    // 노트 이미지 URL과 파일 정보를 images 테이블에 저장하기 위한 생성 메서드
+    public static Image createForNote(Long noteId, String imageUrl, String originalName, Long fileSize) {
+        return createForNote(noteId, imageUrl, originalName, fileSize, 0);
+    }
+
+    // 본문 중간 이미지처럼 순서가 필요한 노트 이미지를 저장하기 위한 생성 메서드
+    public static Image createForNote(Long noteId, String imageUrl, String originalName, Long fileSize, Integer displayOrder) {
+        return Image.builder()
+                .noteId(noteId)
+                .imageUrl(imageUrl)
+                .originalName(originalName)
+                .fileSize(fileSize)
+                .displayOrder(displayOrder == null ? 0 : displayOrder)
+                .build();
+    }
+
+    // 게시글 이미지 URL과 파일 정보를 images 테이블에 저장하기 위한 생성 메서드
+    public static Image createForPost(Long postId, String imageUrl, String originalName, Long fileSize) {
+        return createForPost(postId, imageUrl, originalName, fileSize, 0);
+    }
+
+    // 본문 중간 이미지처럼 순서가 필요한 게시글 이미지를 저장하기 위한 생성 메서드
+    public static Image createForPost(Long postId, String imageUrl, String originalName, Long fileSize, Integer displayOrder) {
         return Image.builder()
                 .postId(postId)
                 .imageUrl(imageUrl)
-                .displayOrder(0)
+                .originalName(originalName)
+                .fileSize(fileSize)
+                .displayOrder(displayOrder == null ? 0 : displayOrder)
                 .build();
     }
 }

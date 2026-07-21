@@ -42,6 +42,33 @@ public class PostController {
         return postService.findOne(postId);
     }
 
+    // 게시글 상세 진입 시 호출하면 common.view_logs로 중복 조회를 막고 조회수를 증가시킨다.
+    @PostMapping("/{postId}/view")
+    public void increaseViewCount(
+            @PathVariable Long postId,
+            @RequestParam Long userId
+    ) {
+        postService.increaseViewCount(postId, userId);
+    }
+
+    // 게시글 좋아요 등록: common.likes에 POST 타입으로 저장한다.
+    @PostMapping("/{postId}/like")
+    public void like(
+            @PathVariable Long postId,
+            @RequestParam Long userId
+    ) {
+        postService.likePost(postId, userId);
+    }
+
+    // 게시글 좋아요 취소: common.likes의 POST 기록을 삭제한다.
+    @DeleteMapping("/{postId}/like")
+    public void unlike(
+            @PathVariable Long postId,
+            @RequestParam Long userId
+    ) {
+        postService.unlikePost(postId, userId);
+    }
+
     @PutMapping("/{postId}")
     public PostResponse update(
             @PathVariable Long postId,

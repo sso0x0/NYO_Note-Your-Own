@@ -7,6 +7,6 @@ package com.nyo.global.enums;
  * "ROLE_" 접두사가 자동으로 붙는 걸 감안해서 이름은 접두사 없이 둡니다.
  */
 public enum Role {
-    USER,
-    ADMIN
+    USER,   // 일반 회원. 기본값이며 대부분의 API는 이 권한으로 접근
+    ADMIN   // 관리자. /api/admin/** 하위 API(회원 관리, 제재 등) 접근 가능
 }

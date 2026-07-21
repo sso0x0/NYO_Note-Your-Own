@@ -49,6 +49,10 @@ public class Lecture {
     @Column(name = "lecture_url", length = 1000)
     private String lectureUrl;
 
+    // 강의 대표 썸네일 이미지 URL
+    @Column(name = "thumbnail_url", length = 1000)
+    private String thumbnailUrl;
+
     // 강사명
     @Column(name = "instructor", length = 100)
     private String instructor;
@@ -94,12 +98,13 @@ public class Lecture {
 
     @Builder
     public Lecture(Category category, User createdBy, String title, String description,
-                   String lectureUrl, String instructor, Integer capacity) {
+                   String lectureUrl, String thumbnailUrl, String instructor, Integer capacity) {
         this.category = category;
         this.createdBy = createdBy;
         this.title = title;
         this.description = description;
         this.lectureUrl = lectureUrl;
+        this.thumbnailUrl = thumbnailUrl;
         this.instructor = instructor;
         this.capacity = capacity;
         this.currentEnrolled = 0;
@@ -110,11 +115,12 @@ public class Lecture {
     }
     // 강의 정보 수정 (관리자만 호출 가능)
     public void update(Category category, String title, String description,
-                       String lectureUrl, String instructor, Integer capacity) {
+                       String lectureUrl, String thumbnailUrl, String instructor, Integer capacity) {
         this.category = category;
         this.title = title;
         this.description = description;
         this.lectureUrl = lectureUrl;
+        this.thumbnailUrl = thumbnailUrl;
         this.instructor = instructor;
         this.capacity = capacity;
     }
@@ -124,42 +130,8 @@ public class Lecture {
         this.isDeleted = true;
     }
 
-    // 조회수 1 증가 (중복 방지 통과 후 처리)
-    public void increaseViewCount() {
-        this.viewCount++;
-    }
-
-    // 좋아요수 1 증가
-    public void increaseLikeCount() {
-        this.likeCount++;
-    }
-
-    // 좋아요수 1 감소
-    public void decreaseLikeCount() {
-        if (this.likeCount > 0) {
-            this.likeCount--;
-        }
-    }
-
     // 인기 강의 여부 갱신
     public void updatePopularStatus(boolean isPopular) {
         this.isPopular = isPopular;
-    }
-
-    // 정원이 남아있는지 확인 (capacity가 NULL이면 무제한)
-    public boolean isFull() {
-        return capacity != null && currentEnrolled >= capacity;
-    }
-
-    // 수강신청 인원 1 증가
-    public void increaseEnrolledCount() {
-        this.currentEnrolled++;
-    }
-
-    // 수강신청 인원 1 감소
-    public void decreaseEnrolledCount() {
-        if (this.currentEnrolled > 0) {
-            this.currentEnrolled--;
-        }
     }
 }

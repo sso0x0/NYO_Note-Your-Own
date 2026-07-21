@@ -14,6 +14,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+// POST /api/users/signup 요청 바디. oauthProvider/oauthId 필드는 구글 가입 흐름(CustomOAuth2UserService)에서만
+// 내부적으로 채워지며, 이 DTO를 거치는 일반 회원가입에서는 사용되지 않는다.
 @Schema(description = "회원가입 / 회원정보 수정 요청 DTO")
 public class UserRequest {
 
@@ -22,8 +24,10 @@ public class UserRequest {
     @Schema(description = "로그인 아이디", example = "nyo_user01")
     private String loginId;
 
-    @Size(min = 8, max = 255, message = "비밀번호는 8자 이상으로 입력해주세요.")
-    @Schema(description = "비밀번호 (소셜 로그인 회원은 null 가능)", example = "P@ssw0rd123")
+    // 💡 BCrypt는 72바이트 이후는 잘라서 해싱하므로, 그보다 긴 값을 허용하면 뒷부분이 조용히 무시된다
+    @NotBlank(message = "비밀번호는 필수입니다.")
+    @Size(min = 8, max = 72, message = "비밀번호는 8자 이상 72자 이하로 입력해주세요.")
+    @Schema(description = "비밀번호", example = "P@ssw0rd123")
     private String password;
 
     @NotBlank(message = "이름은 필수입니다.")
