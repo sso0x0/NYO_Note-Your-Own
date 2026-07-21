@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+// 관리자 제재 등록 결과 / 제재 이력 조회(GET /api/admin/users/{userId}/sanctions) 응답
 @Schema(description = "회원 제재 이력 응답 DTO")
 public class UserSanctionResponse {
 
