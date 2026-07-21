@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
@@ -49,12 +51,55 @@ public class GcsFileStorageService implements FileStorageService {
 
     @Override
     public void delete(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return;
+        }
+
         try {
-            String objectName = imageUrl.substring(imageUrl.indexOf("images/"));
-            storage.delete(BlobId.of(bucket, objectName));
+            String objectName = extractObjectName(imageUrl);
+            if (objectName == null) {
+                return;
+            }
+
+            // GCS에서 실제 삭제가 실패하면 조용히 넘어가지 않고 이미지 삭제 실패로 처리한다.
+            boolean deleted = storage.delete(BlobId.of(bucket, objectName));
+            if (!deleted) {
+                throw new BusinessException(ErrorCode.IMAGE_DELETE_FAILED);
+            }
         } catch (Exception e) {
+            if (e instanceof BusinessException) {
+                throw e;
+            }
             throw new BusinessException(ErrorCode.IMAGE_DELETE_FAILED);
         }
+    }
+
+    private String extractObjectName(String imageUrl) {
+        String decodedUrl = URLDecoder.decode(imageUrl, StandardCharsets.UTF_8);
+        String bucketPathPrefix = "storage.googleapis.com/" + bucket + "/";
+        int bucketPathIndex = decodedUrl.indexOf(bucketPathPrefix);
+
+        if (bucketPathIndex >= 0) {
+            return removeQueryString(decodedUrl.substring(bucketPathIndex + bucketPathPrefix.length()));
+        }
+
+        String hostedBucketPrefix = bucket + ".storage.googleapis.com/";
+        int hostedBucketIndex = decodedUrl.indexOf(hostedBucketPrefix);
+
+        if (hostedBucketIndex >= 0) {
+            return removeQueryString(decodedUrl.substring(hostedBucketIndex + hostedBucketPrefix.length()));
+        }
+
+        if (decodedUrl.startsWith("images/")) {
+            return removeQueryString(decodedUrl);
+        }
+
+        return null;
+    }
+
+    private String removeQueryString(String objectName) {
+        int queryIndex = objectName.indexOf("?");
+        return queryIndex >= 0 ? objectName.substring(0, queryIndex) : objectName;
     }
 
     private void validate(MultipartFile file) {

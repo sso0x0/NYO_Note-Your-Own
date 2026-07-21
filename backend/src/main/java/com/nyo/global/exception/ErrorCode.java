@@ -14,17 +14,6 @@ public enum ErrorCode {
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "잘못된 입력입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다."),
 
-    // 좋아요 관련 에러
-    ALREADY_LIKED(HttpStatus.CONFLICT, "이미 좋아요를 눌렀습니다."),
-    LIKE_NOT_FOUND(HttpStatus.NOT_FOUND, "좋아요 내역이 없습니다."),
-
-    // 이미지 관련
-    IMAGE_EMPTY(HttpStatus.BAD_REQUEST, "업로드할 이미지가 없습니다."),
-    IMAGE_INVALID_EXTENSION(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 확장자입니다."),
-    IMAGE_TOO_LARGE(HttpStatus.BAD_REQUEST, "이미지 용량이 너무 큽니다."),
-    IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "이미지 업로드에 실패했습니다."),
-    IMAGE_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "이미지 삭제에 실패했습니다."),
-
     // course (박소현)
     COURSE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 강의입니다."),
     COURSE_CAPACITY_EXCEEDED(HttpStatus.CONFLICT, "정원이 마감된 강의입니다."),
@@ -37,8 +26,28 @@ public enum ErrorCode {
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."),
 
     // note / community (염상환)
+    // 노트 관련 에러코드
     NOTE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 노트입니다."),
+    NOTE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "노트에 대한 권한이 없습니다."),
+
+    // 게시글 관련 에러코드
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 게시글입니다."),
+    POST_ACCESS_DENIED(HttpStatus.FORBIDDEN, "게시글에 대한 권한이 없습니다."),
+
+    // 댓글 관련 에러코드
+    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 댓글입니다."),
+    COMMENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "댓글에 대한 권한이 없습니다."),
+
+    // 좋아요 관련 에러코드
+    ALREADY_LIKED(HttpStatus.CONFLICT, "이미 좋아요를 눌렀습니다."),
+    LIKE_NOT_FOUND(HttpStatus.NOT_FOUND, "좋아요 내역이 없습니다."),
+
+    // 노트/게시글 이미지 관련 에러코드
+    IMAGE_EMPTY(HttpStatus.BAD_REQUEST, "업로드할 이미지가 없습니다."),
+    IMAGE_INVALID_EXTENSION(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 확장자입니다."),
+    IMAGE_TOO_LARGE(HttpStatus.BAD_REQUEST, "이미지 용량이 너무 큽니다."),
+    IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "이미지 업로드에 실패했습니다."),
+    IMAGE_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "이미지 삭제에 실패했습니다."),
 
     // member (오찬빈)
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."),
