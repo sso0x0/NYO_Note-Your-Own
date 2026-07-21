@@ -2,7 +2,6 @@ package com.nyo.global.security;
 
 import com.nyo.global.jwt.JwtAuthenticationFilter;
 import com.nyo.global.oauth2.CustomOAuth2UserService;
-import com.nyo.global.oauth2.OAuth2FailureHandler;
 import com.nyo.global.oauth2.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +10,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -33,14 +34,12 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
-    private final OAuth2FailureHandler oAuth2FailureHandler;
 
+    // 💡 application.yml의 CORS 허용 도메인 리스트를 주입받음
     @Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
 
-    // 💡 PasswordEncoder 빈은 순환 참조를 피하기 위해 PasswordEncoderConfig로 분리했습니다.
-
-    // 프론트가 별도 origin(localhost:3000)에서 Authorization 헤더를 실어 호출하므로 CORS 허용이 필요
+    // 💡 누락되었던 CORS 설정 내용 복구 및 @Bean 등록
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
@@ -63,23 +62,17 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // JWT는 세션 안 씀
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                // 로그인 전 상태에서 호출되는 회원가입/로그인/실시간 중복체크 API (JWT가 있을 수 없으니 인증 제외)
                                 "/api/users/signup", "/api/users/login",
                                 "/api/users/check-login-id", "/api/users/check-email", "/api/users/check-nickname",
                                 "/oauth2/**", "/login/oauth2/**",   // 구글 로그인 리다이렉트 경로는 인증 없이 통과
-                                "/docs/**", "/swagger-ui/**", "/v3/api-docs/**",  // 💡 springdoc 경로가 /docs로 되어있어서 반영
-                                "/api/lectures/**"  // TODO: 강의 컨트롤러에 실제 인증 붙으면 이 줄 제거
+                                "/docs/**", "/swagger-ui/**", "/v3/api-docs/**"  // 💡 springdoc 경로가 /docs로 되어있어서 반영
                         ).permitAll()
-                        // 관리자 전용 API (AdminUserController 등) - JwtAuthenticationFilter가 매 요청마다
-                        // DB에서 최신 role을 조회해 인증 정보를 만들기 때문에, 권한이 바뀌면 다음 요청부터 바로 반영됨
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated() // 그 외 전부 JWT 인증 필요 (마이페이지 등)
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN") // TODO: 관리자 파트 구현 시 활성화
+                        .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                         .successHandler(oAuth2SuccessHandler)
-                        .failureHandler(oAuth2FailureHandler)
-                                "/api/notes/**", "/api/posts/**", "/api/comments/**", "/api/images/**", //테스트용 임시 삭제필요
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

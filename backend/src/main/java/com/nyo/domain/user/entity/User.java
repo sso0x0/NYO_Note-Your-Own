@@ -89,6 +89,13 @@ public class User {
         return user;
     }
 
+    // 로컬 가입 계정에 구글 로그인을 연동할 때 사용. 이메일이 검증된 경우에만 호출된다(CustomOAuth2UserService 참고).
+    public void linkOauth(String oauthProvider, String oauthId) {
+        this.oauthProvider = oauthProvider;
+        this.oauthId = oauthId;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     // 마이페이지에서 이름/닉네임/전화번호 수정 (아이디·이메일·비밀번호는 여기서 변경 불가)
     public void updateProfile(String name, String nickname, String phone) {
         this.name = name;
