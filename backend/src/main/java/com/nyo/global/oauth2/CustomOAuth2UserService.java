@@ -20,7 +20,8 @@ import org.springframework.stereotype.Service;
  *
  * 처리 순서:
  *  1. 부모 클래스(DefaultOAuth2UserService)가 구글 UserInfo 엔드포인트를 호출해 프로필을 가져온다.
- *  2. provider + oauthId로 기존 가입 회원을 찾고, 없으면 새로 가입시킨다.
+ *  2. provider + oauthId로 기존 가입 회원을 찾는다. 없으면 같은 이메일로 가입된 로컬 계정에 연동하거나(이메일이
+ *     구글에서 검증된 경우) 그마저 없으면 새로 가입시킨다.
  *  3. 회원의 현재 상태(정지/탈퇴 여부)를 UserService에 위임해 검증한다.
  *     여기서 막지 않으면 정지·탈퇴된 회원이 구글 로그인만으로 제재를 그대로 우회할 수 있다.
  *  4. 문제 없으면 CustomOAuth2User로 감싸 반환한다 → 이후 OAuth2SuccessHandler가 JWT를 발급한다.
@@ -42,10 +43,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String oauthId = oAuth2User.getAttribute("sub");     // 구글이 부여하는 계정 고유 식별자
         String email = oAuth2User.getAttribute("email");
         String name = oAuth2User.getAttribute("name");
+        Boolean emailVerified = oAuth2User.getAttribute("email_verified");
 
-        // 이 구글 계정으로 이미 가입돼 있으면 그 회원을 그대로 쓰고, 처음 로그인하는 계정이면 자동 가입시킨다.
+        // 이 구글 계정으로 이미 가입돼 있으면 그 회원을 그대로 쓰고, 처음 로그인하는 계정이면
+        // 같은 이메일의 로컬 가입 계정에 연동하거나(findOrLinkByEmail) 없으면 새로 가입시킨다.
         User user = userRepository.findByOauthProviderAndOauthId(provider, oauthId)
-                .orElseGet(() -> registerNewOauthUser(provider, oauthId, email, name));
+                .orElseGet(() -> findOrLinkByEmail(provider, oauthId, email, name, emailVerified));
 
         // 일반 로그인(UserService.login)과 동일한 기준으로 정지/탈퇴 여부를 검사한다.
         // BusinessException은 Spring Security의 인증 실패 처리 흐름과 맞지 않으므로
@@ -57,6 +60,27 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         }
 
         return new CustomOAuth2User(user, oAuth2User.getAttributes());
+    }
+
+    // 처음 보는 (provider, oauthId) 조합이면, 같은 이메일로 가입된 로컬 계정이 있는지 먼저 확인한다.
+    // email 컬럼이 unique라 그냥 새로 가입시키면 DataIntegrityViolationException으로 실패해버리므로,
+    // 구글이 이메일 소유를 검증했을 때(email_verified=true)만 그 계정에 구글 로그인을 연동해준다.
+    // 검증되지 않았거나 같은 이메일 계정이 없으면 기존과 동일하게 새로 가입시킨다.
+    private User findOrLinkByEmail(String provider, String oauthId, String email, String name, Boolean emailVerified) {
+        if (Boolean.TRUE.equals(emailVerified)) {
+            User existing = userRepository.findByEmail(email).orElse(null);
+            if (existing != null) {
+                if (existing.getOauthProvider() != null) {
+                    // 이미 다른 (provider, oauthId)에 연동된 이메일 - 정상 흐름에서는 발생하지 않지만 방어적으로 막는다.
+                    throw new OAuth2AuthenticationException( // 오류일 경우 이미 처리 중인 요청 메시지 출력
+                            new OAuth2Error(ErrorCode.MEMBER_SIGNUP_CONFLICT.name()),
+                            ErrorCode.MEMBER_SIGNUP_CONFLICT.getMessage());
+                }
+                existing.linkOauth(provider, oauthId);
+                return userRepository.save(existing);
+            }
+        }
+        return registerNewOauthUser(provider, oauthId, email, name);
     }
 
     // 처음 보는 구글 계정이면 회원 레코드를 새로 만든다. password는 null로 두어 아이디/비밀번호 로그인은 막아둔다.
