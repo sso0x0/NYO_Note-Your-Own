@@ -26,6 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 
+/**
+ * 뽀모도로 학습 타이머 기록 CRUD 및 통계 조회.
+ * "/period", "/stats/today", "/stats/total"은 "/{id}"와 세그먼트 수가 다르거나
+ * 더 구체적인 리터럴 경로라 Spring이 알아서 우선 매칭하므로 등록 순서와 무관하게 충돌하지 않습니다.
+ */
 @Tag(name = "Pomodoro", description = "뽀모도로 학습 타이머 API")
 @RestController
 @RequestMapping("/api/pomodoros")
@@ -49,7 +54,7 @@ public class PomodoroController {
         return ApiResponse.ok(pomodoroService.update(SecurityUtil.getCurrentUserId(), id, request));
     }
 
-    @Operation(summary = "타이머 기록 단건 조회")
+    @Operation(summary = "타이머 기록 단건 조회", description = "본인 기록이 아니면 403을 반환합니다.")
     @GetMapping("/{id}")
     public ApiResponse<PomodoroRecordResponse> getRecord(@PathVariable Long id) {
         return ApiResponse.ok(pomodoroService.getRecord(SecurityUtil.getCurrentUserId(), id));
@@ -62,7 +67,8 @@ public class PomodoroController {
         return ApiResponse.ok(pomodoroService.getRecords(SecurityUtil.getCurrentUserId(), pageable));
     }
 
-    @Operation(summary = "기간별 타이머 기록 조회 (startDate ~ endDate, 최신순)")
+    @Operation(summary = "기간별 타이머 기록 조회 (startDate ~ endDate, 최신순)",
+            description = "recordDate(타이머 시작일 기준) 범위로 필터링합니다. endDate가 startDate보다 빠르면 400을 반환합니다.")
     @GetMapping("/period")
     public ApiResponse<PageResponse<PomodoroRecordResponse>> getRecordsByPeriod(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -72,13 +78,15 @@ public class PomodoroController {
                 SecurityUtil.getCurrentUserId(), startDate, endDate, pageable));
     }
 
-    @Operation(summary = "오늘 누적 공부 시간(분) 조회")
+    @Operation(summary = "오늘 누적 공부 시간(분) 조회",
+            description = "endedAt이 채워진(완료된) 세션의 focusMinutes만 합산합니다. 진행 중인 타이머는 제외됩니다.")
     @GetMapping("/stats/today")
     public ApiResponse<PomodoroStudyTimeResponse> getTodayStudyTime() {
         return ApiResponse.ok(pomodoroService.getTodayStudyTime(SecurityUtil.getCurrentUserId()));
     }
 
-    @Operation(summary = "전체 누적 공부 시간(분) 조회")
+    @Operation(summary = "전체 누적 공부 시간(분) 조회",
+            description = "endedAt이 채워진(완료된) 세션의 focusMinutes만 합산합니다. 진행 중인 타이머는 제외됩니다.")
     @GetMapping("/stats/total")
     public ApiResponse<PomodoroStudyTimeResponse> getTotalStudyTime() {
         return ApiResponse.ok(pomodoroService.getTotalStudyTime(SecurityUtil.getCurrentUserId()));

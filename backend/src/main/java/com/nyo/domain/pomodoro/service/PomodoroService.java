@@ -58,6 +58,7 @@ public class PomodoroService {
         return toResponse(record);
     }
 
+    // update()와 동일한 소유권 검증 패턴: 존재 여부 먼저 확인 후 본인 기록인지 확인
     public PomodoroRecordResponse getRecord(Long userId, Long id) {
         PomodoroRecord record = pomodoroRecordRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POMODORO_NOT_FOUND));
@@ -74,6 +75,7 @@ public class PomodoroService {
                 pomodoroRecordRepository.findByUserId(userId, pageable).map(this::toResponse));
     }
 
+    // recordDate(타이머 시작일)를 startDate~endDate로 필터링. 날짜 역순이면 바로 에러 처리.
     public PageResponse<PomodoroRecordResponse> getRecordsByPeriod(
             Long userId, LocalDate startDate, LocalDate endDate, Pageable pageable) {
         if (endDate.isBefore(startDate)) {
@@ -84,6 +86,7 @@ public class PomodoroService {
                         .map(this::toResponse));
     }
 
+    // 진행 중인(endedAt == null) 타이머는 아직 끝나지 않았으니 집계에서 제외 (레포지토리 쿼리에서 필터링)
     public PomodoroStudyTimeResponse getTodayStudyTime(Long userId) {
         Integer minutes = pomodoroRecordRepository.sumFocusMinutesByUserIdAndRecordDate(userId, LocalDate.now());
         return PomodoroStudyTimeResponse.builder().totalFocusMinutes(minutes).build();
