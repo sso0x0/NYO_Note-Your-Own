@@ -10,8 +10,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -34,6 +32,8 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final RestAccessDeniedHandler restAccessDeniedHandler;
 
     // 💡 application.yml의 CORS 허용 도메인 리스트를 주입받음
     @Value("${app.cors.allowed-origins}")
@@ -65,7 +65,8 @@ public class SecurityConfig {
                                 "/api/users/signup", "/api/users/login",
                                 "/api/users/check-login-id", "/api/users/check-email", "/api/users/check-nickname",
                                 "/oauth2/**", "/login/oauth2/**",   // 구글 로그인 리다이렉트 경로는 인증 없이 통과
-                                "/docs/**", "/swagger-ui/**", "/v3/api-docs/**"  // 💡 springdoc 경로가 /docs로 되어있어서 반영
+                                "/docs/**", "/swagger-ui/**", "/v3/api-docs/**",  // 💡 springdoc 경로가 /docs로 되어있어서 반영
+                                "/api/health"  // 프론트-백엔드 연결 확인용이라 로그인 전에도 호출 가능해야 함
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN") // TODO: 관리자 파트 구현 시 활성화
                         .anyRequest().authenticated()
@@ -73,6 +74,12 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                         .successHandler(oAuth2SuccessHandler)
+                )
+                // oauth2Login()이 등록하는 기본 진입점은 미인증 요청을 구글 로그인 페이지로 302 리다이렉트한다.
+                // JWT 기반 REST API 클라이언트는 리다이렉트를 못 쓰니 401/403 JSON 응답으로 교체.
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(restAuthenticationEntryPoint)
+                        .accessDeniedHandler(restAccessDeniedHandler)
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
