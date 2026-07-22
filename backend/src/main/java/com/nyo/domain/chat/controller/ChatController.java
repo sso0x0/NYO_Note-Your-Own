@@ -20,6 +20,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * userId를 요청 파라미터로 받던 예전 방식(JWT 인증 전 임시 코드)에서
+ * PomodoroController 등 다른 컨트롤러와 동일하게 SecurityUtil.getCurrentUserId()로
+ * 인증 토큰에서 추출하도록 되돌린 상태. 프론트는 로그인 토큰만 있으면 호출 가능하다.
+ */
 @Tag(name = "Chat", description = "RAG 학습 챗봇 API")
 @RestController
 @RequestMapping("/api/chats")

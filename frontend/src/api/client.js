@@ -41,6 +41,7 @@ export async function apiGet(path, params = {}) {
   return unwrap(payload);
 }
 
+// apiPost와 apiPatch가 body만 있고 method만 다르므로 공통 로직을 여기 하나로 모았다.
 async function sendJson(method, path, body = {}, { token } = {}) {
   const url = new URL(path, BASE_URL);
   const headers = { 'Content-Type': 'application/json' };
@@ -69,6 +70,7 @@ export function apiPost(path, body = {}, options = {}) {
   return sendJson('POST', path, body, options);
 }
 
+// 뽀모도로 타이머 종료(PATCH)처럼 부분 수정 API에 사용. apiPost와 동작은 동일하고 method만 다르다.
 export function apiPatch(path, body = {}, options = {}) {
   return sendJson('PATCH', path, body, options);
 }
