@@ -1,26 +1,27 @@
-import { useState } from 'react'
-import { isLoggedIn } from './api/auth'
-import { TABS } from './tabs'
-import LoginForm from './components/LoginForm'
-import AppNav from './components/AppNav'
-import PomodoroPage from './features/pomodoro/PomodoroPage'
-import ChatPage from './features/chat/ChatPage'
-import './App.css'
+import { Route, Routes } from 'react-router-dom';
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
+import LectureListPage from './pages/LectureListPage';
+import LectureDetailPage from './pages/LectureDetailPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedLayout from './components/ProtectedLayout';
 
 function App() {
-  const [loggedIn, setLoggedIn] = useState(isLoggedIn())
-  const [tab, setTab] = useState(TABS.POMODORO)
-
-  if (!loggedIn) {
-    return <LoginForm onLoggedIn={() => setLoggedIn(true)} />
-  }
-
   return (
-      <div className="app-shell">
-        <AppNav tab={tab} onTabChange={setTab} onLoggedOut={() => setLoggedIn(false)} />
-        {tab === TABS.POMODORO ? <PomodoroPage /> : <ChatPage />}
-      </div>
-  )
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+
+      <Route element={<ProtectedRoute />}>
+        <Route path="/main" element={<ProtectedLayout />}>
+          <Route index element={<LectureListPage />} />
+          <Route path="lectures/:id" element={<LectureDetailPage />} />
+        </Route>
+      </Route>
+    </Routes>
+  );
 }
 
-export default App
+export default App;
