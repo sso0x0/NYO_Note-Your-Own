@@ -177,7 +177,8 @@ public class PostService {
         }
 
         deletePostImages(postId, post.getThumbnailUrl());
-        postRepository.delete(post);
+        // isDeleted 기반 소프트 삭제: comments 등 자식 데이터가 참조하는 row를 물리 삭제하지 않는다.
+        post.delete();
     }
 
     private Post getPost(Long postId) {

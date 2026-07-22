@@ -9,22 +9,30 @@ import com.nyo.domain.common.entity.TargetType;
 import com.nyo.domain.common.repository.LikeRepository;
 import com.nyo.domain.common.service.LikeService;
 import com.nyo.domain.common.service.ViewService;
+import com.nyo.domain.lecture.document.LectureDocument;
 import com.nyo.domain.lecture.dto.LectureRequest;
 import com.nyo.domain.lecture.dto.LectureResponse;
 import com.nyo.domain.lecture.entity.Lecture;
 import com.nyo.domain.lecture.repository.LectureRepository;
+import com.nyo.domain.lecture.repository.LectureSearchRepository;
 import com.nyo.domain.user.entity.User;
 import com.nyo.domain.user.repository.UserRepository;
 import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +43,7 @@ public class LectureServiceImpl implements LectureService {
     private static final int POPULAR_LECTURE_COUNT = 10;
 
     private final LectureRepository lectureRepository;
+    private final LectureSearchRepository lectureSearchRepository; // 강의 검색 색인 (Elasticsearch)
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final LikeService likeService; // 좋아요 공용 서비스 (common 도메인)
@@ -55,9 +64,9 @@ public class LectureServiceImpl implements LectureService {
         }
     }
 
-    // 관리자 조회 (존재하지 않으면 예외)
+    // 관리자 조회 (존재하지 않으면 예외). ADMIN 권한 자체는 SecurityConfig의 "/api/admin/**" → hasRole("ADMIN")에서
+    // 이미 걸러지므로(AdminLectureController), 여기서는 회원 존재 여부만 확인한다.
     private User findAdmin(Long adminId) {
-        // TODO: admin.getRole()이 "ADMIN"인지 검증 로직 추가 권장
         return userRepository.findById(adminId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
     }
@@ -88,6 +97,8 @@ public class LectureServiceImpl implements LectureService {
                 .build();
 
         Lecture saved = lectureRepository.save(lecture);
+        lectureSearchRepository.save(LectureDocument.from(saved)); // 검색 색인 반영
+
         return LectureResponse.from(saved);
     }
 
@@ -152,6 +163,8 @@ public class LectureServiceImpl implements LectureService {
 
         lecture.update(category, request.getTitle(), request.getDescription(),
                 request.getLectureUrl(), request.getThumbnailUrl(), request.getInstructor(), request.getCapacity());
+        lectureSearchRepository.save(LectureDocument.from(lecture)); // 검색 색인 반영
+
         return LectureResponse.from(lecture);
     }
 
@@ -175,6 +188,8 @@ public class LectureServiceImpl implements LectureService {
         // 삭제된 강의에 달려있던 좋아요/수강신청 레코드 정리 (통계/목록 정합성)
         likeRepository.deleteByTargetTypeAndTargetId(TargetType.LECTURE, id);
         likeRepository.deleteByTargetTypeAndTargetId(TargetType.ENROLL, id);
+
+        lectureSearchRepository.deleteById(id); // 검색 결과에서도 제외
     }
 
     // ===== 조회수 / 좋아요 / 수강신청 =====
@@ -280,5 +295,47 @@ public class LectureServiceImpl implements LectureService {
             List<Long> topIds = topLectures.stream().map(Lecture::getId).toList();
             lectureRepository.markPopular(topIds);
         }
+    }
+
+    // 키워드로 강의 검색 (Elasticsearch에서 관련도순 id를 찾은 뒤, DB에서 실제 데이터를 조회해 순서를 맞춘다)
+    @Override
+    public Page<LectureResponse> searchLectures(String keyword, Pageable pageable) {
+        if (!StringUtils.hasText(keyword)) {
+            return Page.empty(pageable);
+        }
+
+        // 검색 결과는 ES 관련도 점수순으로 정렬되므로 요청에 담긴 정렬 조건(sort)은 무시한다.
+        // (그대로 넘기면 색인에 없는 필드로 정렬을 시도해 전체 샤드 실패로 이어질 수 있음)
+        Pageable searchPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<LectureDocument> searchResult = lectureSearchRepository.searchByKeyword(keyword, searchPageable);
+        List<Long> ids = searchResult.getContent().stream().map(LectureDocument::getId).toList();
+
+        if (ids.isEmpty()) {
+            return Page.empty(searchPageable);
+        }
+
+        Map<Long, Lecture> lecturesById = lectureRepository.findAllByIdInAndIsDeletedFalse(ids).stream()
+                .collect(Collectors.toMap(Lecture::getId, Function.identity()));
+
+        // ES가 매긴 관련도 순서를 유지하기 위해 id 순서대로 재조립 (DB와 색인이 일시적으로 어긋난 id는 건너뜀)
+        List<LectureResponse> content = ids.stream()
+                .map(lecturesById::get)
+                .filter(Objects::nonNull)
+                .map(LectureResponse::from)
+                .toList();
+
+        return new PageImpl<>(content, searchPageable, searchResult.getTotalElements());
+    }
+
+    // 전체 강의로 검색 색인 재구축 (색인 유실 복구, 초기 데이터 반영 등)
+    @Override
+    @Transactional
+    public void reindexAllLectures() {
+        List<Lecture> lectures = lectureRepository.findByIsDeletedFalse(Pageable.unpaged()).getContent();
+        List<LectureDocument> documents = lectures.stream().map(LectureDocument::from).toList();
+
+        lectureSearchRepository.deleteAll();
+        lectureSearchRepository.saveAll(documents);
     }
 }

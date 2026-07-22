@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -42,10 +41,10 @@ public class NoteController {
     // 노트 작성
     @PostMapping
     public NoteResponse create(
-            @RequestParam Long userId,
             @Valid @RequestBody NoteRequest request
     ) {
-        return noteService.create(userId, request);
+        // 작성자는 요청 파라미터가 아니라 JWT로 인증된 사용자로 고정합니다.
+        return noteService.create(SecurityUtil.getCurrentUserId(), request);
     }
 
     // 강의별 노트 목록 조회
@@ -63,10 +62,10 @@ public class NoteController {
     // 노트 상세 진입 시 호출하면 common.view_logs로 중복 조회를 막고 조회수를 증가시킨다.
     @PostMapping("/{noteId}/view")
     public void increaseViewCount(
-            @PathVariable Long noteId,
-            @RequestParam Long userId
+            @PathVariable Long noteId
     ) {
-        noteService.increaseViewCount(noteId, userId);
+        // 조회자는 요청 파라미터가 아니라 JWT로 인증된 사용자로 고정합니다.
+        noteService.increaseViewCount(noteId, SecurityUtil.getCurrentUserId());
     }
 
     // 노트 좋아요 등록: common.likes에 NOTE 타입으로 저장한다.

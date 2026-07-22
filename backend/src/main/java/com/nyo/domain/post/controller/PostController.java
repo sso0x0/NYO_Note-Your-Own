@@ -61,10 +61,10 @@ public class PostController {
     // 게시글 상세 진입 시 호출하면 common.view_logs로 중복 조회를 막고 조회수를 증가시킨다.
     @PostMapping("/{postId}/view")
     public void increaseViewCount(
-            @PathVariable Long postId,
-            @RequestParam Long userId
+            @PathVariable Long postId
     ) {
-        postService.increaseViewCount(postId, userId);
+        // 조회자는 요청 파라미터가 아니라 JWT로 인증된 사용자로 고정합니다.
+        postService.increaseViewCount(postId, SecurityUtil.getCurrentUserId());
     }
 
     // 게시글 좋아요 등록: common.likes에 POST 타입으로 저장한다.

@@ -22,6 +22,10 @@ public interface LectureRepository extends JpaRepository<Lecture, Long> {
             countQuery = "SELECT count(l) FROM Lecture l WHERE l.category.id = :categoryId AND l.isDeleted = false") // 삭제된 강의 제외
     Page<Lecture> findByCategoryIdAndIsDeletedFalse(@Param("categoryId") Long categoryId, Pageable pageable);
 
+    // Elasticsearch 검색 결과(id 목록)에 해당하는 강의만 조회 (category 즉시 로딩, 삭제된 강의 제외)
+    @Query("SELECT l FROM Lecture l JOIN FETCH l.category WHERE l.id IN :ids AND l.isDeleted = false")
+    List<Lecture> findAllByIdInAndIsDeletedFalse(@Param("ids") List<Long> ids);
+
     // 좋아요수/조회수 기준 상위 강의 조회 (인기 강의 배치용)
     List<Lecture> findByIsDeletedFalseOrderByLikeCountDescViewCountDesc(Pageable pageable);
 

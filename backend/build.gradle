@@ -44,9 +44,11 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
 
-	// 💡 FIXED: tasks.named('test') 블록 안에 잘못 들어가 있던 걸 여기로 이동
 	// 구글 OAuth2 소셜 로그인용
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+
+	// elasticsearch
+	implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
 }
 
 tasks.named('test') {

@@ -161,7 +161,8 @@ public class NoteService {
         }
 
         deleteNoteImages(noteId, note.getThumbnailUrl());
-        noteRepository.delete(note);
+        // isDeleted 기반 소프트 삭제: note_histories 등 자식 데이터가 참조하는 row를 물리 삭제하지 않는다.
+        note.delete();
     }
 
     private Note getNote(Long noteId) {

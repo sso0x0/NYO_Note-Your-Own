@@ -45,7 +45,8 @@ public class CommentService {
     public List<CommentResponse> findByPost(Long postId) {
         validatePost(postId);
 
-        List<Comment> comments = commentRepository.findByPostIdAndIsDeletedOrderByCreatedAtAsc(postId, 0);
+        // 삭제된 댓글도 함께 조회해야 그 밑에 달린(아직 삭제되지 않은) 대댓글이 트리에서 유실되지 않는다.
+        List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
         Map<Long, List<Comment>> childrenByParentId = comments.stream()
                 .filter(comment -> comment.getParentCommentId() != null)
                 .collect(Collectors.groupingBy(Comment::getParentCommentId));
@@ -103,7 +104,8 @@ public class CommentService {
                 .userId(comment.getUserId())
                 .authorNickname(authorNickname)
                 .parentCommentId(comment.getParentCommentId())
-                .content(comment.getContent())
+                // 삭제된 댓글은 대댓글 트리 유지를 위해 남겨두되 원문 내용은 노출하지 않는다.
+                .content(comment.isDeleted() ? "삭제된 댓글입니다." : comment.getContent())
                 .isDeleted(comment.isDeleted())
                 .replies(new ArrayList<>(replies))
                 .createdAt(comment.getCreatedAt())
