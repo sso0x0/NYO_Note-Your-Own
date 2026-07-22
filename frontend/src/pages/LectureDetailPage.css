@@ -1,0 +1,133 @@
+.lecture-detail-page {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.lecture-detail-page__back {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.lecture-detail-page__back:hover {
+  color: var(--accent);
+}
+
+.lecture-detail-page__thumb {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--code-bg);
+}
+
+.lecture-detail-page__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.lecture-detail-page__thumb-fallback {
+  width: 100%;
+  height: 100%;
+  background: var(--code-bg);
+}
+
+.lecture-detail-page__badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: #fff;
+  background: var(--accent);
+}
+
+.lecture-detail-page__category {
+  display: inline-block;
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+.lecture-detail-page__title {
+  margin: 4px 0 0;
+}
+
+.lecture-detail-page__instructor {
+  margin: 4px 0 0;
+  color: var(--text);
+}
+
+.lecture-detail-page__meta {
+  display: flex;
+  gap: 14px;
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.lecture-detail-page__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.lecture-detail-page__like-btn,
+.lecture-detail-page__enroll-btn {
+  padding: 9px 18px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.lecture-detail-page__like-btn.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.lecture-detail-page__enroll-btn {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.lecture-detail-page__enroll-btn.is-active {
+  background: var(--bg);
+  color: var(--accent);
+}
+
+.lecture-detail-page__enroll-btn:disabled {
+  background: var(--code-bg);
+  border-color: var(--border);
+  color: var(--text);
+  cursor: not-allowed;
+}
+
+.lecture-detail-page__description {
+  margin-top: 20px;
+  line-height: 160%;
+  white-space: pre-wrap;
+}
+
+.lecture-detail-page__link {
+  display: inline-block;
+  margin-top: 24px;
+  padding: 10px 18px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  font-size: 14px;
+}

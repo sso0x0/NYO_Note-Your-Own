@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -67,6 +68,9 @@ public class SecurityConfig {
                                 "/oauth2/**", "/login/oauth2/**",   // 구글 로그인 리다이렉트 경로는 인증 없이 통과
                                 "/docs/**", "/swagger-ui/**", "/v3/api-docs/**"  // 💡 springdoc 경로가 /docs로 되어있어서 반영
                         ).permitAll()
+                        // 랜딩 페이지(비로그인)에서 카테고리·인기 강의를 보여줘야 해서 조회(GET)만 공개
+                        .requestMatchers(HttpMethod.GET, "/api/categories", "/api/categories/*", "/api/lectures", "/api/lectures/*")
+                        .permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN") // TODO: 관리자 파트 구현 시 활성화
                         .anyRequest().authenticated()
                 )
