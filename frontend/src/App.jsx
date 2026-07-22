@@ -6,6 +6,8 @@ import LectureListPage from './pages/LectureListPage';
 import LectureDetailPage from './pages/LectureDetailPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import ProtectedLayout from './components/ProtectedLayout';
+import PomodoroPage from './features/pomodoro/PomodoroPage';
+import ChatPage from './features/chat/ChatPage';
 
 function App() {
   return (
@@ -18,6 +20,8 @@ function App() {
         <Route path="/main" element={<ProtectedLayout />}>
           <Route index element={<LectureListPage />} />
           <Route path="lectures/:id" element={<LectureDetailPage />} />
+          <Route path="pomodoro" element={<PomodoroPage />} />
+          <Route path="chat" element={<ChatPage />} />
         </Route>
       </Route>
     </Routes>

@@ -11,6 +11,15 @@ function getStoredToken() {
   }
 }
 
+// 대부분의 API는 { success, data, message } 형태의 ApiResponse로 응답하지만,
+// /api/categories처럼 배열을 그대로 내려주는 예외도 있어 언래핑 전에 모양을 확인한다.
+function unwrap(payload) {
+  if (Array.isArray(payload) || payload === null || typeof payload !== 'object') {
+    return payload;
+  }
+  return 'data' in payload ? payload.data : payload;
+}
+
 export async function apiGet(path, params = {}) {
   const url = new URL(path, BASE_URL);
   Object.entries(params).forEach(([key, value]) => {
@@ -23,14 +32,16 @@ export async function apiGet(path, params = {}) {
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
   const res = await fetch(url, { credentials: 'include', headers });
-  if (!res.ok) {
-    throw new Error(`요청 실패 (${res.status}): ${url.pathname}${url.search}`);
+  const payload = await res.json().catch(() => null);
+
+  if (!res.ok || payload?.success === false) {
+    throw new Error(payload?.message || `요청 실패 (${res.status}): ${url.pathname}${url.search}`);
   }
-  return res.json();
+
+  return unwrap(payload);
 }
 
-// UserController 등은 { success, data, message } 형태의 ApiResponse로 응답한다.
-export async function apiPost(path, body = {}, { token } = {}) {
+async function sendJson(method, path, body = {}, { token } = {}) {
   const url = new URL(path, BASE_URL);
   const headers = { 'Content-Type': 'application/json' };
   const authToken = token ?? getStoredToken();
@@ -39,7 +50,7 @@ export async function apiPost(path, body = {}, { token } = {}) {
   }
 
   const res = await fetch(url, {
-    method: 'POST',
+    method,
     headers,
     credentials: 'include',
     body: JSON.stringify(body),
@@ -51,5 +62,13 @@ export async function apiPost(path, body = {}, { token } = {}) {
     throw new Error(payload?.message || `요청 실패 (${res.status}): ${url.pathname}`);
   }
 
-  return payload?.data;
+  return unwrap(payload);
+}
+
+export function apiPost(path, body = {}, options = {}) {
+  return sendJson('POST', path, body, options);
+}
+
+export function apiPatch(path, body = {}, options = {}) {
+  return sendJson('PATCH', path, body, options);
 }

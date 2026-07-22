@@ -1,21 +1,21 @@
-import { apiFetch } from './client'
+import { apiGet, apiPatch, apiPost } from './client'
 
 export function createRecord(payload) {
-  return apiFetch('/pomodoros', { method: 'POST', body: JSON.stringify(payload) })
+  return apiPost('/api/pomodoros', payload)
 }
 
 export function updateRecord(id, payload) {
-  return apiFetch(`/pomodoros/${id}`, { method: 'PATCH', body: JSON.stringify(payload) })
+  return apiPatch(`/api/pomodoros/${id}`, payload)
 }
 
 export function getRecords(page = 0, size = 10) {
-  return apiFetch(`/pomodoros?page=${page}&size=${size}`)
+  return apiGet('/api/pomodoros', { page, size })
 }
 
 export function getTodayStudyTime() {
-  return apiFetch('/pomodoros/stats/today')
+  return apiGet('/api/pomodoros/stats/today')
 }
 
 export function getTotalStudyTime() {
-  return apiFetch('/pomodoros/stats/total')
+  return apiGet('/api/pomodoros/stats/total')
 }

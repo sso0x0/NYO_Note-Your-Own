@@ -1,8 +1,10 @@
-import { Link, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import nyoLogo from '../assets/images/nyo_logo.png';
 import './ProtectedLayout.css';
 
+// 로그인 후 화면 전체에서 공통으로 보이는 헤더 + 페이지 전환 네비게이션.
+// 새 기능 페이지를 /main 하위 라우트로 추가했다면 여기에도 링크를 추가해야 메뉴에서 보인다.
 function ProtectedLayout() {
   const { auth, logout } = useAuth();
 
@@ -21,6 +23,11 @@ function ProtectedLayout() {
             <img src={nyoLogo} alt="NYO" />
           </span>
         </Link>
+        <nav className="protected-layout__nav">
+          <NavLink to="/main" end>강의</NavLink>
+          <NavLink to="/main/pomodoro">뽀모도로</NavLink>
+          <NavLink to="/main/chat">챗봇</NavLink>
+        </nav>
         <div className="protected-layout__user">
           <span>{auth?.nickname}님 환영합니다</span>
           <button type="button" onClick={handleLogout}>로그아웃</button>
