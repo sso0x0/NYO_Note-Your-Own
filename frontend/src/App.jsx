@@ -6,7 +6,6 @@ import LectureListPage from './pages/LectureListPage';
 import LectureDetailPage from './pages/LectureDetailPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import ProtectedLayout from './components/ProtectedLayout';
-import PomodoroPage from './features/pomodoro/PomodoroPage';
 
 function App() {
   return (
@@ -21,9 +20,8 @@ function App() {
         <Route path="/main" element={<ProtectedLayout />}>
           <Route index element={<LectureListPage />} />
           <Route path="lectures/:id" element={<LectureDetailPage />} />
-          {/* 뽀모도로: AI 기능 파트. 챗봇은 별도 라우트가 아니라 ProtectedLayout의
-              ChatWidget(플로팅 아이콘)으로 모든 페이지에서 접근한다. */}
-          <Route path="pomodoro" element={<PomodoroPage />} />
+          {/* 뽀모도로/챗봇: AI 기능 파트. 별도 라우트가 아니라 ProtectedLayout의
+              WidgetDock(플로팅 아이콘 2개)으로 모든 페이지에서 접근한다. */}
         </Route>
       </Route>
     </Routes>

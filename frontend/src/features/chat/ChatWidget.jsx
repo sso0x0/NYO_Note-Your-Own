@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { getHistories, sendMessage } from '../../api/chat'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
+import '../../components/widget.css'
 import './chat.css'
 
-// 우하단 플로팅 챗봇 아이콘 + 팝업창. ProtectedLayout에 한 번만 마운트되어
+// 챗봇 아이콘 + 팝업창. WidgetDock을 통해 ProtectedLayout에 한 번만 마운트되어
 // 모든 /main/* 페이지에서 보이고, 페이지를 이동해도 대화 내용이 유지된다.
 export default function ChatWidget() {
   const [open, setOpen] = useState(false)
@@ -49,10 +50,10 @@ export default function ChatWidget() {
   }
 
   return (
-      <div className="chat-widget">
+      <div className="widget">
         {open && (
-            <div className="chat-widget__panel">
-              <div className="chat-widget__header">
+            <div className="widget__panel">
+              <div className="widget__header">
                 <span>학습 챗봇</span>
                 <button type="button" onClick={() => setOpen(false)} aria-label="챗봇 닫기">✕</button>
               </div>
@@ -68,7 +69,7 @@ export default function ChatWidget() {
         )}
         <button
             type="button"
-            className="chat-widget__toggle"
+            className="widget__toggle"
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? '챗봇 닫기' : '챗봇 열기'}
         >
