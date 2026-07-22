@@ -1,0 +1,2 @@
+export const DEFAULT_FOCUS_MINUTES = 25
+export const DEFAULT_BREAK_MINUTES = 5

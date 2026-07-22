@@ -1,3 +1,19 @@
+.app-nav {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border, #ddd);
+}
+
+.app-nav button.active {
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.app-nav .app-logout {
+  margin-left: auto;
+}
+
 .counter {
   font-size: 16px;
   padding: 5px 10px;
