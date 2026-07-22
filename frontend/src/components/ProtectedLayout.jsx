@@ -26,7 +26,8 @@ function ProtectedLayout() {
           </span>
         </Link>
         <nav className="protected-layout__nav">
-          <NavLink to="/main" end>강의</NavLink>
+          <NavLink to="/main" end>홈</NavLink>
+          <NavLink to="/main/lectures">강의</NavLink>
         </nav>
         <div className="protected-layout__user">
           <span>{auth?.nickname}님 환영합니다</span>
