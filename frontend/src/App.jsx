@@ -7,6 +7,9 @@ import LectureListPage from './pages/LectureListPage';
 import LectureDetailPage from './pages/LectureDetailPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import ProtectedLayout from './components/ProtectedLayout';
+import AdminRoute from './components/AdminRoute';
+import AdminLayout from './pages/admin/AdminLayout';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 
 function App() {
   return (
@@ -26,6 +29,13 @@ function App() {
           <Route path="lectures/:id" element={<LectureDetailPage />} />
           {/* 뽀모도로/챗봇: AI 기능 파트. 별도 라우트가 아니라 ProtectedLayout의
               WidgetDock(플로팅 아이콘 2개)으로 모든 페이지에서 접근한다. */}
+        </Route>
+
+        {/* 관리자 대시보드: ADMIN 권한이 있는 로그인 사용자만 (AdminRoute가 role 확인) */}
+        <Route element={<AdminRoute />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboardPage />} />
+          </Route>
         </Route>
       </Route>
     </Routes>
