@@ -5,6 +5,7 @@ import com.nyo.domain.comment.dto.CommentResponse;
 import com.nyo.domain.comment.entity.Comment;
 import com.nyo.domain.comment.repository.CommentRepository;
 import com.nyo.domain.post.repository.PostRepository;
+import com.nyo.domain.user.service.UserService;
 import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
+    private final UserService userService;
 
     @Transactional
     public CommentResponse create(Long userId, CommentRequest request) {
@@ -36,7 +38,8 @@ public class CommentService {
                 request.getContent()
         );
 
-        return toResponse(commentRepository.save(comment), List.of());
+        Comment savedComment = commentRepository.save(comment);
+        return toResponse(savedComment, List.of(), userService.getDisplayNickname(savedComment.getUserId()));
     }
 
     public List<CommentResponse> findByPost(Long postId) {
@@ -46,10 +49,14 @@ public class CommentService {
         Map<Long, List<Comment>> childrenByParentId = comments.stream()
                 .filter(comment -> comment.getParentCommentId() != null)
                 .collect(Collectors.groupingBy(Comment::getParentCommentId));
+        // 댓글 nickname 표시: 댓글과 대댓글 작성자를 한 번에 조회한다.
+        Map<Long, String> nicknames = userService.getDisplayNicknames(
+                comments.stream().map(Comment::getUserId).distinct().toList()
+        );
 
         return comments.stream()
                 .filter(comment -> comment.getParentCommentId() == null)
-                .map(comment -> toTreeResponse(comment, childrenByParentId))
+                .map(comment -> toTreeResponse(comment, childrenByParentId, nicknames))
                 .toList();
     }
 
@@ -62,7 +69,7 @@ public class CommentService {
         }
 
         comment.update(request.getContent());
-        return toResponse(comment, List.of());
+        return toResponse(comment, List.of(), userService.getDisplayNickname(comment.getUserId()));
     }
 
     @Transactional
@@ -76,21 +83,25 @@ public class CommentService {
         comment.delete();
     }
 
-    private CommentResponse toTreeResponse(Comment comment, Map<Long, List<Comment>> childrenByParentId) {
+    private CommentResponse toTreeResponse(
+            Comment comment, Map<Long, List<Comment>> childrenByParentId, Map<Long, String> nicknames
+    ) {
         List<CommentResponse> replies = childrenByParentId.getOrDefault(comment.getId(), List.of())
                 .stream()
-                .map(reply -> toTreeResponse(reply, childrenByParentId))
+                .map(reply -> toTreeResponse(reply, childrenByParentId, nicknames))
                 .toList();
 
-        return toResponse(comment, replies);
+        return toResponse(
+                comment, replies, nicknames.getOrDefault(comment.getUserId(), "알 수 없는 사용자")
+        );
     }
 
-    private CommentResponse toResponse(Comment comment, List<CommentResponse> replies) {
+    private CommentResponse toResponse(Comment comment, List<CommentResponse> replies, String authorNickname) {
         return CommentResponse.builder()
                 .id(comment.getId())
                 .postId(comment.getPostId())
                 .userId(comment.getUserId())
-                .authorNickname(null)
+                .authorNickname(authorNickname)
                 .parentCommentId(comment.getParentCommentId())
                 .content(comment.getContent())
                 .isDeleted(comment.isDeleted())
@@ -118,7 +129,7 @@ public class CommentService {
         Comment parent = getComment(parentCommentId);
         if (!parent.getPostId().equals(postId)) {
             // 대댓글은 같은 게시글 안의 댓글에만 연결할 수 있다.
-            throw new BusinessException(ErrorCode.INVALID_INPUT);
+            throw new BusinessException(ErrorCode.COMMENT_PARENT_MISMATCH);
         }
     }
 }

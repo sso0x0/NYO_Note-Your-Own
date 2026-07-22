@@ -72,6 +72,21 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/categories", "/api/categories/*", "/api/lectures", "/api/lectures/*")
                         .permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN") // TODO: 관리자 파트 구현 시 활성화
+                        // 게시글 작성과 공지 권한 확인은 JWT 사용자가 반드시 있어야 합니다.
+                        .requestMatchers(HttpMethod.POST, "/api/posts").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/posts/notice-permission").authenticated()
+                        // 노트와 게시글 삭제는 JWT 작성자 또는 DB ROLE이 ADMIN인 사용자만 시도할 수 있습니다.
+                        .requestMatchers(HttpMethod.DELETE, "/api/notes/*", "/api/posts/*").authenticated()
+                        // 노트와 게시글 수정은 JWT 작성자 본인만 서비스 검증을 통과할 수 있습니다.
+                        .requestMatchers(HttpMethod.PUT, "/api/notes/*", "/api/posts/*").authenticated()
+                        // 좋아요 상태 조회·등록·취소는 JWT 로그인 사용자 기준으로 처리합니다.
+                        .requestMatchers("/api/notes/*/like", "/api/posts/*/like").authenticated()
+                        // 개발용 임시 설정: 프론트의 JWT 연동 전까지 게시판 관련 API 접근을 허용합니다.
+                        // JWT 연동이 끝나면 이 matcher를 삭제하고 사용자 ID도 토큰에서 가져와야 합니다.
+                        .requestMatchers(
+                                "/api/posts/**", "/api/notes/**", "/api/comments/**",
+                                "/api/images/**", "/api/health/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2

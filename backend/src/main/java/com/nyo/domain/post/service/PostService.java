@@ -1,7 +1,7 @@
 package com.nyo.domain.post.service;
 
 import com.nyo.domain.common.dto.request.LikeRequest;
-import com.nyo.domain.common.dto.request.ContentImageRequest;
+import com.nyo.domain.common.dto.request.ImageRequest;
 import com.nyo.domain.common.dto.request.ViewRequest;
 import com.nyo.domain.common.entity.Image;
 import com.nyo.domain.common.repository.ImageRepository;
@@ -9,20 +9,28 @@ import com.nyo.domain.common.service.LikeService;
 import com.nyo.domain.common.service.ViewService;
 import com.nyo.domain.post.dto.PostRequest;
 import com.nyo.domain.post.dto.PostResponse;
+import com.nyo.domain.post.dto.PostPageResponse;
 import com.nyo.domain.post.entity.Post;
 import com.nyo.domain.post.repository.PostRepository;
+import com.nyo.domain.user.service.UserService;
 import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
 import com.nyo.global.storage.FileStorageService;
+import com.nyo.global.response.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.Map;
+import org.springframework.data.domain.Page;
 
 @Service
 @RequiredArgsConstructor
@@ -35,15 +43,23 @@ public class PostService {
     private final ViewService viewService;
     private final FileStorageService fileStorageService;
     private final JdbcTemplate jdbcTemplate;
+    private final UserService userService;
 
     @Transactional
     public PostResponse create(Long userId, PostRequest request) {
+        boolean notice = Boolean.TRUE.equals(request.getNotice());
+        // 관리자 공지 권한: 프론트 표시 여부와 무관하게 서버에서 ADMIN을 강제 검증한다.
+        if (notice && !isAdmin(userId)) {
+            throw new BusinessException(ErrorCode.NOTICE_ACCESS_DENIED);
+        }
+
         // 게시글 기본 정보와 대표 이미지 URL을 posts 테이블에 저장할 객체로 만든다.
         Post post = Post.create(
                 userId,
                 request.getTitle(),
                 request.getContent(),
-                request.getThumbnailUrl()
+                request.getThumbnailUrl(),
+                notice
         );
 
         // 게시글을 먼저 저장해야 생성된 postId를 이미지 테이블에 연결할 수 있다.
@@ -54,15 +70,41 @@ public class PostService {
         return toResponse(savedPost);
     }
 
-    public List<PostResponse> findAll() {
-        return postRepository.findByIsDeletedOrderByCreatedAtDesc(0)
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    public PostPageResponse findAll(Pageable pageable, boolean noticeOnly) {
+        if (noticeOnly) {
+            // 공지만 보기: 클라이언트 정렬값과 관계없이 최종수정일 내림차순을 서버에서 강제한다.
+            Pageable noticePageable = PageRequest.of(
+                    pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.DESC, "updatedAt")
+            );
+            PageResponse<PostResponse> noticePage = toPageResponse(
+                    postRepository.findByIsDeletedAndIsNotice(0, 1, noticePageable)
+            );
+            return PostPageResponse.of(List.of(), noticePage);
+        }
+
+        // 공지 최종수정일 정렬: 가장 최근에 수정된 공지 3개를 일반 게시글 위에 전달한다.
+        List<PostResponse> latestNotices = toResponseList(
+                postRepository.findByIsDeletedAndIsNotice(
+                        0, 1, PageRequest.of(0, 3, Sort.by(Sort.Direction.DESC, "updatedAt"))
+                ).getContent()
+        );
+        PageResponse<PostResponse> normalPage = toPageResponse(
+                postRepository.findByIsDeletedAndIsNotice(0, 0, pageable)
+        );
+        return PostPageResponse.of(latestNotices, normalPage);
     }
 
     public PostResponse findOne(Long postId) {
         return toResponse(getPost(postId));
+    }
+
+    public boolean isLiked(Long postId, Long userId) {
+        getPost(postId);
+        return likeService.isLiked(userId, "POST", postId);
+    }
+
+    public boolean canCreateNotice(Long userId) {
+        return isAdmin(userId);
     }
 
     @Transactional
@@ -116,7 +158,11 @@ public class PostService {
         }
 
         String previousThumbnailUrl = post.getThumbnailUrl();
-        post.update(request.getTitle(), request.getContent(), request.getThumbnailUrl());
+        boolean notice = request.getNotice() == null ? post.isNotice() : Boolean.TRUE.equals(request.getNotice());
+        if (notice && !isAdmin(userId)) {
+            throw new BusinessException(ErrorCode.NOTICE_ACCESS_DENIED);
+        }
+        post.update(request.getTitle(), request.getContent(), request.getThumbnailUrl(), notice);
         saveChangedPostImage(postId, previousThumbnailUrl, request);
         savePostContentImages(postId, request.getContentImages());
         return toResponse(post);
@@ -153,18 +199,43 @@ public class PostService {
     }
 
     private PostResponse toResponse(Post post) {
+        return toResponse(post, userService.getDisplayNickname(post.getUserId()));
+    }
+
+    private PostResponse toResponse(Post post, String authorNickname) {
         return PostResponse.builder()
                 .id(post.getId())
                 .userId(post.getUserId())
+                .authorNickname(authorNickname)
                 .title(post.getTitle())
                 .content(post.getContent())
                 .thumbnailUrl(post.getThumbnailUrl())
                 .viewCount(post.getViewCount())
                 .likeCount(post.getLikeCount())
                 .isDeleted(post.isDeleted())
+                .notice(post.isNotice())
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
                 .build();
+    }
+
+    private List<PostResponse> toResponseList(List<Post> posts) {
+        // 게시글 nickname 표시: 페이지 작성자를 한 번에 조회해 반복 사용자 쿼리를 방지한다.
+        Map<Long, String> nicknames = userService.getDisplayNicknames(
+                posts.stream().map(Post::getUserId).distinct().toList()
+        );
+        return posts.stream()
+                .map(post -> toResponse(post, nicknames.getOrDefault(post.getUserId(), "알 수 없는 사용자")))
+                .toList();
+    }
+
+    private PageResponse<PostResponse> toPageResponse(Page<Post> posts) {
+        Map<Long, String> nicknames = userService.getDisplayNicknames(
+                posts.getContent().stream().map(Post::getUserId).distinct().toList()
+        );
+        return PageResponse.of(posts.map(
+                post -> toResponse(post, nicknames.getOrDefault(post.getUserId(), "알 수 없는 사용자"))
+        ));
     }
 
     private void savePostImage(Long postId, String imageUrl, String originalName, Long fileSize) {
@@ -188,13 +259,13 @@ public class PostService {
         imageRepository.save(Image.createForPost(postId, newImageUrl, request.getImageOriginalName(), request.getImageFileSize()));
     }
 
-    private void savePostContentImages(Long postId, List<ContentImageRequest> contentImages) {
+    private void savePostContentImages(Long postId, List<ImageRequest> contentImages) {
         if (contentImages == null || contentImages.isEmpty()) {
             return;
         }
 
         for (int i = 0; i < contentImages.size(); i++) {
-            ContentImageRequest image = contentImages.get(i);
+            ImageRequest image = contentImages.get(i);
             if (image.getImageUrl() == null || image.getImageUrl().isBlank()) {
                 continue;
             }
