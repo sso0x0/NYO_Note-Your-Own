@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -45,6 +46,15 @@ public class NoteController {
     ) {
         // 작성자는 요청 파라미터가 아니라 JWT로 인증된 사용자로 고정합니다.
         return noteService.create(SecurityUtil.getCurrentUserId(), request);
+    }
+
+    // 노트 검색 (제목/본문/태그 대상, Elasticsearch 기반)
+    @GetMapping("/search")
+    public PageResponse<NoteResponse> searchNotes(
+            @RequestParam String keyword,
+            @PageableDefault(size = 12) Pageable pageable
+    ) {
+        return noteService.searchNotes(keyword, pageable);
     }
 
     // 강의별 노트 목록 조회

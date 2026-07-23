@@ -29,7 +29,7 @@ spring:
       max-file-size: 500MB
       max-request-size: 500MB
   elasticsearch: # 엘라스틱서치
-    uris: http://localhost:9200
+    uris: ${ELASTICSEARCH_URI}
 
 server:
   port: 8080

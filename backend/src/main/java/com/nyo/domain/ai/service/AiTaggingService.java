@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nyo.domain.ai.client.OpenAiClient;
 import com.nyo.domain.common.dto.response.AiTagResponse;
 import com.nyo.domain.note.dto.NoteTagResponse ;
+import com.nyo.domain.note.service.NoteService;
 import com.nyo.domain.tag.entity.NoteTag;
 import com.nyo.domain.tag.entity.NoteTagId;
 import com.nyo.domain.tag.entity.Tag;
@@ -29,6 +30,7 @@ public class AiTaggingService {
     private final TagRepository tagRepository;
     private final NoteTagRepository noteTagRepository;
     private final ObjectMapper objectMapper;
+    private final NoteService noteService; // 태깅 직후 노트 검색 색인에 태그를 반영하기 위해 사용
 
     // 노트 본문이 너무 길면 토큰 낭비라 앞부분만 잘라서 보냄
     private static final int MAX_CONTENT_LENGTH = 4000;
@@ -91,6 +93,11 @@ public class AiTaggingService {
                     .isAiGenerated(true)
                     .createdAt(mapping.getCreatedAt())
                     .build());
+        }
+
+        // 새로 저장된 태그가 있을 때만 검색 색인을 다시 반영한다.
+        if (!savedTags.isEmpty()) {
+            noteService.reindexNote(noteId);
         }
 
         return AiTagResponse.builder()

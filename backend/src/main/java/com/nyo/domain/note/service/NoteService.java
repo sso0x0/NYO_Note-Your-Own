@@ -7,30 +7,41 @@ import com.nyo.domain.common.entity.Image;
 import com.nyo.domain.common.repository.ImageRepository;
 import com.nyo.domain.common.service.LikeService;
 import com.nyo.domain.common.service.ViewService;
+import com.nyo.domain.note.document.NoteDocument;
 import com.nyo.domain.note.dto.NoteRequest;
 import com.nyo.domain.note.dto.NoteResponse;
 import com.nyo.domain.note.entity.Note;
 import com.nyo.domain.note.entity.NoteHistory;
 import com.nyo.domain.note.repository.NoteHistoryRepository;
 import com.nyo.domain.note.repository.NoteRepository;
+import com.nyo.domain.note.repository.NoteSearchRepository;
+import com.nyo.domain.tag.repository.NoteTagRepository;
 import com.nyo.domain.user.service.UserService;
 import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
 import com.nyo.global.storage.FileStorageService;
 import com.nyo.global.response.PageResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -38,6 +49,8 @@ public class NoteService {
 
     private final NoteRepository noteRepository;
     private final NoteHistoryRepository noteHistoryRepository;
+    private final NoteSearchRepository noteSearchRepository; // 노트 검색 색인 (Elasticsearch)
+    private final NoteTagRepository noteTagRepository;
     private final ImageRepository imageRepository;
     private final LikeService likeService;
     private final ViewService viewService;
@@ -58,8 +71,77 @@ public class NoteService {
         Note savedNote = noteRepository.save(note);
         saveNoteImage(savedNote.getId(), request.getThumbnailUrl(), request.getImageOriginalName(), request.getImageFileSize());
         saveNoteContentImages(savedNote.getId(), request.getContentImages());
+        // 신규 노트는 아직 AI 태그가 없으므로 빈 태그 목록으로 색인한다.
+        indexNote(NoteDocument.from(savedNote, List.of()));
 
         return toResponse(savedNote);
+    }
+
+    // 키워드로 노트 검색 (Elasticsearch에서 관련도순 id를 찾은 뒤, DB에서 실제 데이터를 조회해 순서를 맞춘다)
+    public PageResponse<NoteResponse> searchNotes(String keyword, Pageable pageable) {
+        if (!StringUtils.hasText(keyword)) {
+            return PageResponse.of(Page.empty(pageable));
+        }
+
+        // 검색 결과는 ES 관련도 점수순으로 정렬되므로 요청에 담긴 정렬 조건(sort)은 무시한다.
+        Pageable searchPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<NoteDocument> searchResult = noteSearchRepository.searchByKeyword(keyword, searchPageable);
+        List<Long> ids = searchResult.getContent().stream().map(NoteDocument::getId).toList();
+
+        if (ids.isEmpty()) {
+            return PageResponse.of(Page.empty(searchPageable));
+        }
+
+        Map<Long, Note> notesById = noteRepository.findAllByIdInAndIsDeleted(ids, 0).stream()
+                .collect(Collectors.toMap(Note::getId, Function.identity()));
+
+        Map<Long, String> nicknames = userService.getDisplayNicknames(
+                notesById.values().stream().map(Note::getUserId).distinct().toList()
+        );
+
+        // ES가 매긴 관련도 순서를 유지하기 위해 id 순서대로 재조립 (DB와 색인이 일시적으로 어긋난 id는 건너뜀)
+        List<NoteResponse> content = ids.stream()
+                .map(notesById::get)
+                .filter(Objects::nonNull)
+                .map(note -> toResponse(note, nicknames.getOrDefault(note.getUserId(), "알 수 없는 사용자")))
+                .toList();
+
+        // 건너뛴 id 수만큼 totalElements를 보정해 실제 반환된 content 개수와 어긋나지 않게 한다.
+        long missing = ids.size() - content.size();
+        long totalElements = searchResult.getTotalElements() - missing;
+
+        return PageResponse.of(new PageImpl<>(content, searchPageable, totalElements));
+    }
+
+    // 전체 노트로 검색 색인 재구축 (색인 유실 복구, 초기 데이터 반영 등)
+    @Transactional
+    public void reindexAllNotes() {
+        List<Note> notes = noteRepository.findByIsDeleted(0, Pageable.unpaged()).getContent();
+
+        // 노트마다 태그를 따로 조회하면 N+1이 되므로, 전체 노트 id로 한 번에 조회해 노트별로 묶는다.
+        List<Long> noteIds = notes.stream().map(Note::getId).toList();
+        Map<Long, List<String>> tagNamesByNoteId = noteIds.isEmpty()
+                ? Map.of()
+                : noteTagRepository.findTagNamesByNoteIdIn(noteIds).stream()
+                        .collect(Collectors.groupingBy(
+                                NoteTagRepository.NoteIdTagName::getNoteId,
+                                Collectors.mapping(NoteTagRepository.NoteIdTagName::getTagName, Collectors.toList())
+                        ));
+
+        List<NoteDocument> documents = notes.stream()
+                .map(note -> NoteDocument.from(note, tagNamesByNoteId.getOrDefault(note.getId(), List.of())))
+                .toList();
+
+        noteSearchRepository.deleteAll();
+        noteSearchRepository.saveAll(documents);
+    }
+
+    // 노트 하나의 색인만 태그를 포함해 다시 반영 (AI 자동 태깅 직후 호출)
+    @Transactional
+    public void reindexNote(Long noteId) {
+        noteRepository.findByIdAndIsDeleted(noteId, 0).ifPresent(note ->
+                indexNote(NoteDocument.from(note, noteTagRepository.findTagNamesByNoteId(noteId))));
     }
 
     public PageResponse<NoteResponse> findAll(Pageable pageable) {
@@ -148,6 +230,8 @@ public class NoteService {
         note.update(request.getTitle(), request.getContent(), request.getThumbnailUrl());
         saveChangedNoteImage(noteId, previousThumbnailUrl, request);
         saveNoteContentImages(noteId, request.getContentImages());
+        // 제목/본문 수정 사항을 색인에 반영하되, 기존에 붙은 태그명은 유지한다.
+        indexNote(NoteDocument.from(note, noteTagRepository.findTagNamesByNoteId(noteId)));
 
         return toResponse(note);
     }
@@ -163,6 +247,26 @@ public class NoteService {
         deleteNoteImages(noteId, note.getThumbnailUrl());
         // isDeleted 기반 소프트 삭제: note_histories 등 자식 데이터가 참조하는 row를 물리 삭제하지 않는다.
         note.delete();
+        deindexNote(noteId); // 검색 결과에서도 제외
+    }
+
+    // ES 색인 저장 실패가 노트 생성/수정/AI 태깅 트랜잭션 자체를 롤백시키지 않도록 격리한다.
+    // 색인이 어긋나더라도 /api/admin/notes/reindex로 복구할 수 있으므로 예외를 삼키고 로그만 남긴다.
+    private void indexNote(NoteDocument document) {
+        try {
+            noteSearchRepository.save(document);
+        } catch (Exception e) {
+            log.warn("노트 검색 색인 저장 실패 (noteId={})", document.getId(), e);
+        }
+    }
+
+    // ES 색인 삭제 실패가 노트 삭제 트랜잭션 자체를 롤백시키지 않도록 격리한다.
+    private void deindexNote(Long noteId) {
+        try {
+            noteSearchRepository.deleteById(noteId);
+        } catch (Exception e) {
+            log.warn("노트 검색 색인 삭제 실패 (noteId={})", noteId, e);
+        }
     }
 
     private Note getNote(Long noteId) {

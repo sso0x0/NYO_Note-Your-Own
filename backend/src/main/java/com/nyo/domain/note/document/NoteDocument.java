@@ -1,6 +1,6 @@
-package com.nyo.domain.lecture.document;
+package com.nyo.domain.note.document;
 
-import com.nyo.domain.lecture.entity.Lecture;
+import com.nyo.domain.note.entity.Note;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,13 +11,15 @@ import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
-// 강의 검색(Elasticsearch)용 문서. JPA Lecture 엔티티와 별개로 검색에 필요한 필드만 색인한다.
+import java.util.List;
+
+// 노트 검색(Elasticsearch)용 문서. JPA Note 엔티티와 별개로 검색에 필요한 필드만 색인한다.
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Document(indexName = "lectures")
-public class LectureDocument {
+@Document(indexName = "notes")
+public class NoteDocument {
 
     @Id
     private Long id;
@@ -27,21 +29,18 @@ public class LectureDocument {
     private String title;
 
     @Field(type = FieldType.Text, analyzer = "nori")
-    private String description;
+    private String content;
 
+    // AI 자동 태깅으로 붙은 태그명. 태그가 아직 없는 노트는 빈 리스트로 색인된다.
     @Field(type = FieldType.Text, analyzer = "nori")
-    private String instructor;
+    private List<String> tags;
 
-    @Field(type = FieldType.Long)
-    private Long categoryId;
-
-    public static LectureDocument from(Lecture lecture) {
-        return LectureDocument.builder()
-                .id(lecture.getId())
-                .title(lecture.getTitle())
-                .description(lecture.getDescription())
-                .instructor(lecture.getInstructor())
-                .categoryId(lecture.getCategory().getId())
+    public static NoteDocument from(Note note, List<String> tagNames) {
+        return NoteDocument.builder()
+                .id(note.getId())
+                .title(note.getTitle())
+                .content(note.getContent())
+                .tags(tagNames)
                 .build();
     }
 }

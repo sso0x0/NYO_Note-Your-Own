@@ -17,8 +17,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 일반 회원용 강의 조회/이용 API. 목록·상세 조회는 비로그인도 가능(SecurityConfig에서 GET permitAll)하고,
- * 조회수/좋아요/수강신청은 JWT 인증이 필요하다(anyRequest().authenticated()).
+ * 일반 회원용 강의 조회/이용 API. 시작 페이지 외 모든 기능은 로그인 후에만 접근 가능하도록
+ * 목록·상세 조회를 포함해 전부 JWT 인증이 필요하다(SecurityConfig의 anyRequest().authenticated()).
  * 관리자 전용 등록/수정/삭제는 AdminLectureController 참고.
  */
 @Slf4j

@@ -1,6 +1,6 @@
-package com.nyo.domain.lecture.document;
+package com.nyo.domain.post.document;
 
-import com.nyo.domain.lecture.entity.Lecture;
+import com.nyo.domain.post.entity.Post;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,13 +11,13 @@ import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
-// 강의 검색(Elasticsearch)용 문서. JPA Lecture 엔티티와 별개로 검색에 필요한 필드만 색인한다.
+// 커뮤니티 게시글 검색(Elasticsearch)용 문서. 공지글은 색인하지 않는다(PostServiceImpl에서 걸러짐).
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Document(indexName = "lectures")
-public class LectureDocument {
+@Document(indexName = "posts")
+public class PostDocument {
 
     @Id
     private Long id;
@@ -27,21 +27,13 @@ public class LectureDocument {
     private String title;
 
     @Field(type = FieldType.Text, analyzer = "nori")
-    private String description;
+    private String content;
 
-    @Field(type = FieldType.Text, analyzer = "nori")
-    private String instructor;
-
-    @Field(type = FieldType.Long)
-    private Long categoryId;
-
-    public static LectureDocument from(Lecture lecture) {
-        return LectureDocument.builder()
-                .id(lecture.getId())
-                .title(lecture.getTitle())
-                .description(lecture.getDescription())
-                .instructor(lecture.getInstructor())
-                .categoryId(lecture.getCategory().getId())
+    public static PostDocument from(Post post) {
+        return PostDocument.builder()
+                .id(post.getId())
+                .title(post.getTitle())
+                .content(post.getContent())
                 .build();
     }
 }

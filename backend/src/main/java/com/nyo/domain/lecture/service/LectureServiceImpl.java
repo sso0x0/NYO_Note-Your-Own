@@ -20,6 +20,7 @@ import com.nyo.domain.user.repository.UserRepository;
 import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -34,6 +35,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -97,7 +99,7 @@ public class LectureServiceImpl implements LectureService {
                 .build();
 
         Lecture saved = lectureRepository.save(lecture);
-        lectureSearchRepository.save(LectureDocument.from(saved)); // 검색 색인 반영
+        indexLecture(LectureDocument.from(saved)); // 검색 색인 반영
 
         return LectureResponse.from(saved);
     }
@@ -163,7 +165,7 @@ public class LectureServiceImpl implements LectureService {
 
         lecture.update(category, request.getTitle(), request.getDescription(),
                 request.getLectureUrl(), request.getThumbnailUrl(), request.getInstructor(), request.getCapacity());
-        lectureSearchRepository.save(LectureDocument.from(lecture)); // 검색 색인 반영
+        indexLecture(LectureDocument.from(lecture)); // 검색 색인 반영
 
         return LectureResponse.from(lecture);
     }
@@ -189,7 +191,26 @@ public class LectureServiceImpl implements LectureService {
         likeRepository.deleteByTargetTypeAndTargetId(TargetType.LECTURE, id);
         likeRepository.deleteByTargetTypeAndTargetId(TargetType.ENROLL, id);
 
-        lectureSearchRepository.deleteById(id); // 검색 결과에서도 제외
+        deindexLecture(id); // 검색 결과에서도 제외
+    }
+
+    // ES 색인 저장 실패가 강의 생성/수정 트랜잭션 자체를 롤백시키지 않도록 격리한다.
+    // 색인이 어긋나더라도 /api/admin/lectures/reindex로 복구할 수 있으므로 예외를 삼키고 로그만 남긴다.
+    private void indexLecture(LectureDocument document) {
+        try {
+            lectureSearchRepository.save(document);
+        } catch (Exception e) {
+            log.warn("강의 검색 색인 저장 실패 (lectureId={})", document.getId(), e);
+        }
+    }
+
+    // ES 색인 삭제 실패가 강의 삭제 트랜잭션 자체를 롤백시키지 않도록 격리한다.
+    private void deindexLecture(Long lectureId) {
+        try {
+            lectureSearchRepository.deleteById(lectureId);
+        } catch (Exception e) {
+            log.warn("강의 검색 색인 삭제 실패 (lectureId={})", lectureId, e);
+        }
     }
 
     // ===== 조회수 / 좋아요 / 수강신청 =====

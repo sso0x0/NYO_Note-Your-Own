@@ -20,6 +20,9 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
 
     Optional<Note> findByIdAndIsDeleted(Long id, Integer isDeleted);
 
+    // 검색 색인(Elasticsearch)이 반환한 id 목록으로 실제 노트 데이터를 한 번에 조회한다.
+    List<Note> findAllByIdInAndIsDeleted(List<Long> ids, Integer isDeleted);
+
     // 조회수만 직접 증가시켜 BaseEntity.updatedAt이 바뀌지 않게 한다.
     @Modifying
     @Query("update Note n set n.viewCount = n.viewCount + 1 where n.id = :id and n.isDeleted = 0")

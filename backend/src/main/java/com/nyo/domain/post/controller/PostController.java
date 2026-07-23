@@ -45,6 +45,15 @@ public class PostController {
         return postService.canCreateNotice(SecurityUtil.getCurrentUserId());
     }
 
+    // 게시글 검색 (제목/본문 대상, Elasticsearch 기반). 공지글은 검색 대상에서 제외된다.
+    @GetMapping("/search")
+    public PageResponse<PostResponse> searchPosts(
+            @RequestParam String keyword,
+            @PageableDefault(size = 10) Pageable pageable
+    ) {
+        return postService.searchPosts(keyword, pageable);
+    }
+
     @PostMapping
     public PostResponse create(
             @Valid @RequestBody PostRequest request
