@@ -57,6 +57,22 @@ public class NoteController {
         return noteService.searchNotes(keyword, pageable);
     }
 
+    // 마이페이지 - 내가 작성한 노트 목록
+    @GetMapping("/mine")
+    public PageResponse<NoteResponse> findMine(
+            @PageableDefault(size = 12, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return noteService.findMine(SecurityUtil.getCurrentUserId(), pageable);
+    }
+
+    // 마이페이지 - 내가 좋아요한 노트 목록
+    @GetMapping("/liked")
+    public PageResponse<NoteResponse> findLiked(
+            @PageableDefault(size = 12, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return noteService.findLiked(SecurityUtil.getCurrentUserId(), pageable);
+    }
+
     // 강의별 노트 목록 조회
     @GetMapping("/lectures/{lectureId}")
     public List<NoteResponse> findByLecture(@PathVariable Long lectureId) {

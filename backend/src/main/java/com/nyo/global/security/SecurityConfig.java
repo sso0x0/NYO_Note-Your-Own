@@ -18,7 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
+import com.nyo.global.oauth2.OAuth2FailureHandler;
 import java.util.List;
 
 /**
@@ -36,6 +36,7 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final OAuth2FailureHandler oAuth2FailureHandler;      // 추가
 
     // 💡 application.yml의 CORS 허용 도메인 리스트를 주입받음
     @Value("${app.cors.allowed-origins}")
@@ -81,6 +82,7 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                         .successHandler(oAuth2SuccessHandler)
+                        .failureHandler(oAuth2FailureHandler)                  // 추가
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

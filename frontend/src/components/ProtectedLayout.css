@@ -23,6 +23,25 @@
 .protected-layout__logo-mark { display: block; }
 .protected-layout__logo-mark img { display: block; height: 30px; width: auto; }
 
+.protected-layout__nav {
+  display: flex;
+  gap: 24px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.protected-layout__nav a {
+  color: var(--text);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+
+.protected-layout__nav a.is-active {
+  color: var(--text-h);
+  border-bottom-color: var(--accent);
+}
+
 .protected-layout__user {
   display: flex;
   align-items: center;

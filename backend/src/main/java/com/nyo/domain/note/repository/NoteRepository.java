@@ -16,6 +16,9 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
     // 노트 게시판 서버 페이지네이션: 삭제되지 않은 노트만 Pageable 조건으로 조회합니다.
     Page<Note> findByIsDeleted(Integer isDeleted, Pageable pageable);
 
+    // 마이페이지 - 내가 작성한 노트 목록
+    Page<Note> findByUserIdAndIsDeleted(Long userId, Integer isDeleted, Pageable pageable);
+
     List<Note> findByLectureIdAndIsDeletedOrderByCreatedAtDesc(Long lectureId, Integer isDeleted);
 
     Optional<Note> findByIdAndIsDeleted(Long id, Integer isDeleted);

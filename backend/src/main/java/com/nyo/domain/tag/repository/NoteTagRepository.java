@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
+// AiTaggingService가 노트-태그 매핑 저장/existsById(중복 매핑 방지)에 사용
 public interface NoteTagRepository extends JpaRepository<NoteTag, NoteTagId> {
 
     // 노트 검색 색인(Elasticsearch)에 태그명을 함께 넣기 위한 조회. NoteTag는 Tag와 연관관계가 없어 theta join으로 연결한다.

@@ -1,0 +1,125 @@
+.admin-lectures__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-lectures__header button {
+  padding: 9px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.admin-lectures__error {
+  color: #d92d20;
+}
+
+.admin-lectures__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 480px;
+  margin: 16px 0 32px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.admin-lectures__form h4 {
+  margin: 0;
+}
+
+.admin-lectures__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.admin-lectures__form input,
+.admin-lectures__form select,
+.admin-lectures__form textarea {
+  padding: 9px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.admin-lectures__form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-lectures__form-actions button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.admin-lectures__table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+.admin-lectures__table th,
+.admin-lectures__table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.admin-lectures__table th {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.admin-lectures__table td {
+  color: var(--text-h);
+}
+
+.admin-lectures__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-lectures__actions button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.admin-lectures__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.admin-lectures__pagination button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 14px;
+  cursor: pointer;
+}

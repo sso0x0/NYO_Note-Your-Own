@@ -1,6 +1,7 @@
 package com.nyo.global.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nyo.global.exception.ErrorCode;
 import com.nyo.global.response.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,6 +28,7 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
             throws IOException {
+        response.setStatus(ErrorCode.UNAUTHENTICATED.getStatus().value());
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");

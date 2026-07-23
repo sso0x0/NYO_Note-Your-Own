@@ -9,8 +9,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface LectureRepository extends JpaRepository<Lecture, Long> {
+
+    // 노트 임시 연결용: 삭제되지 않은 강의 중 ID가 가장 작은 한 건을 선택한다.
+    Optional<Lecture> findFirstByIsDeletedFalseOrderByIdAsc();
 
     // 삭제된 강의 제외, 강의 전체 조회 (페이징, category 즉시 로딩으로 N+1 방지)
     @Query(value = "SELECT l FROM Lecture l JOIN FETCH l.category WHERE l.isDeleted = false",

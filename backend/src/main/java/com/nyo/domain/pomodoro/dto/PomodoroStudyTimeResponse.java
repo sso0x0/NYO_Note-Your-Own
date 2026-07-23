@@ -7,6 +7,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/**
+ * 오늘/전체 누적 공부 시간 조회 API가 공용으로 쓰는 응답 DTO.
+ */
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

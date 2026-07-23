@@ -13,6 +13,8 @@ public enum ErrorCode {
     // common
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "잘못된 입력입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다."),
+    UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
+    ACCESS_FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
 
     // course (박소현)
     COURSE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 강의입니다."),
