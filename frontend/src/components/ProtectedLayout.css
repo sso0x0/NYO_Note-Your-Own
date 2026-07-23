@@ -23,6 +23,22 @@
 .protected-layout__logo-mark { display: block; }
 .protected-layout__logo-mark img { display: block; height: 30px; width: auto; }
 
+.protected-layout__nav {
+  display: flex;
+  gap: 24px;
+}
+
+.protected-layout__nav a {
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.protected-layout__nav a.active {
+  color: var(--nyo-accent, var(--accent));
+}
+
 .protected-layout__user {
   display: flex;
   align-items: center;

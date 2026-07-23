@@ -1,0 +1,54 @@
+/* 우하단 플로팅 위젯(뽀모도로, 챗봇)이 공통으로 쓰는 아이콘/팝업창 뼈대.
+   위젯별 내용 스타일(타이머, 채팅 말풍선 등)은 각 기능의 css에서 따로 관리한다. */
+
+.widget {
+  position: relative;
+}
+
+.widget__toggle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: var(--nyo-accent, var(--accent));
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: var(--card-shadow, 0 4px 12px rgba(0, 0, 0, 0.15));
+}
+
+/* 패널을 자기 아이콘 바로 위, 오른쪽 끝에 맞춰 띄운다. 두 위젯의 아이콘이
+   나란히(WidgetDock) 있으면 패널도 자연히 2열로 나란히 뜬다. */
+.widget__panel {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  width: 340px;
+  max-width: calc(100vw - 48px);
+  height: 480px;
+  max-height: calc(100vh - 160px);
+  background: var(--bg, #fff);
+  border: 1px solid var(--border, #ddd);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow, 0 8px 30px rgba(0, 0, 0, 0.2));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.widget__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border, #ddd);
+  font-weight: 600;
+}
+
+.widget__header button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--text);
+}
