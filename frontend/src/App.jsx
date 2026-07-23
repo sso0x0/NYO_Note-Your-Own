@@ -16,6 +16,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/oauth2/redirect" element={<OAuth2RedirectPage />} />
 
             <Route element={<ProtectedRoute />}>
                 <Route path="/main" element={<ProtectedLayout />}>
