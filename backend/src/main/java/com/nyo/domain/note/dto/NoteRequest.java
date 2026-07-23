@@ -1,5 +1,6 @@
 package com.nyo.domain.note.dto;
 
+import com.nyo.domain.common.dto.request.ImageRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -8,6 +9,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Getter
 @Builder
@@ -40,4 +43,6 @@ public class NoteRequest {
     @Schema(description = "업로드한 이미지 파일 크기(byte)")
     private Long imageFileSize;
 
+    @Schema(description = "본문 중간에 삽입된 이미지 목록")
+    private List<ImageRequest> contentImages;
 }

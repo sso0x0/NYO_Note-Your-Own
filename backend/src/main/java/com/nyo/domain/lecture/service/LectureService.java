@@ -7,8 +7,6 @@ import org.springframework.data.domain.Pageable;
 
 public interface LectureService {
 
-    // TODO: user 완료되기 전 관리자 전용은 따로 adminId를 받아옴
-
     // 새로운 강의 등록 (관리자만 가능)
     LectureResponse createLecture(LectureRequest request, Long adminId);
 
@@ -47,4 +45,10 @@ public interface LectureService {
 
     // 인기 강의(isPopular) 갱신 (좋아요수/조회수 상위 N개, 배치/스케줄러에서 호출)
     void refreshPopularLectures();
+
+    // 키워드로 강의 검색 (제목/강사명/설명 대상, Elasticsearch 기반)
+    Page<LectureResponse> searchLectures(String keyword, Pageable pageable);
+
+    // 전체 강의로 Elasticsearch 색인 재구축 (색인 유실 복구, 초기 데이터 반영 등에 사용, 관리자 전용)
+    void reindexAllLectures();
 }

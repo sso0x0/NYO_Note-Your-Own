@@ -1,37 +1,33 @@
-import { useState } from 'react'
-import './App.css'
+import { Route, Routes } from 'react-router-dom';
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
+import LectureListPage from './pages/LectureListPage';
+import LectureDetailPage from './pages/LectureDetailPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedLayout from './components/ProtectedLayout';
+import NoteSectionRoutes from './pages/NoteSectionRoutes';
+import CommunitySectionRoutes from './pages/CommunitySectionRoutes';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
-  const [healthResult, setHealthResult] = useState(null)
-
-  const checkBackend = async () => {
-    try {
-      const res = await fetch('http://localhost:8080/api/health')
-      const data = await res.json()
-      setHealthResult(JSON.stringify(data))
-    } catch (err) {
-      setHealthResult(`연결 실패: ${err.message}`)
-    }
-  }
-
   return (
-      <>
-        <section id="center">
-          <div>
-            <h1>Get started</h1>
-          </div>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
 
-          {/* 백엔드 연결 테스트용 - 확인 후 지워도 됨 */}
-          <div style={{ marginTop: '1rem' }}>
-            <button type="button" onClick={checkBackend}>
-              백엔드 연결 테스트
-            </button>
-            {healthResult && <p>{healthResult}</p>}
-          </div>
-        </section>
-    </>
-  )
+        <Route element={<ProtectedRoute />}>
+          <Route path="/main" element={<ProtectedLayout />}>
+            <Route index element={<LectureListPage />} />
+            <Route path="lectures/:id" element={<LectureDetailPage />} />
+            {/* 기존 노트와 커뮤니티 기능을 로그인 후 /main 하위 주소에 연결합니다. */}
+            <Route path="notes/*" element={<NoteSectionRoutes />} />
+            <Route path="community/*" element={<CommunitySectionRoutes />} />
+          </Route>
+        </Route>
+      </Routes>
+  );
 }
 
-export default App
+export default App;

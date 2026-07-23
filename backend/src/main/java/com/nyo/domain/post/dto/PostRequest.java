@@ -1,6 +1,6 @@
 package com.nyo.domain.post.dto;
 
-import com.nyo.domain.common.dto.request.ContentImageRequest;
+import com.nyo.domain.common.dto.request.ImageRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -39,5 +39,9 @@ public class PostRequest {
     private Long imageFileSize;
 
     @Schema(description = "본문 중간에 삽입된 이미지 목록")
-    private List<ContentImageRequest> contentImages;
+    private List<ImageRequest> contentImages;
+
+    // 관리자 공지 기능: true 요청은 서비스에서 ADMIN 여부를 다시 검증한다.
+    @Schema(description = "공지 게시글 여부", example = "false")
+    private Boolean notice;
 }

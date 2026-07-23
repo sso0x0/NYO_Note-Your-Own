@@ -25,7 +25,7 @@ public class LikeServiceImpl implements LikeService {
     @Override
     @Transactional
     public LikeResponse like(Long userId, LikeRequest request) {
-        TargetType targetType = TargetType.valueOf(request.getTargetType());
+        TargetType targetType = parseTargetType(request.getTargetType());
 
         // 이미 좋아요 눌렀는지 중복 체크 (유니크 제약 uk_like_target과 이중 방어)
         if (likeRepository.existsByUserIdAndTargetTypeAndTargetId(userId, targetType, request.getTargetId())) {
@@ -54,7 +54,7 @@ public class LikeServiceImpl implements LikeService {
     @Override
     @Transactional
     public void unlike(Long userId, LikeRequest request) {
-        TargetType targetType = TargetType.valueOf(request.getTargetType());
+        TargetType targetType = parseTargetType(request.getTargetType());
 
         // 좋아요 안 누른 상태에서 취소 요청 시 에러
         if (!likeRepository.existsByUserIdAndTargetTypeAndTargetId(userId, targetType, request.getTargetId())) {
@@ -68,6 +68,15 @@ public class LikeServiceImpl implements LikeService {
     @Override
     public boolean isLiked(Long userId, String targetType, Long targetId) {
         return likeRepository.existsByUserIdAndTargetTypeAndTargetId(
-                userId, TargetType.valueOf(targetType), targetId);
+                userId, parseTargetType(targetType), targetId);
+    }
+
+    private TargetType parseTargetType(String targetType) {
+        try {
+            return TargetType.valueOf(targetType);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            // enum 변환 오류를 500으로 보내지 않고 클라이언트 입력 오류로 변환합니다.
+            throw new BusinessException(ErrorCode.TARGET_TYPE_INVALID);
+        }
     }
 }

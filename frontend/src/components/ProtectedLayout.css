@@ -1,0 +1,56 @@
+.protected-layout {
+  width: 100%;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+.protected-layout__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 8%;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.protected-layout__logo {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.protected-layout__logo-mark { display: block; }
+.protected-layout__logo-mark img { display: block; height: 30px; width: auto; }
+
+.protected-layout__user {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.protected-layout__user button {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  padding: 8px 18px;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.protected-layout__user button:hover {
+  background: var(--text-h);
+  color: #fff;
+  border-color: var(--text-h);
+}
+
+.protected-layout__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}

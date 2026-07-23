@@ -48,7 +48,11 @@ public class Post extends BaseEntity {
     @Column(name = "is_deleted", nullable = false)
     private Integer isDeleted;
 
-    public static Post create(Long userId, String title, String content, String thumbnailUrl) {
+    // 관리자 공지 기능: 1이면 공지, 0이면 일반 게시글이다.
+    @Column(name = "is_notice", nullable = false)
+    private Integer isNotice;
+
+    public static Post create(Long userId, String title, String content, String thumbnailUrl, boolean notice) {
         return Post.builder()
                 .userId(userId)
                 .title(title)
@@ -57,13 +61,15 @@ public class Post extends BaseEntity {
                 .viewCount(0L)
                 .likeCount(0L)
                 .isDeleted(0)
+                .isNotice(notice ? 1 : 0)
                 .build();
     }
 
-    public void update(String title, String content, String thumbnailUrl) {
+    public void update(String title, String content, String thumbnailUrl, boolean notice) {
         this.title = title;
         this.content = content;
         this.thumbnailUrl = thumbnailUrl;
+        this.isNotice = notice ? 1 : 0;
     }
 
     public void delete() {
@@ -72,5 +78,9 @@ public class Post extends BaseEntity {
 
     public boolean isDeleted() {
         return Integer.valueOf(1).equals(isDeleted);
+    }
+
+    public boolean isNotice() {
+        return Integer.valueOf(1).equals(isNotice);
     }
 }

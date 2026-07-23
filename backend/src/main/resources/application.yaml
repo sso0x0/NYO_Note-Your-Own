@@ -28,6 +28,8 @@ spring:
     multipart:
       max-file-size: 500MB
       max-request-size: 500MB
+  elasticsearch: # 엘라스틱서치
+    uris: ${ELASTICSEARCH_URI}
 
 server:
   port: 8080
@@ -44,7 +46,6 @@ gcp:
   storage:
     bucket: nyo_images
 
-# 💡 FIXED: 하드코딩된 문자열 → 환경변수로 분리
 jwt:
   secret: ${JWT_SECRET}
   access-token-validity-ms: 3600000 # 1시간
