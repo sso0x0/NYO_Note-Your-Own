@@ -8,6 +8,7 @@ import com.nyo.domain.common.repository.ImageRepository;
 import com.nyo.domain.common.service.LikeService;
 import com.nyo.domain.common.service.ViewService;
 import com.nyo.domain.note.document.NoteDocument;
+import com.nyo.domain.lecture.repository.LectureRepository;
 import com.nyo.domain.note.dto.NoteRequest;
 import com.nyo.domain.note.dto.NoteResponse;
 import com.nyo.domain.note.entity.Note;
@@ -48,6 +49,7 @@ import java.util.stream.Collectors;
 public class NoteService {
 
     private final NoteRepository noteRepository;
+    private final LectureRepository lectureRepository;
     private final NoteHistoryRepository noteHistoryRepository;
     private final NoteSearchRepository noteSearchRepository; // 노트 검색 색인 (Elasticsearch)
     private final NoteTagRepository noteTagRepository;
@@ -60,9 +62,14 @@ public class NoteService {
 
     @Transactional
     public NoteResponse create(Long userId, NoteRequest request) {
+        // 작성자는 컨트롤러가 JWT에서 전달하며, 강의는 임시 정책으로 DB의 첫 활성 강의를 자동 연결한다.
+        Long lectureId = lectureRepository.findFirstByIsDeletedFalseOrderByIdAsc()
+                .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND))
+                .getId();
+
         Note note = Note.create(
                 userId,
-                request.getLectureId(),
+                lectureId,
                 request.getTitle(),
                 request.getContent(),
                 request.getThumbnailUrl()

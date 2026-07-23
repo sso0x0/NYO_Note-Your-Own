@@ -42,3 +42,35 @@
   gap: 16px;
   margin-top: 24px;
 }
+.lecture-list-page__board-links {
+  display: grid;
+  /* 메인 화면에서 노트 목록 아래에 게시판이 이어지도록 한 열로 배치합니다. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  margin-top: 3rem;
+}
+
+.lecture-list-page__board-links section {
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.lecture-list-page__board-links h2 {
+  margin-top: 0;
+}
+
+.lecture-list-page__board-links p {
+  color: #64748b;
+}
+
+.lecture-list-page__board-links a {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  background: #1976d2;
+  color: #fff;
+  text-decoration: none;
+}

@@ -26,7 +26,18 @@ export async function apiGet(path, params = {}) {
   if (!res.ok) {
     throw new Error(`요청 실패 (${res.status}): ${url.pathname}${url.search}`);
   }
-  return res.json();
+  const payload = await res.json();
+
+  // ApiResponse 형식({ success, data, message })은 실제 data만 반환한다.
+  // 카테고리처럼 배열/객체를 직접 반환하는 기존 API 응답은 원형 그대로 유지한다.
+  if (payload && typeof payload === 'object' && 'success' in payload && 'data' in payload) {
+    if (payload.success === false) {
+      throw new Error(payload.message || `요청 실패: ${url.pathname}`);
+    }
+    return payload.data;
+  }
+
+  return payload;
 }
 
 // UserController 등은 { success, data, message } 형태의 ApiResponse로 응답한다.

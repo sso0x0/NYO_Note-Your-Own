@@ -52,6 +52,8 @@ jwt:
 
 app:
   cors:
+    # 개발 환경에서 환경변수가 없어도 서버가 시작되도록 로컬 프론트 주소를 기본값으로 사용합니다.
+    # 배포 환경에서는 CORS_ALLOWED_ORIGINS 값으로 반드시 실제 프론트 주소를 지정해야 합니다.
     allowed-origins: ${CORS_ALLOWED_ORIGINS}
   oauth2:
     redirect-uri: http://localhost:5173/oauth2/redirect
