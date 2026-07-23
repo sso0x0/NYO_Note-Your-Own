@@ -603,6 +603,63 @@
   margin-bottom: 0;
 }
 
+/* 게시글 상세는 안내용 고정 제목 대신 실제 게시글 제목을 크게 강조합니다. */
+.post-detail-title {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.post-detail-byline {
+  margin: 0.65rem 0 1.5rem;
+  color: #667085;
+  font-size: 0.95rem;
+}
+
+.post-detail-byline strong {
+  color: #344054;
+}
+
+/* 노트 메타 정보는 게시판처럼 가로로 배치하고 화면이 좁으면 자연스럽게 줄바꿈한다. */
+.note-detail-byline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* 기존 ID 중심 메타 카드와 본문 위 좋아요 버튼은 새 상세 레이아웃에서 숨긴다. */
+.note-detail-panel > .note-meta,
+.note-detail-panel > .legacy-note-like {
+  display: none;
+}
+
+.post-detail-actions {
+  justify-content: flex-end;
+  margin-bottom: 1.25rem;
+}
+
+.post-like-summary {
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.post-like-summary > span {
+  min-width: 1.5rem;
+  color: #475467;
+  font-weight: 600;
+}
+
+.note-like-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  color: #475467;
+  font-weight: 600;
+}
+
 .note-content {
   margin: 0;
   padding: 1rem;
@@ -675,6 +732,65 @@
   margin-right: 0.75rem;
   color: #666;
   font-size: 0.9rem;
+}
+
+/* 본문 작성 위치에서 선택한 이미지를 바로 확인할 수 있도록 에디터 폭에 맞춘다. */
+.editor-inline-image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  max-height: 480px;
+  margin: 12px 0;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.editor-image-wrapper {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  margin: 12px 0;
+}
+
+/* 우측 아래 조절점을 드래그하며 원본 크기 안에서 본문 이미지 너비를 바꾼다. */
+.editor-image-resize-handle {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.image-preview-name {
+  margin: 0 0 0.5rem;
+  color: #475467;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.image-preview-box .image-preview-remove {
+  margin-top: 0.75rem;
+  border-color: #c62828;
+  color: #c62828;
+}
+
+.comment-edit-form {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.comment-edit-form textarea {
+  grid-column: 1 / -1;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .comment-replies {

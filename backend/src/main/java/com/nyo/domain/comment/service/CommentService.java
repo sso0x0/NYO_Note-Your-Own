@@ -11,6 +11,7 @@ import com.nyo.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +26,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final UserService userService;
+    private final JdbcTemplate jdbcTemplate;
 
     @Transactional
     public CommentResponse create(Long userId, CommentRequest request) {
@@ -77,11 +79,17 @@ public class CommentService {
     public void delete(Long commentId, Long userId) {
         Comment comment = getComment(commentId);
 
-        if (!comment.getUserId().equals(userId)) {
+        if (!comment.getUserId().equals(userId) && !isAdmin(userId)) {
             throw new BusinessException(ErrorCode.COMMENT_ACCESS_DENIED);
         }
 
         comment.delete();
+    }
+
+    private boolean isAdmin(Long userId) {
+        // 삭제 요청의 JWT 사용자에 대해 DB의 현재 ROLE을 조회하므로 오래된 프론트 권한값에 의존하지 않습니다.
+        String role = jdbcTemplate.queryForObject("SELECT role FROM users WHERE id = ?", String.class, userId);
+        return "ADMIN".equals(role);
     }
 
     private CommentResponse toTreeResponse(

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getLecture } from '../api/lecture';
+import { getLecture, increaseLectureViewCount } from '../api/lecture';
 import './LectureDetailPage.css';
 
 function LectureDetailPage() {
@@ -20,17 +20,24 @@ function LectureDetailPage() {
     setLiked(false);
     setEnrolled(false);
 
-    getLecture(id)
-      .then((data) => {
+    const loadLecture = async () => {
+      try {
+        // 조회수 증가를 먼저 처리한 뒤 상세 정보를 조회해야 갱신된 숫자가 바로 표시된다.
+        // 비로그인 등으로 증가 요청이 실패해도 공개된 강의 상세 조회는 계속 진행한다.
+        await increaseLectureViewCount(id).catch(() => null);
+        const data = await getLecture(id);
+
         if (cancelled) return;
         setLecture(data);
         setStatus('success');
-      })
-      .catch((err) => {
+      } catch (err) {
         if (cancelled) return;
         setError(err.message);
         setStatus('error');
-      });
+      }
+    };
+
+    loadLecture();
 
     return () => {
       cancelled = true;

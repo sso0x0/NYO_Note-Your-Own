@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getLectureList } from '../api/lecture';
 import { getCategoryList } from '../api/category';
 import LectureCard from '../components/LectureCard';
+import { Link } from 'react-router-dom';
 import './LectureListPage.css';
 
 function LectureListPage() {
@@ -22,6 +23,8 @@ function LectureListPage() {
   useEffect(() => {
     let cancelled = false;
 
+    // 강의 조회 조건이 바뀐 즉시 이전 결과 대신 로딩 상태를 보여주기 위한 의도적인 동기화입니다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus('loading');
     setError(null);
 
@@ -106,6 +109,20 @@ function LectureListPage() {
           </div>
         </>
       )}
+
+      {/* 메인 강의 목록 아래에서 기존 노트와 커뮤니티 게시판으로 이동할 수 있습니다. */}
+      <div className="lecture-list-page__board-links">
+        <section>
+          <h2>노트 목록</h2>
+          <p>학습 내용을 정리한 노트를 확인하고 새 노트를 작성할 수 있습니다.</p>
+          <Link to="/main/notes?page=1&sort=createdAt">노트 목록으로 이동</Link>
+        </section>
+        <section>
+          <h2>게시판</h2>
+          <p>공지와 커뮤니티 게시글을 확인하고 의견을 나눌 수 있습니다.</p>
+          <Link to="/main/community?page=1&sort=createdAt">게시판으로 이동</Link>
+        </section>
+      </div>
     </section>
   );
 }
