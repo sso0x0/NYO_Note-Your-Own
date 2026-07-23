@@ -1,0 +1,27 @@
+.admin-layout {
+  width: 100%;
+  padding: 24px 20px 40px;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.admin-layout__nav {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-layout__nav a {
+  padding: 10px 16px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+  border-bottom: 2px solid transparent;
+}
+
+.admin-layout__nav a.is-active {
+  color: var(--text-h);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}

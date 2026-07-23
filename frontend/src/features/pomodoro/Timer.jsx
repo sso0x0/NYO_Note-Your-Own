@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { createRecord, updateRecord } from '../../api/pomodoro'
+import { createRecord, updateRecord } from './api/pomodoro'
 import { DEFAULT_BREAK_MINUTES, DEFAULT_FOCUS_MINUTES } from './constants'
 import { toLocalDateTimeString } from './dateUtil'
 

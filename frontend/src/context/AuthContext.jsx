@@ -35,6 +35,8 @@ export function AuthProvider({ children }) {
           role: loginResponse.role,
         }),
       logout: () => setAuth(null),
+      // 마이페이지에서 닉네임 등을 수정한 뒤 헤더 표시를 즉시 갱신하기 위한 부분 갱신.
+      updateNickname: (nickname) => setAuth((prev) => (prev ? { ...prev, nickname } : prev)),
     }),
     [auth],
   );

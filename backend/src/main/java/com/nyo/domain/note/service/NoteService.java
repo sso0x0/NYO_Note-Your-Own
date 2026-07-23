@@ -4,7 +4,10 @@ import com.nyo.domain.common.dto.request.LikeRequest;
 import com.nyo.domain.common.dto.request.ImageRequest;
 import com.nyo.domain.common.dto.request.ViewRequest;
 import com.nyo.domain.common.entity.Image;
+import com.nyo.domain.common.entity.Like;
+import com.nyo.domain.common.entity.TargetType;
 import com.nyo.domain.common.repository.ImageRepository;
+import com.nyo.domain.common.repository.LikeRepository;
 import com.nyo.domain.common.service.LikeService;
 import com.nyo.domain.common.service.ViewService;
 import com.nyo.domain.note.document.NoteDocument;
@@ -54,6 +57,7 @@ public class NoteService {
     private final NoteSearchRepository noteSearchRepository; // 노트 검색 색인 (Elasticsearch)
     private final NoteTagRepository noteTagRepository;
     private final ImageRepository imageRepository;
+    private final LikeRepository likeRepository;
     private final LikeService likeService;
     private final ViewService viewService;
     private final FileStorageService fileStorageService;
@@ -164,6 +168,38 @@ public class NoteService {
                 note -> toResponse(note, nicknames.getOrDefault(note.getUserId(), "알 수 없는 사용자"))
         );
         return PageResponse.of(responsePage);
+    }
+
+    // 마이페이지 - 내가 작성한 노트 목록
+    public PageResponse<NoteResponse> findMine(Long userId, Pageable pageable) {
+        Page<Note> notePage = noteRepository.findByUserIdAndIsDeleted(userId, 0, pageable);
+        String nickname = userService.getDisplayNickname(userId);
+        return PageResponse.of(notePage.map(note -> toResponse(note, nickname)));
+    }
+
+    // 마이페이지 - 내가 좋아요한 노트 목록. Like 기록의 좋아요 시각 순서를 유지하기 위해
+    // searchNotes()와 같은 방식으로 id 목록을 먼저 얻은 뒤 노트를 다시 조립한다.
+    public PageResponse<NoteResponse> findLiked(Long userId, Pageable pageable) {
+        Page<Like> likePage = likeRepository.findByUserIdAndTargetType(userId, TargetType.NOTE, pageable);
+        List<Long> ids = likePage.getContent().stream().map(Like::getTargetId).toList();
+
+        Map<Long, Note> notesById = ids.isEmpty()
+                ? Map.of()
+                : noteRepository.findAllByIdInAndIsDeleted(ids, 0).stream()
+                        .collect(Collectors.toMap(Note::getId, Function.identity()));
+
+        Map<Long, String> nicknames = userService.getDisplayNicknames(
+                notesById.values().stream().map(Note::getUserId).distinct().toList()
+        );
+
+        // 삭제된 노트는 조용히 건너뛴다 (좋아요 기록은 남아있어도 이미 사라진 노트일 수 있음).
+        List<NoteResponse> content = ids.stream()
+                .map(notesById::get)
+                .filter(Objects::nonNull)
+                .map(note -> toResponse(note, nicknames.getOrDefault(note.getUserId(), "알 수 없는 사용자")))
+                .toList();
+
+        return PageResponse.of(new PageImpl<>(content, pageable, likePage.getTotalElements()));
     }
 
     public List<NoteResponse> findByLecture(Long lectureId) {

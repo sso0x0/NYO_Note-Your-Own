@@ -18,26 +18,45 @@ function ProtectedLayout() {
   };
 
   return (
-    <div className="protected-layout">
-      <header className="protected-layout__header">
-        <Link to="/main" className="protected-layout__logo">
+      <div className="protected-layout">
+        <header className="protected-layout__header">
+          <Link to="/main" className="protected-layout__logo">
           <span className="protected-layout__logo-mark">
             <img src={nyoLogo} alt="NYO" />
           </span>
-        </Link>
-        <nav className="protected-layout__nav">
-          <NavLink to="/main" end>강의</NavLink>
-        </nav>
-        <div className="protected-layout__user">
-          <span>{auth?.nickname}님 환영합니다</span>
-          <button type="button" onClick={handleLogout}>로그아웃</button>
-        </div>
-      </header>
-      <main className="protected-layout__content">
-        <Outlet />
-      </main>
-      <WidgetDock />
-    </div>
+          </Link>
+          <nav className="protected-layout__nav">
+            <NavLink to="/main" end className={({ isActive }) => (isActive ? 'is-active' : '')}>
+              메인
+            </NavLink>
+            <NavLink to="/main/lectures" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+              강의
+            </NavLink>
+            <NavLink to="/main/notes" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+              노트
+            </NavLink>
+            <NavLink to="/main/community" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+              커뮤니티
+            </NavLink>
+            <NavLink to="/main/mypage" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+              마이페이지
+            </NavLink>
+            {auth?.role === 'ADMIN' && (
+              <NavLink to="/main/admin" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+                관리자
+              </NavLink>
+            )}
+          </nav>
+          <div className="protected-layout__user">
+            <span>{auth?.nickname}님 환영합니다</span>
+            <button type="button" onClick={handleLogout}>로그아웃</button>
+          </div>
+        </header>
+        <main className="protected-layout__content">
+          <Outlet />
+        </main>
+        <WidgetDock />
+      </div>
   );
 }
 

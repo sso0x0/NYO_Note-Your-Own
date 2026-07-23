@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getRecords, getTodayStudyTime, getTotalStudyTime } from '../../api/pomodoro'
+import { getRecords, getTodayStudyTime, getTotalStudyTime } from './api/pomodoro'
 
 // 오늘/전체 누적 공부 시간과 최근 기록 목록. Timer가 세션을 끝낼 때마다
 // refreshKey를 바꿔주면 이 컴포넌트가 다시 조회한다 (부모→자식 리프레시 신호).
