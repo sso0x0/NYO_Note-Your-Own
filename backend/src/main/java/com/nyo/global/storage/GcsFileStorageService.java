@@ -76,6 +76,11 @@ public class GcsFileStorageService implements FileStorageService {
 
     private String extractObjectName(String imageUrl) {
         String decodedUrl = URLDecoder.decode(imageUrl, StandardCharsets.UTF_8);
+        // 과거에 저장된 URL fragment가 있어도 실제 GCS 객체명만 추출합니다.
+        int fragmentIndex = decodedUrl.indexOf('#');
+        if (fragmentIndex >= 0) {
+            decodedUrl = decodedUrl.substring(0, fragmentIndex);
+        }
         String bucketPathPrefix = "storage.googleapis.com/" + bucket + "/";
         int bucketPathIndex = decodedUrl.indexOf(bucketPathPrefix);
 
