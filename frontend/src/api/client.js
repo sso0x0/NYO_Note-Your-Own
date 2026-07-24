@@ -30,7 +30,7 @@ function unwrap(payload) {
     return 'success' in payload && 'data' in payload ? payload.data : payload;
 }
 
-export async function apiGet(path, params = {}) {
+export async function apiGet(path, params = {}, { token: tokenOverride } = {}) {
     const url = new URL(path, BASE_URL);
     Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -38,7 +38,7 @@ export async function apiGet(path, params = {}) {
         }
     });
 
-    const token = getStoredToken();
+    const token = tokenOverride ?? getStoredToken();
     const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
     const res = await fetch(url, { credentials: 'include', headers });
