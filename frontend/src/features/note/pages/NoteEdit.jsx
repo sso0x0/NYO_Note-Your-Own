@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { createPendingContentImage, uploadPendingContentImages } from '../../../utils/contentImages'
 import TextColorPicker from '../components/TextColorPicker'
 import RichTextEditor from '../../../components/RichTextEditor'
+import ResizableMainImage from '../../../components/ResizableMainImage'
+import { parseMainImage, storeMainImageWidth } from '../../../utils/mainImage'
 import { useAuth } from '../../../context/AuthContext'
 
 function NoteEdit({ noteId, onBack, onSaved }) {
@@ -11,6 +13,7 @@ function NoteEdit({ noteId, onBack, onSaved }) {
     title: '',
     content: '',
     thumbnailUrl: '',
+    thumbnailWidth: 500,
   })
   const [imageFile, setImageFile] = useState(null)
   const [contentImageFiles, setContentImageFiles] = useState([])
@@ -34,13 +37,15 @@ function NoteEdit({ noteId, onBack, onSaved }) {
           return
         }
 
+        const mainImage = parseMainImage(data.thumbnailUrl)
         setForm({
           lectureId: String(data.lectureId),
           title: data.title ?? '',
           content: data.content ?? '',
-          thumbnailUrl: data.thumbnailUrl ?? '',
+          thumbnailUrl: mainImage.url,
+          thumbnailWidth: mainImage.width,
         })
-        setMessage('저장하면 기존 제목과 내용이 note_histories 테이블에 저장됩니다.')
+        setMessage('')
       } catch (error) {
         setMessage(`노트 조회 실패: ${error.message}`)
       } finally {
@@ -84,16 +89,12 @@ function NoteEdit({ noteId, onBack, onSaved }) {
 
     setImageFile(file)
     setPreviewUrl(URL.createObjectURL(file))
-    setMessage('이미지는 수정 저장 버튼을 누르면 업로드됩니다.')
   }
 
   const insertCodeBlock = () => {
     // 노트 수정 중에도 본문에 마크다운 코드블럭 문법을 추가할 수 있게 한다.
     const codeBlock = '\n```java\n// 코드를 입력하세요\n```\n'
-    setForm((prev) => ({
-      ...prev,
-      content: `${prev.content}${codeBlock}`,
-    }))
+    contentRef.current?.insertCodeBlock(codeBlock)
   }
 
   const applyTextColor = (color) => {
@@ -119,7 +120,7 @@ function NoteEdit({ noteId, onBack, onSaved }) {
     // React가 버튼을 다시 그리기 전 발생할 수 있는 연속 제출도 함수 입구에서 차단합니다.
     if (loading) return
     setLoading(true)
-    setMessage('노트를 수정하는 중입니다.')
+    setMessage('')
 
     try {
       // 새 이미지가 있으면 저장 시점에만 GCS에 올리고, 없으면 기존 URL을 유지한다.
@@ -138,7 +139,7 @@ function NoteEdit({ noteId, onBack, onSaved }) {
           lectureId: Number(form.lectureId),
           title: form.title,
           content: uploadedContent.savedContent,
-          thumbnailUrl: imageUrl || null,
+          thumbnailUrl: imageUrl ? storeMainImageWidth(imageUrl, form.thumbnailWidth) : null,
           // 새 이미지를 업로드한 경우 원본 파일명과 파일 크기를 DB 저장용으로 같이 보낸다.
           imageOriginalName: uploadedImage?.originalName ?? null,
           imageFileSize: uploadedImage?.fileSize ?? null,
@@ -195,8 +196,12 @@ function NoteEdit({ noteId, onBack, onSaved }) {
 
           {imagePreview && (
             <div className="image-preview-box">
-              <img className="note-thumbnail" src={imagePreview} alt="메인 이미지 미리보기" />
-              <input name="thumbnailUrl" value={form.thumbnailUrl} onChange={handleChange} placeholder="기존 이미지 URL" />
+              <ResizableMainImage
+                src={imagePreview}
+                alt="메인 이미지 미리보기"
+                width={form.thumbnailWidth}
+                onWidthChange={(thumbnailWidth) => setForm((prev) => ({ ...prev, thumbnailWidth }))}
+              />
             </div>
           )}
 

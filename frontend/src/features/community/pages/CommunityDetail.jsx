@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../../context/AuthContext'
+import { parseMainImage } from '../../../utils/mainImage'
 
 const EMPTY_HEART_IMAGE = '/images/heart.png'
 const FILLED_HEART_IMAGE = '/images/hearts.png'
@@ -190,6 +191,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
   )
   // 수정은 관리자 권한과 관계없이 게시글을 작성한 로그인 사용자 본인에게만 허용합니다.
   const canEdit = post && auth && String(post.userId) === String(auth.userId)
+  const mainImage = parseMainImage(post?.thumbnailUrl)
 
   const selectReplyTarget = (comment) => {
     setCommentForm((prev) => ({
@@ -342,13 +344,19 @@ function CommunityDetail({ postId, onBack, onEdit }) {
             <p className="post-detail-byline">
               <strong>{post.authorNickname || '알 수 없는 사용자'}</strong>
               <span aria-hidden="true"> | </span>
-              <time dateTime={post.updatedAt}>{formatDate(post.updatedAt)}</time>
+              <time dateTime={post.updatedAt}>최종수정일 {formatDate(post.updatedAt)}</time>
               <span aria-hidden="true"> | </span>
               <span>조회수 {post.viewCount ?? 0}</span>
             </p>
 
-            {post.thumbnailUrl && (
-              <img className="note-thumbnail" src={post.thumbnailUrl} alt="게시글 이미지" />
+            {mainImage.url && (
+              <img
+                className="note-thumbnail"
+                src={mainImage.url}
+                style={{ width: `${mainImage.width}px` }}
+                alt="게시글 이미지"
+                draggable={false}
+              />
             )}
 
             <div className="note-content">{renderPostContent(post.content)}</div>

@@ -2,12 +2,15 @@ import { useRef, useState } from 'react'
 import { createPendingContentImage, uploadPendingContentImages } from '../../../utils/contentImages'
 import TextColorPicker from '../components/TextColorPicker'
 import RichTextEditor from '../../../components/RichTextEditor'
+import ResizableMainImage from '../../../components/ResizableMainImage'
+import { storeMainImageWidth } from '../../../utils/mainImage'
 import { useAuth } from '../../../context/AuthContext'
 
 const initialForm = {
-  title: '테스트 노트',
-  content: '노트 내용입니다.',
+  title: '',
+  content: '',
   thumbnailUrl: '',
+  thumbnailWidth: 500,
 }
 
 function NoteCreate({ onBack, onCreated }) {
@@ -56,7 +59,6 @@ function NoteCreate({ onBack, onCreated }) {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     setImageFile(file)
     setPreviewUrl(URL.createObjectURL(file))
-    setMessage('이미지는 저장 버튼을 누르면 업로드됩니다.')
   }
 
   const clearMainImage = () => {
@@ -71,10 +73,7 @@ function NoteCreate({ onBack, onCreated }) {
   const insertCodeBlock = () => {
     // 노트 본문에 마크다운 코드블럭 문법을 삽입해 코드 예시를 저장할 수 있게 한다.
     const codeBlock = '\n```java\n// 코드를 입력하세요\n```\n'
-    setForm((prev) => ({
-      ...prev,
-      content: `${prev.content}${codeBlock}`,
-    }))
+    contentRef.current?.insertCodeBlock(codeBlock)
   }
 
   const applyTextColor = (color) => {
@@ -100,7 +99,7 @@ function NoteCreate({ onBack, onCreated }) {
     // React가 버튼을 다시 그리기 전 발생할 수 있는 연속 제출도 함수 입구에서 차단합니다.
     if (loading) return
     setLoading(true)
-    setMessage('노트를 저장하는 중입니다.')
+    setMessage('')
 
     try {
       // 저장 버튼을 눌렀을 때만 GCS에 업로드하고, 받은 URL을 노트 저장 요청에 넣는다.
@@ -118,7 +117,7 @@ function NoteCreate({ onBack, onCreated }) {
         body: JSON.stringify({
           title: form.title,
           content: uploadedContent.savedContent,
-          thumbnailUrl: imageUrl || null,
+          thumbnailUrl: imageUrl ? storeMainImageWidth(imageUrl, form.thumbnailWidth) : null,
           // 업로드 응답의 원본 파일명과 파일 크기를 DB 저장용으로 같이 보낸다.
           imageOriginalName: uploadedImage?.originalName ?? null,
           imageFileSize: uploadedImage?.fileSize ?? null,
@@ -167,9 +166,13 @@ function NoteCreate({ onBack, onCreated }) {
 
           {imagePreview && (
             <div className="image-preview-box">
-              <img className="note-thumbnail" src={imagePreview} alt="메인 이미지 미리보기" />
+              <ResizableMainImage
+                src={imagePreview}
+                alt="메인 이미지 미리보기"
+                width={form.thumbnailWidth}
+                onWidthChange={(thumbnailWidth) => setForm((prev) => ({ ...prev, thumbnailWidth }))}
+              />
               {imageFile && <p className="image-preview-name">{imageFile.name}</p>}
-              <input name="thumbnailUrl" value={form.thumbnailUrl} onChange={handleChange} placeholder="직접 이미지 URL을 넣을 수도 있습니다." />
               <button type="button" className="image-preview-remove" onClick={clearMainImage} disabled={loading}>이미지 선택 취소</button>
             </div>
           )}

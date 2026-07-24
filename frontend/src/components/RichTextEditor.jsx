@@ -30,6 +30,7 @@ const createResizableImage = (source, previewUrl, savedWidth) => {
   image.src = previewUrl
   image.className = 'editor-inline-image'
   image.alt = '본문 이미지'
+  image.draggable = false
   wrapper.append(image)
 
   const handle = document.createElement('span')
@@ -130,6 +131,11 @@ const RichTextEditor = forwardRef(function RichTextEditor({ value, onChange }, r
 
   const emitChange = () => onChange(serializeEditor(editorRef.current))
 
+  const preventDroppedContent = (event) => {
+    // contentEditable의 기본 드롭 동작이 blob: 이미지 태그를 자동 생성하지 못하게 차단합니다.
+    event.preventDefault()
+  }
+
   useImperativeHandle(ref, () => ({
     insertImage(source, previewUrl) {
       const editor = editorRef.current
@@ -151,6 +157,27 @@ const RichTextEditor = forwardRef(function RichTextEditor({ value, onChange }, r
         editor.append(image)
       }
       editor.append(document.createElement('br'))
+      emitChange()
+      return true
+    },
+    insertCodeBlock(codeBlock) {
+      const editor = editorRef.current
+      if (!editor) return false
+
+      // 에디터 전체를 다시 그리지 않고 현재 커서에 코드블록 문법만 넣어 이미지 미리보기를 유지합니다.
+      const textNode = document.createTextNode(codeBlock)
+      const selection = window.getSelection()
+      const range = selection?.rangeCount ? selection.getRangeAt(0) : null
+      if (range && editor.contains(range.startContainer)) {
+        range.deleteContents()
+        range.insertNode(textNode)
+        range.setStartAfter(textNode)
+        range.collapse(true)
+        selection.removeAllRanges()
+        selection.addRange(range)
+      } else {
+        editor.append(textNode)
+      }
       emitChange()
       return true
     },
@@ -190,6 +217,8 @@ const RichTextEditor = forwardRef(function RichTextEditor({ value, onChange }, r
       onMouseUp={rememberSelectionAfterMouseUp}
       onKeyUp={rememberSelection}
       onSelect={rememberSelection}
+      onDragOver={preventDroppedContent}
+      onDrop={preventDroppedContent}
     />
   )
 })

@@ -1,27 +1,8 @@
 import { useEffect, useState } from 'react';
 import { getSummary, getLecturePopularity, getDailyNoteCounts, getDailySignupCounts } from '../api/admin';
+import BarChart from '../../../components/charts/BarChart';
+import LineChart from '../../../components/charts/LineChart';
 import './AdminDashboardPage.css';
-
-function BarList({ items, labelKey, valueKey }) {
-  const max = Math.max(1, ...items.map((item) => Number(item[valueKey]) || 0));
-
-  return (
-    <ul className="admin-bar-list">
-      {items.map((item, index) => (
-        <li key={index} className="admin-bar-list__row">
-          <span className="admin-bar-list__label" title={item[labelKey]}>{item[labelKey]}</span>
-          <div className="admin-bar-list__track">
-            <div
-              className="admin-bar-list__bar"
-              style={{ width: `${(Number(item[valueKey]) / max) * 100}%` }}
-            />
-          </div>
-          <span className="admin-bar-list__value">{item[valueKey]}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 function AdminDashboardPage() {
   const [summary, setSummary] = useState(null);
@@ -66,6 +47,10 @@ function AdminDashboardPage() {
   if (status === 'error') return <p role="alert">불러오지 못했습니다: {error}</p>;
   if (!summary) return null;
 
+  const popularityData = popularity.map((item) => ({ label: item.title, value: Number(item.likeCount) || 0 }));
+  const noteData = noteCounts.map((item) => ({ label: item.date, value: Number(item.count) || 0 }));
+  const signupData = signupCounts.map((item) => ({ label: item.date, value: Number(item.count) || 0 }));
+
   return (
     <div className="admin-dashboard">
       <div className="admin-dashboard__summary">
@@ -87,32 +72,34 @@ function AdminDashboardPage() {
         </div>
       </div>
 
-      <section className="admin-dashboard__section">
-        <h3>강의별 인기도 (좋아요순 Top 10)</h3>
-        {popularity.length === 0 ? (
-          <p>데이터가 없습니다.</p>
-        ) : (
-          <BarList items={popularity} labelKey="title" valueKey="likeCount" />
-        )}
-      </section>
+      <div className="admin-dashboard__grid">
+        <section className="admin-dashboard__section">
+          <h4>강의별 인기도 (좋아요순 Top 10)</h4>
+          {popularityData.length === 0 ? (
+            <p className="admin-dashboard__empty">데이터가 없습니다.</p>
+          ) : (
+            <BarChart data={popularityData} color="var(--text-h)" valueLabel="좋아요" />
+          )}
+        </section>
 
-      <section className="admin-dashboard__section">
-        <h3>일자별 노트 작성 현황 (최근 14일)</h3>
-        {noteCounts.length === 0 ? (
-          <p>데이터가 없습니다.</p>
-        ) : (
-          <BarList items={noteCounts} labelKey="date" valueKey="count" />
-        )}
-      </section>
+        <section className="admin-dashboard__section">
+          <h4>일자별 회원 가입 추이 (최근 14일)</h4>
+          {signupData.length === 0 ? (
+            <p className="admin-dashboard__empty">데이터가 없습니다.</p>
+          ) : (
+            <LineChart data={signupData} color="var(--text-h)" valueLabel="가입자" />
+          )}
+        </section>
 
-      <section className="admin-dashboard__section">
-        <h3>일자별 회원 가입 추이 (최근 14일)</h3>
-        {signupCounts.length === 0 ? (
-          <p>데이터가 없습니다.</p>
-        ) : (
-          <BarList items={signupCounts} labelKey="date" valueKey="count" />
-        )}
-      </section>
+        <section className="admin-dashboard__section">
+          <h4>일자별 노트 작성 현황 (최근 14일)</h4>
+          {noteData.length === 0 ? (
+            <p className="admin-dashboard__empty">데이터가 없습니다.</p>
+          ) : (
+            <LineChart data={noteData} color="var(--text-h)" valueLabel="노트 수" />
+          )}
+        </section>
+      </div>
     </div>
   );
 }

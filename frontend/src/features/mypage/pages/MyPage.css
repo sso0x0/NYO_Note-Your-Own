@@ -171,44 +171,62 @@
 
 .mypage__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
   margin-top: 16px;
 }
 
 /* ===== 게시글 리스트 ===== */
 .mypage__post-list {
   list-style: none;
-  margin: 16px 0 0;
+  margin: 12px 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .mypage__post-item {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .mypage__post-link {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 16px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
   text-decoration: none;
   color: inherit;
 }
 
 .mypage__post-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-h);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mypage__post-badge {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  background: #e57391;
 }
 
 .mypage__post-meta {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* ===== 위험 구역(탈퇴) ===== */
@@ -242,7 +260,13 @@
   }
 
   .mypage__grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 6px;
   }
+}
+
+.mypage__profile-view--readonly {
+  margin: 0 0 4px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--border);
 }

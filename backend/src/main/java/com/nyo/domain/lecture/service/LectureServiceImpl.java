@@ -74,7 +74,7 @@ public class LectureServiceImpl implements LectureService {
     }
 
     // 수강신청 여부 조회 (likes 테이블 ENROLL 타입 재사용)
-    private boolean isEnrolled(Long userId, Long lectureId) {
+    private boolean hasEnrolled(Long userId, Long lectureId) {
         return likeRepository.existsByUserIdAndTargetTypeAndTargetId(userId, TargetType.ENROLL, lectureId);
     }
 
@@ -259,6 +259,12 @@ public class LectureServiceImpl implements LectureService {
         lectureRepository.decreaseLikeCount(id); // 캐시된 좋아요 수 원자 감소
     }
 
+    // 좋아요 여부 조회
+    @Override
+    public boolean isLiked(Long id, Long userId) {
+        return likeService.isLiked(userId, "LECTURE", id);
+    }
+
     // 수강신청 (likes 테이블을 ENROLL 타입으로 재사용)
     @Override
     @Transactional
@@ -266,7 +272,7 @@ public class LectureServiceImpl implements LectureService {
         validateLectureExists(id);
 
         // 수강신청을 이미 했을 경우
-        if (isEnrolled(userId, id)) {
+        if (hasEnrolled(userId, id)) {
             throw new BusinessException(ErrorCode.COURSE_ALREADY_ENROLLED);
         }
 
@@ -294,13 +300,20 @@ public class LectureServiceImpl implements LectureService {
     public void cancelEnrollment(Long id, Long userId) {
         validateLectureExists(id);
 
-        if (!isEnrolled(userId, id)) {
+        if (!hasEnrolled(userId, id)) {
             throw new BusinessException(ErrorCode.COURSE_ENROLLMENT_NOT_FOUND);
         }
 
         likeRepository.deleteByUserIdAndTargetTypeAndTargetId(userId, TargetType.ENROLL, id);
 
         lectureRepository.decreaseEnrolledCount(id); // 캐시된 등록 인원 원자 감소
+    }
+
+    // 수강신청 여부 조회 (상세/시청 화면에서 접근 가능 여부를 판단하는 데 사용)
+    @Override
+    public boolean isEnrolled(Long id, Long userId) {
+        validateLectureExists(id);
+        return hasEnrolled(userId, id);
     }
 
     // 인기 강의 갱신 (좋아요수 desc, 조회수 desc 상위 N개만 isPopular=true)

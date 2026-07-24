@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from '../../../api/client';
+import { apiGet, apiPost, apiDelete } from '../../../api/client';
 
 export function getLectureList({ page = 0, size = 20, categoryId, sort } = {}) {
   return apiGet('/api/lectures', { page, size, categoryId, sort });
@@ -16,4 +16,31 @@ export function increaseLectureViewCount(id) {
 
 export function searchLectures({ keyword, page = 0, size = 20 } = {}) {
   return apiGet('/api/lectures/search', { keyword, page, size });
+}
+
+// 현재 로그인 사용자가 이 강의에 수강신청했는지 여부.
+export function isEnrolled(id) {
+  return apiGet(`/api/lectures/${id}/enroll`);
+}
+
+// 수강신청. 이미 신청했거나 정원이 마감된 경우 서버가 에러를 반환한다.
+export function enrollLecture(id) {
+  return apiPost(`/api/lectures/${id}/enroll`);
+}
+
+export function cancelEnrollment(id) {
+  return apiDelete(`/api/lectures/${id}/enroll`);
+}
+
+// 현재 로그인 사용자가 이 강의에 좋아요를 눌렀는지 여부.
+export function isLectureLiked(id) {
+  return apiGet(`/api/lectures/${id}/like`);
+}
+
+export function likeLecture(id) {
+  return apiPost(`/api/lectures/${id}/like`);
+}
+
+export function unlikeLecture(id) {
+  return apiDelete(`/api/lectures/${id}/like`);
 }

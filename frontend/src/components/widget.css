@@ -12,9 +12,17 @@
   border: none;
   background: var(--nyo-accent, var(--accent));
   color: #fff;
-  font-size: 24px;
+  font-size: 22px;
   cursor: pointer;
   box-shadow: var(--card-shadow, 0 4px 12px rgba(0, 0, 0, 0.15));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.widget__toggle svg {
+  width: 26px;
+  height: 26px;
 }
 
 /* 패널을 자기 아이콘 바로 위, 오른쪽 끝에 맞춰 띄운다. 두 위젯의 아이콘이

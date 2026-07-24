@@ -1,192 +1,40 @@
-import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getLectureList } from '../../lecture/api/lecture';
-import { getCategoryList } from '../../lecture/api/category';
-import { createLecture, updateLecture, deleteLecture } from '../api/admin';
-import './AdminLecturesPage.css';
+import { deleteLecture } from '../api/admin';
+import { usePagedList } from '../hooks/usePagedList';
 
-const EMPTY_FORM = {
-  categoryId: '',
-  title: '',
-  description: '',
-  lectureUrl: '',
-  thumbnailUrl: '',
-  instructor: '',
-  capacity: '',
-};
+const PAGE_SIZE = 10;
 
 function AdminLecturesPage() {
-  const [categories, setCategories] = useState([]);
-  const [page, setPage] = useState(0);
-  const [pageData, setPageData] = useState(null);
-  const [status, setStatus] = useState('idle');
-  const [error, setError] = useState(null);
-  const [reloadKey, setReloadKey] = useState(0);
-
-  const [editingId, setEditingId] = useState(null); // null = 새 강의 등록 폼 닫힘, 'new' = 등록, id = 수정
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [formError, setFormError] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    getCategoryList().then(setCategories).catch(() => setCategories([]));
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setStatus('loading');
-    setError(null);
-
-    getLectureList({ page })
-      .then((data) => {
-        if (cancelled) return;
-        setPageData(data);
-        setStatus('success');
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(err.message);
-        setStatus('error');
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [page, reloadKey]);
-
-  const handleOpenCreate = () => {
-    setForm(EMPTY_FORM);
-    setFormError(null);
-    setEditingId('new');
-  };
-
-  const handleOpenEdit = (lecture) => {
-    setForm({
-      categoryId: lecture.categoryId ?? '',
-      title: lecture.title ?? '',
-      description: lecture.description ?? '',
-      lectureUrl: lecture.lectureUrl ?? '',
-      thumbnailUrl: lecture.thumbnailUrl ?? '',
-      instructor: lecture.instructor ?? '',
-      capacity: lecture.capacity ?? '',
-    });
-    setFormError(null);
-    setEditingId(lecture.id);
-  };
-
-  const handleCloseForm = () => {
-    setEditingId(null);
-  };
-
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setFormError(null);
-
-    const request = {
-      categoryId: form.categoryId ? Number(form.categoryId) : null,
-      title: form.title,
-      description: form.description || null,
-      lectureUrl: form.lectureUrl || null,
-      thumbnailUrl: form.thumbnailUrl || null,
-      instructor: form.instructor || null,
-      capacity: form.capacity ? Number(form.capacity) : null,
-    };
-
-    try {
-      if (editingId === 'new') {
-        await createLecture(request);
-      } else {
-        await updateLecture(editingId, request);
-      }
-      setEditingId(null);
-      setReloadKey((k) => k + 1);
-    } catch (err) {
-      setFormError(err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const navigate = useNavigate();
+  const lectures = usePagedList(getLectureList);
 
   const handleDelete = async (lecture) => {
     if (!window.confirm(`"${lecture.title}" 강의를 삭제할까요?`)) return;
 
     try {
       await deleteLecture(lecture.id);
-      setReloadKey((k) => k + 1);
+      lectures.reload();
     } catch (err) {
       alert(err.message);
     }
   };
 
   return (
-    <div className="admin-lectures">
-      <div className="admin-lectures__header">
-        <h3>강의 관리</h3>
-        {editingId === null && (
-          <button type="button" onClick={handleOpenCreate}>새 강의 등록</button>
-        )}
+    <div className="admin-page">
+      <div className="admin-toolbar">
+        <button type="button" className="admin-btn admin-btn--primary" onClick={() => navigate('/admin/lectures/new')}>새 강의 등록</button>
       </div>
 
-      {editingId !== null && (
-        <form className="admin-lectures__form" onSubmit={handleSubmit}>
-          <h4>{editingId === 'new' ? '새 강의 등록' : '강의 수정'}</h4>
-          {formError && <p className="admin-lectures__error" role="alert">{formError}</p>}
+      <div className="admin-page__scroll">
+        {lectures.status === 'loading' && <p>불러오는 중...</p>}
+        {lectures.status === 'error' && <p role="alert">불러오지 못했습니다: {lectures.error}</p>}
 
-          <label>
-            카테고리
-            <select name="categoryId" value={form.categoryId} onChange={handleFormChange} required>
-              <option value="">선택하세요</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>{category.name}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            강의명
-            <input name="title" value={form.title} onChange={handleFormChange} required maxLength={200} />
-          </label>
-          <label>
-            강의 설명
-            <textarea name="description" value={form.description} onChange={handleFormChange} rows={3} />
-          </label>
-          <label>
-            강의 링크
-            <input name="lectureUrl" value={form.lectureUrl} onChange={handleFormChange} placeholder="https://..." />
-          </label>
-          <label>
-            썸네일 URL
-            <input name="thumbnailUrl" value={form.thumbnailUrl} onChange={handleFormChange} placeholder="https://..." />
-          </label>
-          <label>
-            강사명
-            <input name="instructor" value={form.instructor} onChange={handleFormChange} maxLength={100} />
-          </label>
-          <label>
-            수강 정원 (미입력 시 무제한)
-            <input type="number" name="capacity" value={form.capacity} onChange={handleFormChange} min={1} />
-          </label>
-
-          <div className="admin-lectures__form-actions">
-            <button type="submit" disabled={submitting}>{submitting ? '저장 중...' : '저장'}</button>
-            <button type="button" onClick={handleCloseForm} disabled={submitting}>취소</button>
-          </div>
-        </form>
-      )}
-
-      {status === 'loading' && <p>불러오는 중...</p>}
-      {status === 'error' && <p role="alert">불러오지 못했습니다: {error}</p>}
-
-      {status === 'success' && pageData && (
-        <>
-          <table className="admin-lectures__table">
+        {lectures.status === 'success' && lectures.pageData && (
+          <table className="admin-table admin-table--lecture">
             <thead>
               <tr>
+                <th>번호</th>
                 <th>ID</th>
                 <th>카테고리</th>
                 <th>강의명</th>
@@ -197,33 +45,43 @@ function AdminLecturesPage() {
               </tr>
             </thead>
             <tbody>
-              {pageData.content.map((lecture) => (
+              {lectures.pageData.content.map((lecture, index) => (
                 <tr key={lecture.id}>
+                  <td>{lectures.page * PAGE_SIZE + index + 1}</td>
                   <td>{lecture.id}</td>
                   <td>{lecture.categoryName}</td>
                   <td>{lecture.title}</td>
                   <td>{lecture.instructor}</td>
                   <td>{lecture.currentEnrolled}{lecture.capacity != null ? ` / ${lecture.capacity}` : ''}</td>
                   <td>{lecture.isPopular ? '인기' : ''}</td>
-                  <td className="admin-lectures__actions">
-                    <button type="button" onClick={() => handleOpenEdit(lecture)}>수정</button>
-                    <button type="button" onClick={() => handleDelete(lecture)}>삭제</button>
+                  <td className="admin-actions">
+                    <button type="button" className="admin-btn admin-btn--sm" onClick={() => navigate(`/admin/lectures/${lecture.id}/edit`)}>수정</button>
+                    <button type="button" className="admin-btn admin-btn--sm admin-btn--danger" onClick={() => handleDelete(lecture)}>삭제</button>
                   </td>
+                </tr>
+              ))}
+              {/* 데이터가 적은 페이지(특히 마지막 페이지)에서도 표 높이가 항상 동일하도록
+                  빈 줄을 채워, 이전/다음 버튼 위치가 페이지마다 흔들리지 않게 한다. */}
+              {Array.from({ length: Math.max(0, PAGE_SIZE - lectures.pageData.content.length) }).map((_, i) => (
+                <tr key={`filler-${i}`} className="admin-filler-row" aria-hidden="true">
+                  <td colSpan={8}>&nbsp;</td>
                 </tr>
               ))}
             </tbody>
           </table>
+        )}
+      </div>
 
-          <div className="admin-lectures__pagination">
-            <button type="button" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={pageData.first}>
-              이전
-            </button>
-            <span>{pageData.number + 1} / {Math.max(pageData.totalPages, 1)}</span>
-            <button type="button" onClick={() => setPage((p) => p + 1)} disabled={pageData.last}>
-              다음
-            </button>
-          </div>
-        </>
+      {lectures.status === 'success' && lectures.pageData && (
+        <div className="admin-pagination">
+          <button type="button" className="admin-btn" onClick={() => lectures.setPage((p) => Math.max(0, p - 1))} disabled={lectures.pageData.first}>
+            이전
+          </button>
+          <span>{lectures.pageData.number + 1} / {Math.max(lectures.pageData.totalPages, 1)}</span>
+          <button type="button" className="admin-btn" onClick={() => lectures.setPage((p) => p + 1)} disabled={lectures.pageData.last}>
+            다음
+          </button>
+        </div>
       )}
     </div>
   );

@@ -1,5 +1,5 @@
 // 백엔드 PomodoroController(com.nyo.domain.pomodoro)에 대응하는 API 래퍼.
-import { apiGet, apiPatch, apiPost } from '../../../api/client'
+import { apiDelete, apiGet, apiPatch, apiPost } from '../../../api/client'
 
 // endedAt 없이 호출 = 타이머 시작(진행 중 기록 생성)
 export function createRecord(payload) {
@@ -21,4 +21,16 @@ export function getTodayStudyTime() {
 
 export function getTotalStudyTime() {
   return apiGet('/api/pomodoros/stats/total')
+}
+
+export function deleteRecord(id) {
+  return apiDelete(`/api/pomodoros/${id}`)
+}
+
+export function deleteRecords(ids) {
+  return apiDelete('/api/pomodoros', { ids })
+}
+
+export function deleteAllRecords() {
+  return apiDelete('/api/pomodoros/all')
 }

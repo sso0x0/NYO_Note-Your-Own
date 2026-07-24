@@ -1,6 +1,9 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useState } from 'react';
 import { getUserList, changeUserRole, sanctionUser, getSanctionHistory } from '../api/admin';
+import { usePagedList } from '../hooks/usePagedList';
 import './AdminUsersPage.css';
+
+const PAGE_SIZE = 10;
 
 const SANCTION_TYPES = [
   { value: 'WARNING', label: '경고' },
@@ -60,22 +63,22 @@ function SanctionPanel({ user, onDone }) {
 
   return (
     <div className="admin-users__panel">
-      {error && <p className="admin-users__error" role="alert">{error}</p>}
+      {error && <p className="admin-error" role="alert">{error}</p>}
 
       <div className="admin-users__panel-block">
-        <h4>권한 변경</h4>
+        <h4 className="admin-section-title">권한 변경</h4>
         <div className="admin-users__role-actions">
-          <button type="button" disabled={user.role === 'USER'} onClick={() => handleRoleChange('USER')}>
+          <button type="button" className="admin-btn" disabled={user.role === 'USER'} onClick={() => handleRoleChange('USER')}>
             일반회원으로 변경
           </button>
-          <button type="button" disabled={user.role === 'ADMIN'} onClick={() => handleRoleChange('ADMIN')}>
+          <button type="button" className="admin-btn" disabled={user.role === 'ADMIN'} onClick={() => handleRoleChange('ADMIN')}>
             관리자로 변경
           </button>
         </div>
       </div>
 
       <div className="admin-users__panel-block">
-        <h4>제재 등록</h4>
+        <h4 className="admin-section-title">제재 등록</h4>
         <form className="admin-users__sanction-form" onSubmit={handleSanctionSubmit}>
           <select value={type} onChange={(e) => setType(e.target.value)}>
             {SANCTION_TYPES.map((option) => (
@@ -97,14 +100,14 @@ function SanctionPanel({ user, onDone }) {
               title="정지 해제 예정일 (비워두면 무기한 정지)"
             />
           )}
-          <button type="submit" disabled={submitting}>{submitting ? '등록 중...' : '제재 등록'}</button>
+          <button type="submit" className="admin-btn admin-btn--primary" disabled={submitting}>{submitting ? '등록 중...' : '제재 등록'}</button>
         </form>
       </div>
 
       <div className="admin-users__panel-block">
         <div className="admin-users__history-header">
-          <h4>제재 이력</h4>
-          <button type="button" onClick={loadHistory} disabled={historyLoading}>
+          <h4 className="admin-section-title">제재 이력</h4>
+          <button type="button" className="admin-btn admin-btn--sm" onClick={loadHistory} disabled={historyLoading}>
             {historyLoading ? '불러오는 중...' : '이력 보기'}
           </button>
         </div>
@@ -131,56 +134,29 @@ function SanctionPanel({ user, onDone }) {
 }
 
 function AdminUsersPage() {
-  const [page, setPage] = useState(0);
-  const [pageData, setPageData] = useState(null);
-  const [status, setStatus] = useState('idle');
-  const [error, setError] = useState(null);
+  const users = usePagedList(getUserList);
   const [expandedUserId, setExpandedUserId] = useState(null);
-  const [reloadKey, setReloadKey] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setStatus('loading');
-    setError(null);
-
-    getUserList({ page })
-      .then((data) => {
-        if (cancelled) return;
-        setPageData(data);
-        setStatus('success');
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(err.message);
-        setStatus('error');
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [page, reloadKey]);
 
   const handleToggle = (userId) => {
     setExpandedUserId((prev) => (prev === userId ? null : userId));
   };
 
   const handlePanelDone = () => {
-    setReloadKey((k) => k + 1);
+    users.reload();
   };
 
   return (
-    <div className="admin-users">
-      <h3>회원 관리</h3>
+    <div className="admin-page">
+      <div className="admin-page__scroll">
+        <div className="admin-toolbar" />
+        {users.status === 'loading' && <p>불러오는 중...</p>}
+        {users.status === 'error' && <p role="alert">불러오지 못했습니다: {users.error}</p>}
 
-      {status === 'loading' && <p>불러오는 중...</p>}
-      {status === 'error' && <p role="alert">불러오지 못했습니다: {error}</p>}
-
-      {status === 'success' && pageData && (
-        <>
-          <table className="admin-users__table">
+        {users.status === 'success' && users.pageData && (
+          <table className="admin-table admin-table--user">
             <thead>
               <tr>
+                <th>번호</th>
                 <th>ID</th>
                 <th>아이디</th>
                 <th>닉네임</th>
@@ -192,9 +168,10 @@ function AdminUsersPage() {
               </tr>
             </thead>
             <tbody>
-              {pageData.content.map((user) => (
+              {users.pageData.content.map((user, index) => (
                 <Fragment key={user.id}>
                   <tr>
+                    <td>{users.page * PAGE_SIZE + index + 1}</td>
                     <td>{user.id}</td>
                     <td>{user.loginId}</td>
                     <td>{user.nickname}</td>
@@ -203,33 +180,43 @@ function AdminUsersPage() {
                     <td>{user.status}</td>
                     <td>{user.createdAt?.slice(0, 10)}</td>
                     <td>
-                      <button type="button" onClick={() => handleToggle(user.id)}>
+                      <button type="button" className="admin-btn admin-btn--sm" onClick={() => handleToggle(user.id)}>
                         {expandedUserId === user.id ? '닫기' : '관리'}
                       </button>
                     </td>
                   </tr>
                   {expandedUserId === user.id && (
                     <tr>
-                      <td colSpan={8}>
+                      <td colSpan={9}>
                         <SanctionPanel user={user} onDone={handlePanelDone} />
                       </td>
                     </tr>
                   )}
                 </Fragment>
               ))}
+              {/* 데이터가 적은 페이지(특히 마지막 페이지)에서도 표 높이가 항상 동일하도록
+                  빈 줄을 채워, 이전/다음 버튼 위치가 페이지마다 흔들리지 않게 한다. */}
+              {Array.from({ length: Math.max(0, PAGE_SIZE - users.pageData.content.length) }).map((_, i) => (
+                <tr key={`filler-${i}`} className="admin-filler-row" aria-hidden="true">
+                  <td colSpan={9}>&nbsp;</td>
+                </tr>
+              ))}
             </tbody>
           </table>
+        )}
+      </div>
 
-          <div className="admin-users__pagination">
-            <button type="button" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={pageData.first}>
-              이전
-            </button>
-            <span>{pageData.number + 1} / {Math.max(pageData.totalPages, 1)}</span>
-            <button type="button" onClick={() => setPage((p) => p + 1)} disabled={pageData.last}>
-              다음
-            </button>
-          </div>
-        </>
+      {/* 회원 관리 패널을 펼쳐 봐도 표 영역만 스크롤되고, 이전/다음 버튼은 화면의 같은 위치에 그대로 남는다. */}
+      {users.status === 'success' && users.pageData && (
+        <div className="admin-pagination">
+          <button type="button" className="admin-btn" onClick={() => users.setPage((p) => Math.max(0, p - 1))} disabled={users.pageData.first}>
+            이전
+          </button>
+          <span>{users.pageData.number + 1} / {Math.max(users.pageData.totalPages, 1)}</span>
+          <button type="button" className="admin-btn" onClick={() => users.setPage((p) => p + 1)} disabled={users.pageData.last}>
+            다음
+          </button>
+        </div>
       )}
     </div>
   );
