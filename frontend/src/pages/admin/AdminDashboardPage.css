@@ -63,6 +63,10 @@
   color: var(--text);
 }
 
+.admin-dashboard__notes {
+  margin-bottom: 16px;
+}
+
 .admin-dashboard__reports p.admin-dashboard__placeholder {
   font-size: 13px;
   color: var(--text);

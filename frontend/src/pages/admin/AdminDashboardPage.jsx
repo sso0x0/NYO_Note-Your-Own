@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getDailySignupCounts, getLecturePopularity, getSummary } from '../../api/admin';
+import { getDailyNoteCounts, getDailySignupCounts, getLecturePopularity, getSummary } from '../../api/admin';
 import LineChart from '../../components/charts/LineChart';
 import BarChart from '../../components/charts/BarChart';
 import './AdminDashboardPage.css';
@@ -13,11 +13,12 @@ function truncate(text, max = 16) {
   return text.length > max ? `${text.slice(0, max)}…` : text;
 }
 
-// 관리자 대시보드 — 전체 요약 통계 + 회원가입 추이(라인) + 인기 강의 TOP5(막대).
+// 관리자 대시보드 — 전체 요약 통계 + 회원가입 추이(라인) + 인기 강의 TOP5(막대) + 노트 작성 현황(라인).
 // 전부 AdminStatsController(내 담당 파트)에 대응하는 실제 데이터로 채운다.
 function AdminDashboardPage() {
   const [summary, setSummary] = useState(null);
   const [signupTrend, setSignupTrend] = useState(null);
+  const [noteTrend, setNoteTrend] = useState(null);
   const [popularity, setPopularity] = useState(null);
   const [error, setError] = useState(null);
 
@@ -25,11 +26,13 @@ function AdminDashboardPage() {
     Promise.all([
       getSummary(),
       getDailySignupCounts(14),
+      getDailyNoteCounts(14),
       getLecturePopularity(5),
     ])
-        .then(([summaryRes, signupRes, popularityRes]) => {
+        .then(([summaryRes, signupRes, noteRes, popularityRes]) => {
           setSummary(summaryRes);
           setSignupTrend(signupRes.map((d) => ({ label: formatDate(d.date), value: d.count })));
+          setNoteTrend(noteRes.map((d) => ({ label: formatDate(d.date), value: d.count })));
           setPopularity(popularityRes.map((d) => ({ label: truncate(d.title), value: d.likeCount })));
         })
         .catch((err) => setError(err.message));
@@ -75,6 +78,11 @@ function AdminDashboardPage() {
                     : <p className="admin-dashboard__empty">아직 집계할 강의가 없습니다.</p>
             )}
           </div>
+        </div>
+
+        <div className="admin-card admin-dashboard__notes">
+          <h2>노트 작성 현황 (최근 14일)</h2>
+          {noteTrend && <LineChart data={noteTrend} color="var(--nyo-accent-green, var(--accent))" valueLabel="작성 수" />}
         </div>
 
         <div className="admin-card admin-dashboard__reports">
