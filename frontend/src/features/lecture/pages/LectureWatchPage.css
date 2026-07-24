@@ -1,0 +1,273 @@
+.lecture-watch-page {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.lecture-watch-page__back {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.lecture-watch-page__back:hover {
+  color: var(--accent);
+}
+
+.lecture-watch-page__locked {
+  padding: 40px 20px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--code-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.lecture-watch-page__layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.lecture-watch-page__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.lecture-watch-page__hero {
+  position: relative;
+  aspect-ratio: 16 / 7;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--code-bg);
+}
+
+.lecture-watch-page__hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+
+.lecture-watch-page__play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.lecture-watch-page__player {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.lecture-watch-page__play-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lecture-watch-page__play-icon::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-top: 12px solid transparent;
+  border-bottom: 12px solid transparent;
+  border-left: 18px solid var(--text-h);
+  margin-left: 4px;
+}
+
+.lecture-watch-page__hero-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 16px 24px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.72));
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  color: #fff;
+}
+
+.lecture-watch-page__category {
+  display: inline-block;
+  font-size: 12px;
+  color: #f0e6ff;
+  margin-bottom: 4px;
+}
+
+.lecture-watch-page__title {
+  margin: 0 0 6px;
+  font-size: 20px;
+  color: #fff;
+}
+
+.lecture-watch-page__link {
+  font-size: 13px;
+  color: #f0e6ff;
+  font-weight: 600;
+}
+
+.lecture-watch-page__stats {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: #e6e6ea;
+  white-space: nowrap;
+}
+
+.lecture-watch-page__tabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.lecture-watch-page__tabs button {
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.lecture-watch-page__tabs button.is-active {
+  color: var(--text-h);
+  border-bottom-color: var(--accent);
+}
+
+.lecture-watch-page__note-form {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lecture-watch-page__note-title {
+  width: 100%;
+}
+
+.lecture-watch-page__note-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lecture-watch-page__note-toolbar-group {
+  display: flex;
+  gap: 8px;
+}
+
+.lecture-watch-page__note-toolbar button,
+.lecture-watch-page__image-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.lecture-watch-page__note-toolbar button[type='submit'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.lecture-watch-page__note-toolbar button:disabled,
+.lecture-watch-page__image-btn:has(input:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.lecture-watch-page__note-message {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.lecture-watch-page__others {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lecture-watch-page__other-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--code-bg);
+  text-decoration: none;
+  color: var(--text-h);
+}
+
+.lecture-watch-page__other-note-author {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.lecture-watch-page__other-note-meta {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.lecture-watch-page__chat {
+  width: 320px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--bg);
+  height: 640px;
+}
+
+.lecture-watch-page__chat-header {
+  padding: 14px 16px;
+  font-weight: 600;
+  color: var(--text-h);
+  border-bottom: 1px solid var(--border);
+}
+
+.lecture-watch-page__chat .chat-messages {
+  flex: 1;
+}
+
+@media (max-width: 900px) {
+  .lecture-watch-page__layout {
+    flex-direction: column;
+  }
+
+  .lecture-watch-page__chat {
+    width: 100%;
+    height: 420px;
+  }
+}

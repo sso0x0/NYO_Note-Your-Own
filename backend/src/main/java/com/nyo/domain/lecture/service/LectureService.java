@@ -43,6 +43,9 @@ public interface LectureService {
     // 수강신청 취소
     void cancelEnrollment(Long id, Long userId);
 
+    // 현재 로그인 사용자의 수강신청 여부 조회 (상세/시청 화면에서 접근 가능 여부 판단용)
+    boolean isEnrolled(Long id, Long userId);
+
     // 인기 강의(isPopular) 갱신 (좋아요수/조회수 상위 N개, 배치/스케줄러에서 호출)
     void refreshPopularLectures();
 

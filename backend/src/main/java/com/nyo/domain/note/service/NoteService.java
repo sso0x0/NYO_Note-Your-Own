@@ -66,10 +66,13 @@ public class NoteService {
 
     @Transactional
     public NoteResponse create(Long userId, NoteRequest request) {
-        // 작성자는 컨트롤러가 JWT에서 전달하며, 강의는 임시 정책으로 DB의 첫 활성 강의를 자동 연결한다.
-        Long lectureId = lectureRepository.findFirstByIsDeletedFalseOrderByIdAsc()
-                .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND))
-                .getId();
+        // 작성자는 컨트롤러가 JWT에서 전달한다. 강의 시청 화면 등 요청에 lectureId가 실려오면 그대로 쓰고,
+        // 값이 없는 예전 노트 작성 화면 호출은 기존 임시 정책대로 DB의 첫 활성 강의를 자동 연결한다.
+        Long lectureId = request.getLectureId() != null
+                ? request.getLectureId()
+                : lectureRepository.findFirstByIsDeletedFalseOrderByIdAsc()
+                        .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND))
+                        .getId();
 
         Note note = Note.create(
                 userId,
