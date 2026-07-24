@@ -13,11 +13,15 @@
   flex-direction: column;
   align-items: center;
   gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border, #e5e4e7);
 }
 
 .pomodoro-clock {
-  font-size: 2.25rem;
+  font-size: 2.5rem;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  color: var(--text-h, #08060d);
 }
 
 .pomodoro-settings {
@@ -29,15 +33,44 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.3rem;
   font-size: 0.85rem;
+  color: var(--text, #6b6375);
 }
 
 .pomodoro-settings input {
   width: 4rem;
-  padding: 0.3rem;
+  padding: 0.35rem;
   text-align: center;
   font-size: 1rem;
+  border: 1px solid var(--border, #e5e4e7);
+  border-radius: 6px;
+}
+
+.pomodoro-timer button {
+  padding: 0.6rem 1.4rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--nyo-accent, var(--accent));
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pomodoro-timer button:hover {
+  opacity: 0.9;
+}
+
+/* 진행 중/일시정지 상태에서 "일시정지 또는 재실행" + "종료" 버튼을 나란히 배치 */
+.pomodoro-controls {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.pomodoro-controls button:last-child {
+  background: transparent;
+  color: var(--text, #6b6375);
+  border: 1px solid var(--border, #e5e4e7);
 }
 
 .pomodoro-stats-row {
@@ -49,18 +82,132 @@
 .pomodoro-stats-row div {
   display: flex;
   flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pomodoro-stats-row span {
+  font-size: 0.8rem;
+  color: var(--text, #6b6375);
+}
+
+.pomodoro-stats-row strong {
+  font-size: 1.25rem;
+  color: var(--text-h, #08060d);
+}
+
+.pomodoro-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pomodoro-select-all {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text, #6b6375);
+  white-space: nowrap;
+}
+
+.pomodoro-history-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.pomodoro-btn {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  border-radius: 999px;
+  border: 1px solid var(--border, #e5e4e7);
+  background: transparent;
+  color: var(--text, #6b6375);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pomodoro-btn:hover:not(:disabled) {
+  background: var(--accent-bg, rgba(170, 59, 255, 0.1));
+  border-color: var(--nyo-accent, var(--accent));
+  color: var(--nyo-accent, var(--accent));
+}
+
+.pomodoro-btn--danger {
+  color: #d33;
+  border-color: rgba(221, 51, 51, 0.4);
+}
+
+.pomodoro-btn--danger:hover:not(:disabled) {
+  background: rgba(221, 51, 51, 0.08);
+  border-color: #d33;
+  color: #d33;
+}
+
+.pomodoro-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .pomodoro-history {
   list-style: none;
   padding: 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.35rem;
   max-height: 240px;
   overflow-y: auto;
 }
 
+.pomodoro-history__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 8px;
+  background: var(--social-bg, rgba(244, 243, 236, 0.5));
+}
+
+.pomodoro-history__text {
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--text, #6b6375);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pomodoro-history__delete {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text, #6b6375);
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0.2rem 0.3rem;
+  border-radius: 4px;
+}
+
+.pomodoro-history__delete:hover:not(:disabled) {
+  color: #d33;
+  background: rgba(221, 51, 51, 0.08);
+}
+
+.pomodoro-history__delete:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pomodoro-empty {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text, #6b6375);
+  padding: 1rem 0;
+}
+
 .pomodoro-error {
   color: #d33;
+  font-size: 0.82rem;
 }

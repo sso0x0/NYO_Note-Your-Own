@@ -54,8 +54,17 @@ export async function apiGet(path, params = {}, { token: tokenOverride } = {}) {
     return unwrap(payload);
 }
 
-export async function apiDelete(path, { token } = {}) {
+export async function apiDelete(path, params = {}, { token } = {}) {
     const url = new URL(path, BASE_URL);
+    Object.entries(params).forEach(([key, value]) => {
+        if (value === undefined || value === null) return;
+        if (Array.isArray(value)) {
+            value.forEach((v) => url.searchParams.append(key, v));
+        } else {
+            url.searchParams.set(key, value);
+        }
+    });
+
     const authToken = token ?? getStoredToken();
     const headers = authToken ? { Authorization: `Bearer ${authToken}` } : undefined;
 

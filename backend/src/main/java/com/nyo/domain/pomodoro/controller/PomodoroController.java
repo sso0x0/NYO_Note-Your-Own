@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 뽀모도로 학습 타이머 기록 CRUD 및 통계 조회.
@@ -58,6 +60,29 @@ public class PomodoroController {
     @GetMapping("/{id}")
     public ApiResponse<PomodoroRecordResponse> getRecord(@PathVariable Long id) {
         return ApiResponse.ok(pomodoroService.getRecord(SecurityUtil.getCurrentUserId(), id));
+    }
+
+    @Operation(summary = "타이머 기록 단건 삭제", description = "본인 기록이 아니면 403을 반환합니다.")
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable Long id) {
+        pomodoroService.delete(SecurityUtil.getCurrentUserId(), id);
+        return ApiResponse.ok(null);
+    }
+
+    // 리터럴 경로("/all")가 같은 깊이의 "/{id}"보다 더 구체적이라 Spring이 우선 매칭한다
+    // (컨트롤러 상단 주석의 "/period" 사례와 같은 원리).
+    @Operation(summary = "타이머 기록 전체 삭제", description = "본인의 모든 기록을 삭제합니다.")
+    @DeleteMapping("/all")
+    public ApiResponse<Void> deleteAll() {
+        pomodoroService.deleteAll(SecurityUtil.getCurrentUserId());
+        return ApiResponse.ok(null);
+    }
+
+    @Operation(summary = "타이머 기록 선택 삭제", description = "본인 소유가 아닌 id는 조용히 무시됩니다.")
+    @DeleteMapping
+    public ApiResponse<Void> deleteBulk(@RequestParam List<Long> ids) {
+        pomodoroService.deleteBulk(SecurityUtil.getCurrentUserId(), ids);
+        return ApiResponse.ok(null);
     }
 
     @Operation(summary = "회원별 타이머 기록 목록 조회 (최신순)")
