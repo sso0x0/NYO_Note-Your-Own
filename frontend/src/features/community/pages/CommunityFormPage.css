@@ -1,68 +1,93 @@
 .community-form-page {
   width: 100%;
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 24px 20px 40px;
+  max-width: 640px;
+  margin: 40px auto;
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
   text-align: left;
   box-sizing: border-box;
+}
+
+.community-form-page h2 {
+  margin: 0 0 24px;
+  font-size: 20px;
+  letter-spacing: -0.01em;
 }
 
 .community-form-page form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-top: 20px;
+  gap: 18px;
 }
 
 .community-form-page label {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 14px;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-h);
 }
 
 .community-form-page input,
 .community-form-page textarea {
-  padding: 9px 14px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg);
+  padding: 11px 14px;
+  border-radius: 8px;
+  border: none;
+  background: #eef1fb;
   color: var(--text-h);
   font-size: 14px;
   font-family: inherit;
 }
 
+.community-form-page input:focus,
+.community-form-page textarea:focus {
+  outline: 2px solid #e57391;
+  outline-offset: 1px;
+}
+
 .community-form-page textarea {
   resize: vertical;
+  line-height: 150%;
 }
 
 .community-form-page__checkbox {
   flex-direction: row;
   align-items: center;
   gap: 8px;
+  font-weight: 500;
 }
 
 .community-form-page__checkbox input {
   width: auto;
+  background: none;
 }
 
 .community-form-page__error {
-  color: #e5484d;
+  color: #d92d20;
+  font-size: 13px;
 }
 
 .community-form-page button[type='submit'] {
-  align-self: flex-start;
-  padding: 10px 24px;
-  border-radius: 6px;
+  align-self: stretch;
+  margin-top: 4px;
+  padding: 13px 24px;
+  border-radius: 8px;
   border: none;
-  background: var(--accent);
+  background: #1a1a1a;
   color: #fff;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.community-form-page button[type='submit']:hover {
+  opacity: 0.88;
 }
 
 .community-form-page button[type='submit']:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }

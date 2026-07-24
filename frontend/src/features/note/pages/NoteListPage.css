@@ -1,6 +1,8 @@
 .note-list-page {
   width: 100%;
-  padding: 24px 20px 40px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 32px 20px 56px;
   text-align: left;
   box-sizing: border-box;
 }
@@ -12,58 +14,100 @@
   gap: 16px;
 }
 
+.note-list-page__header h2 {
+  font-size: 22px;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
 .note-list-page__write-btn {
-  padding: 9px 18px;
-  border-radius: 6px;
-  background: var(--accent);
+  padding: 10px 20px;
+  border-radius: 8px;
+  background: #1a1a1a;
   color: #fff;
   text-decoration: none;
   font-size: 14px;
+  font-weight: 600;
   white-space: nowrap;
+  transition: opacity 0.15s ease;
+}
+
+.note-list-page__write-btn:hover {
+  opacity: 0.85;
 }
 
 .note-list-page__search {
   display: flex;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
 .note-list-page__search input {
   flex: 1;
-  padding: 9px 14px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg);
+  padding: 11px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #eef1fb;
   color: var(--text-h);
   font-size: 14px;
 }
 
+.note-list-page__search input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .note-list-page__search button {
-  padding: 9px 16px;
-  border-radius: 6px;
+  padding: 10px 18px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text-h);
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.note-list-page__search button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .note-list-page__reset-btn {
   color: var(--text);
+  border: none !important;
+  background: transparent !important;
 }
 
 .note-list-page__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
-  margin-top: 20px;
+  gap: 18px;
+  margin-top: 24px;
 }
 
 .note-list-page__pagination {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-top: 24px;
+  gap: 18px;
+  margin-top: 32px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.note-list-page__pagination button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.note-list-page__pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

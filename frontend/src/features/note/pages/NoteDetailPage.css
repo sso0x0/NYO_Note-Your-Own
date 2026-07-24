@@ -1,17 +1,20 @@
 .note-detail-page {
   width: 100%;
   max-width: 720px;
-  margin: 0 auto;
-  padding: 24px 20px 40px;
+  margin: 40px auto;
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
   text-align: left;
   box-sizing: border-box;
 }
 
 .note-detail-page__back {
   display: inline-block;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   color: var(--text);
   text-decoration: none;
+  font-size: 14px;
 }
 
 .note-detail-page__back:hover {
@@ -20,45 +23,53 @@
 
 .note-detail-page__lecture {
   display: inline-block;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--accent);
 }
 
 .note-detail-page__title {
-  margin: 4px 0 0;
+  margin: 8px 0 0;
+  font-size: 24px;
+  letter-spacing: -0.01em;
 }
 
 .note-detail-page__author {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   color: var(--text);
+  font-size: 14px;
 }
 
 .note-detail-page__meta {
   display: flex;
   gap: 14px;
-  margin-top: 12px;
-  font-size: 14px;
+  margin-top: 14px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
   color: var(--text);
 }
 
 .note-detail-page__actions {
   display: flex;
-  gap: 10px;
-  margin-top: 16px;
+  gap: 8px;
+  margin-top: 20px;
 }
 
 .note-detail-page__like-btn,
 .note-detail-page__edit-btn,
 .note-detail-page__delete-btn {
   padding: 9px 18px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text-h);
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   text-decoration: none;
   display: inline-block;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 
 .note-detail-page__like-btn.is-active {
@@ -68,13 +79,13 @@
 }
 
 .note-detail-page__delete-btn:hover {
-  border-color: #e5484d;
-  color: #e5484d;
+  border-color: #d92d20;
+  color: #d92d20;
 }
 
 .note-detail-page__thumb {
-  margin-top: 20px;
-  border-radius: 8px;
+  margin-top: 24px;
+  border-radius: 12px;
   overflow: hidden;
 }
 
@@ -84,7 +95,9 @@
 }
 
 .note-detail-page__content {
-  margin-top: 20px;
-  line-height: 160%;
+  margin-top: 24px;
+  line-height: 170%;
   white-space: pre-wrap;
+  font-size: 15px;
+  color: var(--text-h);
 }
