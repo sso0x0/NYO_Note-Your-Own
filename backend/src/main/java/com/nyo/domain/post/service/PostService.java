@@ -338,7 +338,8 @@ public class PostService {
 
     private void saveChangedPostImage(Long postId, String previousImageUrl, PostRequest request) {
         String newImageUrl = request.getThumbnailUrl();
-        if (newImageUrl == null || newImageUrl.isBlank() || newImageUrl.equals(previousImageUrl)) {
+        if (newImageUrl == null || newImageUrl.isBlank()
+                || stripUrlFragment(newImageUrl).equals(stripUrlFragment(previousImageUrl))) {
             return;
         }
 
@@ -377,6 +378,15 @@ public class PostService {
         // 썸네일 교체 시에는 본문 이미지는 유지하고 기존 썸네일 URL만 GCS와 DB에서 삭제한다.
         fileStorageService.delete(imageUrl);
         imageRepository.deleteAll(imageRepository.findByPostIdAndImageUrl(postId, imageUrl));
+    }
+
+    // 메인 이미지 크기만 바뀌었을 때 같은 GCS 파일을 삭제하지 않도록 fragment를 제외해 비교한다.
+    private String stripUrlFragment(String imageUrl) {
+        if (imageUrl == null) {
+            return "";
+        }
+        int fragmentIndex = imageUrl.indexOf('#');
+        return fragmentIndex >= 0 ? imageUrl.substring(0, fragmentIndex) : imageUrl;
     }
 
     private void deletePostImages(Long postId, String thumbnailUrl) {

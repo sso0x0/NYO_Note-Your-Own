@@ -181,6 +181,35 @@ body {
     background: #fff;
 }
 
+/* 노트 본문은 그대로 두고 연결 강의의 학습 챗봇만 오른쪽 열에 배치합니다. */
+.note-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.note-detail-chat {
+    display: flex;
+    height: 640px;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--border, #ddd);
+    border-radius: 14px;
+    background: var(--bg, #fff);
+}
+
+.note-detail-chat__header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border, #ddd);
+    color: var(--text-h, #222);
+    font-weight: 600;
+}
+
+.note-detail-chat .chat-messages {
+    flex: 1;
+}
+
 .note-section-title {
     display: flex;
     align-items: baseline;
@@ -1002,5 +1031,16 @@ body {
     .note-field-row,
     .note-meta {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .note-detail-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .note-detail-chat {
+        width: 100%;
+        height: 420px;
     }
 }

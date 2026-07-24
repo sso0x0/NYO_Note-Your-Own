@@ -73,10 +73,7 @@ function NoteCreate({ onBack, onCreated }) {
   const insertCodeBlock = () => {
     // 노트 본문에 마크다운 코드블럭 문법을 삽입해 코드 예시를 저장할 수 있게 한다.
     const codeBlock = '\n```java\n// 코드를 입력하세요\n```\n'
-    setForm((prev) => ({
-      ...prev,
-      content: `${prev.content}${codeBlock}`,
-    }))
+    contentRef.current?.insertCodeBlock(codeBlock)
   }
 
   const applyTextColor = (color) => {

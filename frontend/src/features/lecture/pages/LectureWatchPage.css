@@ -205,6 +205,13 @@
   cursor: not-allowed;
 }
 
+.lecture-watch-page__main-image {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
 .lecture-watch-page__note-message {
   font-size: 13px;
   color: var(--text);
