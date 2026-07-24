@@ -43,6 +43,9 @@ public class PostResponse {
     @Schema(description = "삭제 여부", example = "false")
     private Boolean isDeleted;
 
+    @Schema(description = "공지 게시글 여부", example = "false")
+    private Boolean notice;
+
     @Schema(description = "작성일")
     private LocalDateTime createdAt;
 

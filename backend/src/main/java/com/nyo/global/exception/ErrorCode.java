@@ -35,14 +35,20 @@ public enum ErrorCode {
     // 게시글 관련 에러코드
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 게시글입니다."),
     POST_ACCESS_DENIED(HttpStatus.FORBIDDEN, "게시글에 대한 권한이 없습니다."),
+    // 공지는 관리자만 작성하거나 공지 상태로 변경할 수 있으므로 일반 게시글 권한 오류와 구분합니다.
+    NOTICE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "관리자만 공지를 작성하거나 변경할 수 있습니다."),
 
     // 댓글 관련 에러코드
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 댓글입니다."),
     COMMENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "댓글에 대한 권한이 없습니다."),
+    // 대댓글의 부모 댓글은 반드시 같은 게시글에 속해야 합니다.
+    COMMENT_PARENT_MISMATCH(HttpStatus.BAD_REQUEST, "같은 게시글의 댓글에만 답글을 작성할 수 있습니다."),
 
     // 좋아요 관련 에러코드
     ALREADY_LIKED(HttpStatus.CONFLICT, "이미 좋아요를 눌렀습니다."),
     LIKE_NOT_FOUND(HttpStatus.NOT_FOUND, "좋아요 내역이 없습니다."),
+    // 좋아요와 조회 기록은 NOTE 또는 POST처럼 서버가 지원하는 대상 타입만 허용합니다.
+    TARGET_TYPE_INVALID(HttpStatus.BAD_REQUEST, "지원하지 않는 대상 타입입니다."),
 
     // 노트/게시글 이미지 관련 에러코드
     IMAGE_EMPTY(HttpStatus.BAD_REQUEST, "업로드할 이미지가 없습니다."),

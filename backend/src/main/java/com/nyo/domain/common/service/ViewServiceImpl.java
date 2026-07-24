@@ -26,7 +26,7 @@ public class ViewServiceImpl implements ViewService {
     @Override
     @Transactional
     public boolean recordView(Long userId, ViewRequest request) {
-        TargetType targetType = TargetType.valueOf(request.getTargetType());
+        TargetType targetType = parseTargetType(request.getTargetType());
         LocalDate today = LocalDate.now();
 
         boolean alreadyViewed = viewLogRepository.existsByTargetTypeAndTargetIdAndViewedDateAndUserId(
@@ -45,5 +45,14 @@ public class ViewServiceImpl implements ViewService {
                 .viewedDate(today)
                 .build());
         return true;
+    }
+
+    private TargetType parseTargetType(String targetType) {
+        try {
+            return TargetType.valueOf(targetType);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            // 잘못된 조회 대상 타입은 내부 오류가 아니라 400 입력 오류로 응답합니다.
+            throw new BusinessException(ErrorCode.TARGET_TYPE_INVALID);
+        }
     }
 }

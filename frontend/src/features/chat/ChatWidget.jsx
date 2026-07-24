@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { getHistories, sendMessage } from '../../api/chat'
+import { getHistories, sendMessage } from './api/chat'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
 import '../../components/widget.css'

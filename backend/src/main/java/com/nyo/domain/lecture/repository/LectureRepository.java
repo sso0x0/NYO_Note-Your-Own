@@ -9,8 +9,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface LectureRepository extends JpaRepository<Lecture, Long> {
+
+    // 노트 임시 연결용: 삭제되지 않은 강의 중 ID가 가장 작은 한 건을 선택한다.
+    Optional<Lecture> findFirstByIsDeletedFalseOrderByIdAsc();
 
     // 삭제된 강의 제외, 강의 전체 조회 (페이징, category 즉시 로딩으로 N+1 방지)
     @Query(value = "SELECT l FROM Lecture l JOIN FETCH l.category WHERE l.isDeleted = false",
@@ -21,6 +25,10 @@ public interface LectureRepository extends JpaRepository<Lecture, Long> {
     @Query(value = "SELECT l FROM Lecture l JOIN FETCH l.category WHERE l.category.id = :categoryId AND l.isDeleted = false",
             countQuery = "SELECT count(l) FROM Lecture l WHERE l.category.id = :categoryId AND l.isDeleted = false") // 삭제된 강의 제외
     Page<Lecture> findByCategoryIdAndIsDeletedFalse(@Param("categoryId") Long categoryId, Pageable pageable);
+
+    // Elasticsearch 검색 결과(id 목록)에 해당하는 강의만 조회 (category 즉시 로딩, 삭제된 강의 제외)
+    @Query("SELECT l FROM Lecture l JOIN FETCH l.category WHERE l.id IN :ids AND l.isDeleted = false")
+    List<Lecture> findAllByIdInAndIsDeletedFalse(@Param("ids") List<Long> ids);
 
     // 좋아요수/조회수 기준 상위 강의 조회 (인기 강의 배치용)
     List<Lecture> findByIsDeletedFalseOrderByLikeCountDescViewCountDesc(Pageable pageable);

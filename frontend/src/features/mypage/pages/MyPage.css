@@ -1,0 +1,248 @@
+.mypage {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 20px 56px;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.mypage h2 {
+  font-size: 22px;
+  margin: 0 0 24px;
+  letter-spacing: -0.01em;
+}
+
+.mypage__error {
+  color: #d92d20;
+}
+
+/* ===== 프로필 카드 ===== */
+.mypage__profile {
+  position: relative;
+  padding: 24px 24px 24px 28px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-top: 4px;
+  background: var(--bg);
+}
+
+.mypage__profile::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20px;
+  bottom: 20px;
+  width: 3px;
+  border-radius: 3px;
+  background: #e57391;
+}
+
+.mypage__profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mypage__profile-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.mypage__profile-header button,
+.mypage__profile-actions button[type='submit'] {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-h);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.mypage__profile-header button:hover {
+  border-color: #e57391;
+  color: #e57391;
+}
+
+.mypage__profile-actions button[type='submit'] {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #1a1a1a;
+}
+
+.mypage__profile-actions button[type='button'] {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.mypage__profile-view {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  row-gap: 12px;
+  margin: 20px 0 0;
+}
+
+.mypage__profile-view dt {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.mypage__profile-view dd {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 13px;
+}
+
+.mypage__profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 20px;
+  max-width: 420px;
+}
+
+.mypage__profile-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.mypage__profile-form input {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 14px;
+  transition: border-color 0.15s ease;
+}
+
+.mypage__profile-form input:focus {
+  outline: none;
+  border-color: #e57391;
+}
+
+.mypage__profile-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ===== 노트 섹션 ===== */
+.mypage__section {
+  margin-top: 40px;
+}
+
+.mypage__section h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mypage__section h3::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #e57391;
+}
+
+.mypage__section > p {
+  color: var(--text);
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.mypage__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+/* ===== 게시글 리스트 ===== */
+.mypage__post-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mypage__post-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.mypage__post-link {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.mypage__post-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.mypage__post-meta {
+  font-size: 12px;
+  color: var(--text);
+}
+
+/* ===== 위험 구역(탈퇴) ===== */
+.mypage__danger-zone {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mypage__withdraw-btn {
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #d92d20;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.mypage__withdraw-btn:hover {
+  background: rgba(217, 45, 32, 0.08);
+}
+
+/* ===== 모바일 ===== */
+@media (max-width: 480px) {
+  .mypage__profile-view {
+    grid-template-columns: 72px 1fr;
+  }
+
+  .mypage__grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+  }
+}
