@@ -681,6 +681,62 @@ body {
     margin: 0 0 1rem;
 }
 
+/* 노트 상세: AI가 생성한 태그 + "AI 태그 생성" 버튼 (작성자 본인에게만 버튼 표시) */
+.note-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 1rem;
+}
+
+.note-tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    background: var(--accent-bg, #eef2ff);
+    color: var(--accent, #3730a3);
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
+.note-tag-chip__ai {
+    padding: 0.05rem 0.35rem;
+    border-radius: 999px;
+    background: var(--nyo-accent, var(--accent, #4338ca));
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+.note-tag-generate {
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--border, #ddd);
+    background: none;
+    color: var(--text, #555);
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.note-tag-generate:hover:not(:disabled) {
+    border-color: var(--nyo-accent, var(--accent));
+    color: var(--nyo-accent, var(--accent));
+}
+
+.note-tag-generate:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.note-tag-error {
+    color: #d33;
+    font-size: 0.85rem;
+    margin: -0.5rem 0 1rem;
+}
+
 .note-meta {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

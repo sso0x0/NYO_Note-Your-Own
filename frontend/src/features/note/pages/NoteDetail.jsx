@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { parseTextColors } from '../../../utils/textColor'
 import { useAuth } from '../../../context/AuthContext'
 import { parseMainImage } from '../../../utils/mainImage'
+import { generateAiTags, getNoteTags } from '../api/tag'
 
 const EMPTY_HEART_IMAGE = '/images/heart.png'
 const FILLED_HEART_IMAGE = '/images/hearts.png'
@@ -13,6 +14,9 @@ function NoteDetail({ noteId, onBack, onEdit }) {
   const [loading, setLoading] = useState(false)
   const [liked, setLiked] = useState(false)
   const [likeLoading, setLikeLoading] = useState(false)
+  const [tags, setTags] = useState([])
+  const [tagGenerating, setTagGenerating] = useState(false)
+  const [tagError, setTagError] = useState(null)
   const userId = auth?.userId
 
   const loadNote = async () => {
@@ -44,6 +48,15 @@ function NoteDetail({ noteId, onBack, onEdit }) {
     if (response.ok) setLiked(await response.json())
   }
 
+  const loadTags = async () => {
+    try {
+      setTags(await getNoteTags(noteId))
+    } catch (error) {
+      // 태그 조회는 부가 정보라 실패해도 노트 본문 표시를 막지 않는다.
+      setTagError(error.message)
+    }
+  }
+
   useEffect(() => {
     const increaseViewCount = async () => {
       // 상세 페이지에 들어오면 common.view_logs로 하루 1회만 조회수를 올린다.
@@ -55,7 +68,7 @@ function NoteDetail({ noteId, onBack, onEdit }) {
 
     const load = async () => {
       // 조회수나 좋아요 상태 요청 하나가 실패해도 노트 본문 조회까지 중단되지 않게 독립 실행합니다.
-      await Promise.allSettled([increaseViewCount(), loadNote(), loadLikeStatus()])
+      await Promise.allSettled([increaseViewCount(), loadNote(), loadLikeStatus(), loadTags()])
     }
 
     load()
@@ -78,6 +91,20 @@ function NoteDetail({ noteId, onBack, onEdit }) {
       await loadNote()
     } finally {
       setLikeLoading(false)
+    }
+  }
+
+  const handleGenerateTags = async () => {
+    if (tagGenerating) return
+    setTagGenerating(true)
+    setTagError(null)
+    try {
+      await generateAiTags(noteId)
+      await loadTags()
+    } catch (error) {
+      setTagError(error.message)
+    } finally {
+      setTagGenerating(false)
     }
   }
 
@@ -303,6 +330,27 @@ function NoteDetail({ noteId, onBack, onEdit }) {
               <span aria-hidden="true"> | </span>
               <span>조회수 {note.viewCount ?? 0}</span>
             </p>
+
+            <div className="note-tags">
+              {tags.map((tag) => (
+                  <span key={tag.tagId} className="note-tag-chip">
+                    {tag.isAiGenerated && <span className="note-tag-chip__ai">AI</span>}
+                    {tag.tagName}
+                  </span>
+              ))}
+              {canEdit && (
+                  <button
+                      type="button"
+                      className="note-tag-generate"
+                      onClick={handleGenerateTags}
+                      disabled={tagGenerating}
+                  >
+                    {tagGenerating ? 'AI 태그 생성 중...' : (tags.length > 0 ? 'AI 태그 다시 생성' : 'AI 태그 생성')}
+                  </button>
+              )}
+            </div>
+            {tagError && <p className="note-tag-error">{tagError}</p>}
+
             <dl className="note-meta">
               <div>
                 <dt>노트 ID</dt>
