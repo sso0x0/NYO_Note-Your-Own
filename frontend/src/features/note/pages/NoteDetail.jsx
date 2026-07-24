@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { parseTextColors } from '../../../utils/textColor'
 import { useAuth } from '../../../context/AuthContext'
+import { parseMainImage } from '../../../utils/mainImage'
 
 const EMPTY_HEART_IMAGE = '/images/heart.png'
 const FILLED_HEART_IMAGE = '/images/hearts.png'
@@ -156,6 +157,7 @@ function NoteDetail({ noteId, onBack, onEdit }) {
   )
   // 수정은 관리자 권한과 관계없이 노트를 작성한 로그인 사용자 본인에게만 허용합니다.
   const canEdit = note && auth && String(note.userId) === String(auth.userId)
+  const mainImage = parseMainImage(note?.thumbnailUrl)
 
   const escapeHtml = (value) => String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -243,6 +245,7 @@ function NoteDetail({ noteId, onBack, onEdit }) {
           className="content-inline-image"
           src={match[1]}
           style={match[2] ? { width: `${match[2]}px` } : undefined}
+          draggable={false}
           alt="본문 이미지"
           key={`${keyPrefix}-image-${blocks.length}`}
         />
@@ -336,11 +339,20 @@ function NoteDetail({ noteId, onBack, onEdit }) {
                 aria-label={liked ? '좋아요 취소' : '좋아요'}
                 aria-pressed={liked}
               >
-                <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" />
+                <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" draggable={false} />
               </button>
             </div>
 
-            {note.thumbnailUrl && <img className="note-thumbnail" src={note.thumbnailUrl} alt="" />}
+            {/* 노트 상세 화면의 이미지를 마우스로 끌어서 복사하지 못하게 합니다. */}
+            {mainImage.url && (
+              <img
+                className="note-thumbnail"
+                src={mainImage.url}
+                style={{ width: `${mainImage.width}px` }}
+                alt=""
+                draggable={false}
+              />
+            )}
             <div className="note-content">{renderNoteContent(note.content)}</div>
 
             {/* 본문 아래에서 좋아요 버튼과 현재 좋아요 수를 함께 보여준다. */}
@@ -353,7 +365,7 @@ function NoteDetail({ noteId, onBack, onEdit }) {
                 aria-label={liked ? '좋아요 취소' : '좋아요'}
                 aria-pressed={liked}
               >
-                <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" />
+                <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" draggable={false} />
               </button>
               <span>좋아요 {note.likeCount ?? 0}</span>
             </div>

@@ -1,0 +1,133 @@
+.chart {
+  position: relative;
+}
+
+.chart__svg {
+  width: 100%;
+  height: 220px;
+  overflow: visible;
+}
+
+.chart__grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chart__axis-label {
+  font-size: 10px;
+  fill: var(--text);
+}
+
+.chart__crosshair {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chart__tooltip {
+  position: absolute;
+  transform: translate(-50%, -130%);
+  background: var(--text-h);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+}
+
+.chart__tooltip strong {
+  font-size: 13px;
+}
+
+.chart__tooltip--bar {
+  left: 50%;
+  top: -6px;
+  transform: translate(-50%, -100%);
+}
+
+.chart__table-toggle {
+  margin-top: 10px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.chart__table-toggle:hover {
+  border-color: var(--nyo-accent, var(--accent));
+  color: var(--nyo-accent, var(--accent));
+}
+
+.chart__table {
+  margin-top: 10px;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.chart__table th,
+.chart__table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-h);
+}
+
+.chart__table th {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* 가로 막대 차트 */
+.bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 2px; /* 막대 사이 surface gap */
+}
+
+.bar-chart__row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.bar-chart__label {
+  width: 120px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-h);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-chart__track {
+  flex: 1;
+  height: 20px; /* <= 24px */
+  background: var(--light-gray, var(--code-bg));
+  border-radius: 4px;
+}
+
+.bar-chart__fill {
+  height: 100%;
+  border-radius: 4px; /* 끝만 둥글게, 시작(베이스라인)은 트랙과 맞물림 */
+  transition: opacity 0.15s ease;
+}
+
+.bar-chart__value {
+  width: 44px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-h);
+}

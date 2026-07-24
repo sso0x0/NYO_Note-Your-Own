@@ -13,8 +13,11 @@ import java.util.Optional;
 
 public interface LectureRepository extends JpaRepository<Lecture, Long> {
 
-    // 노트 임시 연결용: 삭제되지 않은 강의 중 ID가 가장 작은 한 건을 선택한다.
-    Optional<Lecture> findFirstByIsDeletedFalseOrderByIdAsc();
+    // 노트 임시 연결에는 강의 ID만 필요하므로 엔티티 전체 컬럼을 조회하지 않는다.
+    // 현재 DB에 아직 없는 Lecture 신규 컬럼이 있어도 노트 저장이 실패하지 않게 하는 임시 호환 쿼리다.
+    @Query(value = "SELECT id FROM lectures WHERE is_deleted = 0 ORDER BY id FETCH FIRST 1 ROWS ONLY",
+            nativeQuery = true)
+    Optional<Long> findFirstActiveLectureId();
 
     // 삭제된 강의 제외, 강의 전체 조회 (페이징, category 즉시 로딩으로 N+1 방지)
     @Query(value = "SELECT l FROM Lecture l JOIN FETCH l.category WHERE l.isDeleted = false",

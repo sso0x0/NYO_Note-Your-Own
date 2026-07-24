@@ -146,6 +146,15 @@ body {
     margin-bottom: 1.5rem;
 }
 
+/* 커뮤니티 상단 탭과 게시글 작성 헤더 사이에 여백을 둡니다. */
+.community-create-header {
+    margin-top: 2rem;
+}
+
+.community-create-header h1 {
+    font-weight: 700;
+}
+
 .note-header h1 {
     margin: 0;
     font-size: 1.8rem;
@@ -381,9 +390,11 @@ body {
     z-index: 20;
     left: 0;
     bottom: calc(100% + 0.5rem);
-    width: 240px;
-    max-height: 180px;
-    object-fit: cover;
+    /* 화면 크기에 맞춰 미리보기 영역을 자동 조절하고 원본 비율을 유지한다. */
+    width: clamp(180px, 24vw, 320px);
+    height: clamp(120px, 18vw, 220px);
+    max-width: calc(100vw - 2rem);
+    object-fit: contain;
     border: 1px solid #ddd;
     border-radius: 8px;
     background: #fff;
@@ -727,6 +738,38 @@ body {
     border-radius: 6px;
 }
 
+.main-image-resize-wrapper {
+    position: relative;
+    max-width: 100%;
+}
+
+.main-image-resize-wrapper .note-thumbnail {
+    display: block;
+    width: 100%;
+}
+
+/* 메인 이미지 우측 아래에 본문 이미지와 같은 원형 조절점을 표시합니다. */
+.main-image-resize-handle {
+    position: absolute;
+    z-index: 2;
+    right: -6px;
+    bottom: 10px;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #2563eb;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+    cursor: nwse-resize;
+    touch-action: none;
+    user-select: none;
+}
+
+.main-image-resize-handle:hover {
+    background: #1d4ed8;
+}
+
 .image-preview-box {
     padding: 0.8rem;
     border: 1px solid #e5e5e5;
@@ -837,6 +880,12 @@ body {
     border-radius: 6px;
 }
 
+/* 노트 상세 화면의 이미지는 브라우저 기본 드래그 복사를 허용하지 않습니다. */
+.note-detail-panel img {
+    -webkit-user-drag: none;
+    user-select: none;
+}
+
 .comment-panel {
     margin-top: 1rem;
 }
@@ -885,6 +934,9 @@ body {
     margin: 12px 0;
     border-radius: 8px;
     object-fit: contain;
+    /* 에디터 이미지 자체를 끌어서 복제하거나 이동하지 못하게 합니다. */
+    -webkit-user-drag: none;
+    user-select: none;
 }
 
 .editor-image-wrapper {

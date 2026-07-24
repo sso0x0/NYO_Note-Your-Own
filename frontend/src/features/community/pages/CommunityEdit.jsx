@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { createPendingContentImage, uploadPendingContentImages } from '../../../utils/contentImages'
 import { useAuth } from '../../../context/AuthContext'
 import RichTextEditor from '../../../components/RichTextEditor'
+import ResizableMainImage from '../../../components/ResizableMainImage'
+import { parseMainImage, storeMainImageWidth } from '../../../utils/mainImage'
 
 function CommunityEdit({ postId, onBack, onSaved }) {
   const { auth } = useAuth()
@@ -9,6 +11,7 @@ function CommunityEdit({ postId, onBack, onSaved }) {
     title: '',
     content: '',
     thumbnailUrl: '',
+    thumbnailWidth: 500,
     notice: false,
   })
   const [imageFile, setImageFile] = useState(null)
@@ -33,10 +36,12 @@ function CommunityEdit({ postId, onBack, onSaved }) {
           return
         }
 
+        const mainImage = parseMainImage(data.thumbnailUrl)
         setForm({
           title: data.title ?? '',
           content: data.content ?? '',
-          thumbnailUrl: data.thumbnailUrl ?? '',
+          thumbnailUrl: mainImage.url,
+          thumbnailWidth: mainImage.width,
           notice: data.notice ?? false,
         })
         // 관리자 공지 수정: 작성자의 현재 ADMIN 권한을 확인해 공지 옵션을 노출합니다.
@@ -44,7 +49,7 @@ function CommunityEdit({ postId, onBack, onSaved }) {
           headers: { Authorization: `Bearer ${auth.accessToken}` },
         })
         setCanCreateNotice(permissionResponse.ok && await permissionResponse.json())
-        setMessage('새 이미지를 선택하면 수정 저장 시 기존 GCS 이미지를 삭제하고 새 이미지로 교체합니다.')
+        setMessage('')
       } catch (error) {
         setMessage(`게시글 조회 실패: ${error.message}`)
       } finally {
@@ -88,7 +93,6 @@ function CommunityEdit({ postId, onBack, onSaved }) {
 
     setImageFile(file)
     setPreviewUrl(URL.createObjectURL(file))
-    setMessage('이미지는 수정 저장 버튼을 누르면 업로드됩니다.')
   }
 
   const handleContentImageChange = (event) => {
@@ -109,7 +113,7 @@ function CommunityEdit({ postId, onBack, onSaved }) {
     // React가 버튼을 다시 그리기 전 발생할 수 있는 연속 제출도 함수 입구에서 차단합니다.
     if (loading) return
     setLoading(true)
-    setMessage('게시글을 수정하는 중입니다.')
+    setMessage('')
 
     try {
       // 새 이미지가 있으면 저장 시점에만 GCS에 올리고, 없으면 기존 URL을 유지한다.
@@ -127,7 +131,7 @@ function CommunityEdit({ postId, onBack, onSaved }) {
         body: JSON.stringify({
           title: form.title,
           content: uploadedContent.savedContent,
-          thumbnailUrl: imageUrl || null,
+          thumbnailUrl: imageUrl ? storeMainImageWidth(imageUrl, form.thumbnailWidth) : null,
           // 새 이미지를 업로드한 경우 원본 파일명과 파일 크기를 DB 저장용으로 같이 보낸다.
           imageOriginalName: uploadedImage?.originalName ?? null,
           imageFileSize: uploadedImage?.fileSize ?? null,
@@ -186,20 +190,26 @@ function CommunityEdit({ postId, onBack, onSaved }) {
 
           {imagePreview && (
             <div className="image-preview-box">
-              <img className="note-thumbnail" src={imagePreview} alt="커뮤니티 메인 이미지 미리보기" />
-              <input name="thumbnailUrl" value={form.thumbnailUrl} onChange={handleChange} placeholder="기존 이미지 URL" />
+              <ResizableMainImage
+                src={imagePreview}
+                alt="커뮤니티 메인 이미지 미리보기"
+                width={form.thumbnailWidth}
+                onWidthChange={(thumbnailWidth) => setForm((prev) => ({ ...prev, thumbnailWidth }))}
+              />
             </div>
           )}
 
-          <label>
-            내용
+          {/* 파일 입력과 편집기를 label 하나로 감싸면 편집기 클릭도 파일 선택 클릭으로 전달된다.
+              일반 컨테이너로 분리해 실제 파일 입력을 눌렀을 때만 파일 선택 창이 열리게 한다. */}
+          <div className="note-content-field">
+            <span className="note-field-label">내용</span>
             <input type="file" accept="image/*" onChange={handleContentImageChange} disabled={loading} />
             <RichTextEditor
               ref={contentRef}
               value={form.content}
               onChange={(content) => setForm((prev) => ({ ...prev, content }))}
             />
-          </label>
+          </div>
 
           {/* 수정 요청 중에는 버튼을 비활성화해 같은 변경이 중복 저장되지 않게 합니다. */}
           <button type="submit" disabled={loading}>{loading ? '저장 중...' : '수정 저장'}</button>

@@ -139,7 +139,6 @@ function NoteBoard({ onCreate, onOpenNote }) {
 
       <section className="note-list-panel">
         <div className="note-section-title">
-          <h2>노트 목록</h2>
           <p>{message}</p>
         </div>
 

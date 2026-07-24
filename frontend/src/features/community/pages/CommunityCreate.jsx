@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { createPendingContentImage, uploadPendingContentImages } from '../../../utils/contentImages'
 import { useAuth } from '../../../context/AuthContext'
 import RichTextEditor from '../../../components/RichTextEditor'
+import ResizableMainImage from '../../../components/ResizableMainImage'
+import { storeMainImageWidth } from '../../../utils/mainImage'
 
 const initialForm = {
   title: '',
   content: '',
   thumbnailUrl: '',
+  thumbnailWidth: 500,
   notice: false,
 }
 
@@ -77,7 +80,6 @@ function CommunityCreate({ onBack, onCreated }) {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     setImageFile(file)
     setPreviewUrl(URL.createObjectURL(file))
-    setMessage('이미지는 저장 버튼을 누르면 업로드됩니다.')
   }
 
   const clearMainImage = () => {
@@ -111,7 +113,7 @@ function CommunityCreate({ onBack, onCreated }) {
       return
     }
     setLoading(true)
-    setMessage('게시글을 저장하는 중입니다.')
+    setMessage('')
 
     try {
       // 저장 버튼을 눌렀을 때만 GCS에 업로드하고, 받은 URL을 게시글 저장 요청에 넣는다.
@@ -129,7 +131,7 @@ function CommunityCreate({ onBack, onCreated }) {
         body: JSON.stringify({
           title: form.title,
           content: uploadedContent.savedContent,
-          thumbnailUrl: imageUrl || null,
+          thumbnailUrl: imageUrl ? storeMainImageWidth(imageUrl, form.thumbnailWidth) : null,
           // 업로드 응답의 원본 파일명과 파일 크기를 DB 저장용으로 같이 보낸다.
           imageOriginalName: uploadedImage?.originalName ?? null,
           imageFileSize: uploadedImage?.fileSize ?? null,
@@ -162,10 +164,9 @@ function CommunityCreate({ onBack, onCreated }) {
 
   return (
     <>
-      <header className="note-header">
+      <header className="note-header community-create-header">
         <div>
           <h1>게시글 작성</h1>
-          <p>이미지를 선택한 뒤 저장하면 GCS에 업로드되고 DB에 URL이 저장됩니다.</p>
         </div>
         <button type="button" onClick={onBack}>목록</button>
       </header>
@@ -193,9 +194,13 @@ function CommunityCreate({ onBack, onCreated }) {
 
           {imagePreview && (
             <div className="image-preview-box">
-              <img className="note-thumbnail" src={imagePreview} alt="커뮤니티 메인 이미지 미리보기" />
+              <ResizableMainImage
+                src={imagePreview}
+                alt="커뮤니티 메인 이미지 미리보기"
+                width={form.thumbnailWidth}
+                onWidthChange={(thumbnailWidth) => setForm((prev) => ({ ...prev, thumbnailWidth }))}
+              />
               {imageFile && <p className="image-preview-name">{imageFile.name}</p>}
-              <input name="thumbnailUrl" value={form.thumbnailUrl} onChange={handleChange} placeholder="직접 이미지 URL을 넣을 수도 있습니다." />
               <button type="button" className="image-preview-remove" onClick={clearMainImage} disabled={loading}>이미지 선택 취소</button>
             </div>
           )}

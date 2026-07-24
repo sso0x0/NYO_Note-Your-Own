@@ -66,13 +66,10 @@ public class NoteService {
 
     @Transactional
     public NoteResponse create(Long userId, NoteRequest request) {
-        // 작성자는 컨트롤러가 JWT에서 전달한다. 강의 시청 화면 등 요청에 lectureId가 실려오면 그대로 쓰고,
-        // 값이 없는 예전 노트 작성 화면 호출은 기존 임시 정책대로 DB의 첫 활성 강의를 자동 연결한다.
-        Long lectureId = request.getLectureId() != null
-                ? request.getLectureId()
-                : lectureRepository.findFirstByIsDeletedFalseOrderByIdAsc()
-                        .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND))
-                        .getId();
+        // 작성자는 컨트롤러가 JWT에서 전달하며, 강의는 임시 정책으로 DB의 첫 활성 강의를 자동 연결한다.
+        // Lecture 엔티티 전체를 읽지 않고 ID만 조회해 병합 코드와 기존 DB 컬럼 차이의 영향을 피한다.
+        Long lectureId = lectureRepository.findFirstActiveLectureId()
+                .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND));
 
         Note note = Note.create(
                 userId,
@@ -138,10 +135,10 @@ public class NoteService {
         Map<Long, List<String>> tagNamesByNoteId = noteIds.isEmpty()
                 ? Map.of()
                 : noteTagRepository.findTagNamesByNoteIdIn(noteIds).stream()
-                        .collect(Collectors.groupingBy(
-                                NoteTagRepository.NoteIdTagName::getNoteId,
-                                Collectors.mapping(NoteTagRepository.NoteIdTagName::getTagName, Collectors.toList())
-                        ));
+                .collect(Collectors.groupingBy(
+                        NoteTagRepository.NoteIdTagName::getNoteId,
+                        Collectors.mapping(NoteTagRepository.NoteIdTagName::getTagName, Collectors.toList())
+                ));
 
         List<NoteDocument> documents = notes.stream()
                 .map(note -> NoteDocument.from(note, tagNamesByNoteId.getOrDefault(note.getId(), List.of())))
@@ -189,7 +186,7 @@ public class NoteService {
         Map<Long, Note> notesById = ids.isEmpty()
                 ? Map.of()
                 : noteRepository.findAllByIdInAndIsDeleted(ids, 0).stream()
-                        .collect(Collectors.toMap(Note::getId, Function.identity()));
+                .collect(Collectors.toMap(Note::getId, Function.identity()));
 
         Map<Long, String> nicknames = userService.getDisplayNicknames(
                 notesById.values().stream().map(Note::getUserId).distinct().toList()
