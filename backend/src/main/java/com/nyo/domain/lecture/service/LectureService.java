@@ -37,6 +37,9 @@ public interface LectureService {
     // 좋아요 취소
     void unlikeLecture(Long id, Long userId);
 
+    // 현재 로그인 사용자의 좋아요 여부 조회 (상세 화면 하트 아이콘 상태 결정용)
+    boolean isLiked(Long id, Long userId);
+
     // 수강신청
     void enrollLecture(Long id, Long userId);
 

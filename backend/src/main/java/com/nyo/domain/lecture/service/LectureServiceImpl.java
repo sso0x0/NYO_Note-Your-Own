@@ -259,6 +259,12 @@ public class LectureServiceImpl implements LectureService {
         lectureRepository.decreaseLikeCount(id); // 캐시된 좋아요 수 원자 감소
     }
 
+    // 좋아요 여부 조회
+    @Override
+    public boolean isLiked(Long id, Long userId) {
+        return likeService.isLiked(userId, "LECTURE", id);
+    }
+
     // 수강신청 (likes 테이블을 ENROLL 타입으로 재사용)
     @Override
     @Transactional

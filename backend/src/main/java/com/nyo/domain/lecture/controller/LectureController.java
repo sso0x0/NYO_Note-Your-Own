@@ -78,6 +78,14 @@ public class LectureController {
         return ApiResponse.ok();
     }
 
+    // 좋아요 여부 조회
+    @Operation(summary = "강의 좋아요 여부 조회", description = "현재 로그인한 사용자가 해당 강의에 좋아요를 눌렀는지 여부를 반환합니다.")
+    @GetMapping("/{id}/like")
+    public ApiResponse<Boolean> isLiked(
+            @Parameter(description = "조회할 강의 ID") @PathVariable Long id) {
+        return ApiResponse.ok(lectureService.isLiked(id, SecurityUtil.getCurrentUserId()));
+    }
+
     // 좋아요
     @Operation(summary = "강의 좋아요", description = "강의에 좋아요를 등록합니다. 이미 좋아요를 눌렀다면 에러를 반환합니다.")
     @PostMapping("/{id}/like")
