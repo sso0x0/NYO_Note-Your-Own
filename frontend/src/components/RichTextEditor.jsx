@@ -30,6 +30,7 @@ const createResizableImage = (source, previewUrl, savedWidth) => {
   image.src = previewUrl
   image.className = 'editor-inline-image'
   image.alt = '본문 이미지'
+  image.draggable = false
   wrapper.append(image)
 
   const handle = document.createElement('span')
@@ -130,6 +131,11 @@ const RichTextEditor = forwardRef(function RichTextEditor({ value, onChange }, r
 
   const emitChange = () => onChange(serializeEditor(editorRef.current))
 
+  const preventDroppedContent = (event) => {
+    // contentEditable의 기본 드롭 동작이 blob: 이미지 태그를 자동 생성하지 못하게 차단합니다.
+    event.preventDefault()
+  }
+
   useImperativeHandle(ref, () => ({
     insertImage(source, previewUrl) {
       const editor = editorRef.current
@@ -190,6 +196,8 @@ const RichTextEditor = forwardRef(function RichTextEditor({ value, onChange }, r
       onMouseUp={rememberSelectionAfterMouseUp}
       onKeyUp={rememberSelection}
       onSelect={rememberSelection}
+      onDragOver={preventDroppedContent}
+      onDrop={preventDroppedContent}
     />
   )
 })
