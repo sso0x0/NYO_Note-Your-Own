@@ -48,121 +48,131 @@ function SignupPage() {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-page__card">
-        <Link to="/" className="auth-page__logo">
-          <img src={nyoLogo} alt="NYO" />
-        </Link>
-        <h1>NYO와 함께 시작해요</h1>
-        <p className="auth-page__subtitle">가입은 1분이면 충분해요. 흩어진 강의 노트를 한 곳에 모아보세요.</p>
+      <div className="auth-page">
+        <div className="auth-page__card">
+          <Link to="/" className="auth-page__logo">
+            <img src={nyoLogo} alt="NYO" />
+          </Link>
+          <h1>NYO와 함께 시작해요</h1>
+          <p className="auth-page__subtitle">가입은 1분이면 충분해요. 흩어진 강의 노트를 한 곳에 모아보세요.</p>
 
-        <form className="auth-page__form" onSubmit={handleSubmit}>
-          {error && <p className="auth-page__error" role="alert">{error}</p>}
+          {/* 회원가입 전용 클래스 auth-page__form--signup 추가 */}
+          <form className="auth-page__form auth-page__form--signup" onSubmit={handleSubmit}>
+            {error && <p className="auth-page__error" role="alert">{error}</p>}
 
-          <div className="auth-page__field">
-            <label htmlFor="loginId">아이디</label>
-            <input
-              id="loginId"
-              name="loginId"
-              type="text"
-              autoComplete="username"
-              minLength={4}
-              maxLength={50}
-              value={form.loginId}
-              onChange={handleChange}
-              required
-            />
-          </div>
+            {/* 그룹 1: 계정 정보 */}
+            <div className="auth-page__group">
+              <div className="auth-page__field">
+                <label htmlFor="loginId">아이디</label>
+                <input
+                    id="loginId"
+                    name="loginId"
+                    type="text"
+                    autoComplete="username"
+                    minLength={4}
+                    maxLength={50}
+                    value={form.loginId}
+                    onChange={handleChange}
+                    required
+                />
+              </div>
 
-          <div className="auth-page__field">
-            <label htmlFor="password">비밀번호</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              minLength={8}
-              maxLength={72}
-              value={form.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
+              <div className="auth-page__field">
+                <label htmlFor="password">비밀번호</label>
+                <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="new-password"
+                    minLength={8}
+                    maxLength={72}
+                    value={form.password}
+                    onChange={handleChange}
+                    required
+                />
+              </div>
 
-          <div className="auth-page__field">
-            <label htmlFor="passwordConfirm">비밀번호 확인</label>
-            <input
-              id="passwordConfirm"
-              name="passwordConfirm"
-              type="password"
-              autoComplete="new-password"
-              value={form.passwordConfirm}
-              onChange={handleChange}
-              required
-            />
-          </div>
+              <div className="auth-page__field">
+                <label htmlFor="passwordConfirm">비밀번호 확인</label>
+                <input
+                    id="passwordConfirm"
+                    name="passwordConfirm"
+                    type="password"
+                    autoComplete="new-password"
+                    value={form.passwordConfirm}
+                    onChange={handleChange}
+                    required
+                />
+              </div>
+            </div>
 
-          <div className="auth-page__field">
-            <label htmlFor="name">이름</label>
-            <input
-              id="name"
-              name="name"
-              type="text"
-              autoComplete="name"
-              value={form.name}
-              onChange={handleChange}
-              required
-            />
-          </div>
+            {/* 그룹 2: 개인 정보 */}
+            <div className="auth-page__group">
+              <div className="auth-page__field">
+                <label htmlFor="name">이름</label>
+                <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    autoComplete="name"
+                    value={form.name}
+                    onChange={handleChange}
+                    required
+                />
+              </div>
 
-          <div className="auth-page__field">
-            <label htmlFor="nickname">닉네임</label>
-            <input
-              id="nickname"
-              name="nickname"
-              type="text"
-              value={form.nickname}
-              onChange={handleChange}
-              required
-            />
-          </div>
+              <div className="auth-page__field">
+                <label htmlFor="nickname">닉네임</label>
+                <input
+                    id="nickname"
+                    name="nickname"
+                    type="text"
+                    value={form.nickname}
+                    onChange={handleChange}
+                    required
+                />
+              </div>
+            </div>
 
-          <div className="auth-page__field">
-            <label htmlFor="email">이메일</label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              value={form.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
+            {/* 그룹 3: 연락처 정보 */}
+            <div className="auth-page__group">
+              <div className="auth-page__field">
+                <label htmlFor="email">이메일</label>
+                <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    required
+                />
+              </div>
 
-          <div className="auth-page__field">
-            <label htmlFor="phone">전화번호 (선택)</label>
-            <input
-              id="phone"
-              name="phone"
-              type="tel"
-              placeholder="010-1234-5678"
-              autoComplete="tel"
-              value={form.phone}
-              onChange={handleChange}
-            />
-          </div>
+              <div className="auth-page__field">
+                <label htmlFor="phone">전화번호 (선택)</label>
+                <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    placeholder="010-1234-5678"
+                    autoComplete="tel"
+                    value={form.phone}
+                    onChange={handleChange}
+                />
+              </div>
+            </div>
 
-          <button type="submit" className="auth-page__submit" disabled={submitting}>
-            {submitting ? '가입 처리 중...' : '회원가입'}
-          </button>
-        </form>
+            <button type="submit" className="auth-page__submit" disabled={submitting}>
+              {submitting ? '가입 처리 중...' : '회원가입'}
+            </button>
+          </form>
 
-        <p className="auth-page__switch">
-          이미 계정이 있으신가요? <Link to="/login">로그인</Link>
-        </p>
+          <p className="auth-page__switch">
+            이미 계정이 있으신가요? <Link to="/login">로그인</Link>
+          </p>
+        </div>
       </div>
-    </div>
   );
 }
 
