@@ -96,6 +96,14 @@ public class LectureController {
         return ApiResponse.ok();
     }
 
+    // 수강신청 여부 조회 (상세/시청 화면 진입 시 접근 가능 여부를 먼저 확인)
+    @Operation(summary = "강의 수강신청 여부 조회", description = "현재 로그인한 사용자가 해당 강의에 수강신청했는지 여부를 반환합니다.")
+    @GetMapping("/{id}/enroll")
+    public ApiResponse<Boolean> isEnrolled(
+            @Parameter(description = "조회할 강의 ID") @PathVariable Long id) {
+        return ApiResponse.ok(lectureService.isEnrolled(id, SecurityUtil.getCurrentUserId()));
+    }
+
     // 수강신청
     @Operation(summary = "강의 수강신청", description = "강의에 수강신청합니다. 이미 신청했거나 정원이 마감된 경우 에러를 반환합니다.")
     @PostMapping("/{id}/enroll")

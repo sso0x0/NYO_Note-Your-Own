@@ -4,6 +4,7 @@ import LoginPage from './features/auth/pages/LoginPage';
 import SignupPage from './features/auth/pages/SignupPage';
 import LectureListPage from './features/lecture/pages/LectureListPage';
 import LectureDetailPage from './features/lecture/pages/LectureDetailPage';
+import LectureWatchPage from './features/lecture/pages/LectureWatchPage';
 import OAuth2RedirectPage from './features/auth/pages/OAuth2RedirectPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import ProtectedLayout from './components/ProtectedLayout';
@@ -27,6 +28,7 @@ function App() {
                     <Route index element={<MainPage />} />
                     <Route path="lectures" element={<LectureListPage />} />
                     <Route path="lectures/:id" element={<LectureDetailPage />} />
+                    <Route path="lectures/:id/watch" element={<LectureWatchPage />} />
                     {/* 기존 노트와 커뮤니티 기능을 로그인 후 /main 하위 주소에 연결합니다. */}
                     <Route path="notes/*" element={<NoteSectionRoutes />} />
                     <Route path="community/*" element={<CommunitySectionRoutes />} />

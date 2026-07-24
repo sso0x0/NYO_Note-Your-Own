@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getLecture, increaseLectureViewCount } from '../api/lecture';
+import {
+  getLecture,
+  increaseLectureViewCount,
+  isEnrolled as fetchIsEnrolled,
+  enrollLecture,
+  cancelEnrollment,
+} from '../api/lecture';
+import fallbackThumbnail from '../../../assets/images/null.png';
+import { resolveLectureThumbnail } from '../../../utils/youtubeThumbnail';
 import './LectureDetailPage.css';
 
 function LectureDetailPage() {
@@ -10,12 +18,15 @@ function LectureDetailPage() {
   const [error, setError] = useState(null);
   const [liked, setLiked] = useState(false);
   const [enrolled, setEnrolled] = useState(false);
+  const [enrollBusy, setEnrollBusy] = useState(false);
+  const [enrollError, setEnrollError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
 
     setStatus('loading');
     setError(null);
+    setEnrollError(null);
 
     setLiked(false);
     setEnrolled(false);
@@ -25,10 +36,15 @@ function LectureDetailPage() {
         // 조회수 증가를 먼저 처리한 뒤 상세 정보를 조회해야 갱신된 숫자가 바로 표시된다.
         // 비로그인 등으로 증가 요청이 실패해도 공개된 강의 상세 조회는 계속 진행한다.
         await increaseLectureViewCount(id).catch(() => null);
-        const data = await getLecture(id);
+        const [data, enrolledStatus] = await Promise.all([
+          getLecture(id),
+          // 수강신청 여부 조회가 실패해도(네트워크 등) 상세 화면 자체는 계속 보여준다.
+          fetchIsEnrolled(id).catch(() => false),
+        ]);
 
         if (cancelled) return;
         setLecture(data);
+        setEnrolled(enrolledStatus);
         setStatus('success');
       } catch (err) {
         if (cancelled) return;
@@ -47,6 +63,28 @@ function LectureDetailPage() {
   const isFull =
     !enrolled && lecture?.capacity != null && (lecture.currentEnrolled ?? 0) >= lecture.capacity;
 
+  const handleEnrollClick = async () => {
+    if (enrollBusy) return;
+    setEnrollBusy(true);
+    setEnrollError(null);
+
+    try {
+      if (enrolled) {
+        await cancelEnrollment(id);
+      } else {
+        await enrollLecture(id);
+      }
+      // 정원 등 서버 기준 숫자가 바뀌므로 신청/취소 이후에는 상세 정보를 다시 불러온다.
+      const data = await getLecture(id);
+      setLecture(data);
+      setEnrolled((v) => !v);
+    } catch (err) {
+      setEnrollError(err.message);
+    } finally {
+      setEnrollBusy(false);
+    }
+  };
+
   return (
     <section className="lecture-detail-page">
       <Link to="/main/lectures" className="lecture-detail-page__back">
@@ -59,11 +97,13 @@ function LectureDetailPage() {
       {status === 'success' && lecture && (
         <>
           <div className="lecture-detail-page__thumb">
-            {lecture.thumbnailUrl ? (
-              <img src={lecture.thumbnailUrl} alt={lecture.title} />
-            ) : (
-              <div className="lecture-detail-page__thumb-fallback" aria-hidden="true" />
-            )}
+            <img
+              src={resolveLectureThumbnail(lecture) ?? fallbackThumbnail}
+              alt={lecture.title}
+              onError={(event) => {
+                event.currentTarget.src = fallbackThumbnail;
+              }}
+            />
             {lecture.isPopular && <span className="lecture-detail-page__badge">인기</span>}
           </div>
 
@@ -79,7 +119,7 @@ function LectureDetailPage() {
             <span>조회 {lecture.viewCount ?? 0}</span>
             <span>좋아요 {(lecture.likeCount ?? 0) + (liked ? 1 : 0)}</span>
             <span>
-              수강 {(lecture.currentEnrolled ?? 0) + (enrolled ? 1 : 0)}
+              수강 {lecture.currentEnrolled ?? 0}
               {lecture.capacity != null ? ` / ${lecture.capacity}` : ''}
             </span>
           </div>
@@ -96,26 +136,29 @@ function LectureDetailPage() {
             <button
               type="button"
               className={`lecture-detail-page__enroll-btn${enrolled ? ' is-active' : ''}`}
-              disabled={isFull}
-              onClick={() => setEnrolled((v) => !v)}
+              disabled={isFull || enrollBusy}
+              onClick={handleEnrollClick}
             >
-              {enrolled ? '수강신청 취소' : isFull ? '정원 마감' : '수강신청'}
+              {enrollBusy ? '처리 중...' : enrolled ? '수강신청 취소' : isFull ? '정원 마감' : '수강신청'}
             </button>
           </div>
+
+          {enrollError && <p className="lecture-detail-page__enroll-error" role="alert">{enrollError}</p>}
 
           {lecture.description && (
             <p className="lecture-detail-page__description">{lecture.description}</p>
           )}
 
           {lecture.lectureUrl && (
-            <a
-              className="lecture-detail-page__link"
-              href={lecture.lectureUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              강의 링크로 이동
-            </a>
+            enrolled ? (
+              <Link className="lecture-detail-page__link" to={`/main/lectures/${id}/watch`}>
+                강의 링크로 이동
+              </Link>
+            ) : (
+              <p className="lecture-detail-page__link-locked">
+                {isFull ? '정원이 마감되어 수강할 수 없습니다.' : '수강신청 후 강의를 시청할 수 있습니다.'}
+              </p>
+            )
           )}
         </>
       )}

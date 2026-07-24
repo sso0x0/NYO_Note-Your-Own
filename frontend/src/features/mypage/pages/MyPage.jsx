@@ -231,7 +231,7 @@ function MyPage() {
                             <p>작성한 노트가 없습니다.</p>
                         ) : (
                             <div className="mypage__grid">
-                                {myNotes.map((음표) => (
+                                {myNotes.map((note) => (
                                     <NoteCard key={note.id} note={note} />
                                 ))}
                             </div>
@@ -244,7 +244,7 @@ function MyPage() {
                             <p>좋아요한 노트가 없습니다.</p>
                         ) : (
                             <div className="mypage__grid">
-                                {likedNotes.map((음표) => (
+                                {likedNotes.map((note) => (
                                     <NoteCard key={note.id} note={note} />
                                 ))}
                             </div>

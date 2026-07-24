@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import fallbackThumbnail from '../../../assets/images/null.png';
+import { resolveLectureThumbnail } from '../../../utils/youtubeThumbnail';
 import './LectureCard.css';
 
 function LectureCard({ lecture }) {
@@ -7,7 +9,6 @@ function LectureCard({ lecture }) {
     title,
     instructor,
     categoryName,
-    thumbnailUrl,
     viewCount,
     likeCount,
     currentEnrolled,
@@ -15,15 +16,20 @@ function LectureCard({ lecture }) {
     isPopular,
   } = lecture;
 
+  const thumbnailSrc = resolveLectureThumbnail(lecture) ?? fallbackThumbnail;
+
   return (
     <article className="lecture-card">
       <Link to={`/main/lectures/${id}`} className="lecture-card__link">
         <div className="lecture-card__thumb">
-          {thumbnailUrl ? (
-            <img src={thumbnailUrl} alt={title} loading="lazy" />
-          ) : (
-            <div className="lecture-card__thumb-fallback" aria-hidden="true" />
-          )}
+          <img
+            src={thumbnailSrc}
+            alt={title}
+            loading="lazy"
+            onError={(event) => {
+              event.currentTarget.src = fallbackThumbnail;
+            }}
+          />
           {isPopular && <span className="lecture-card__badge">인기</span>}
         </div>
 
