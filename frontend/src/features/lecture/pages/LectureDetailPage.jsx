@@ -6,6 +6,9 @@ import {
   isEnrolled as fetchIsEnrolled,
   enrollLecture,
   cancelEnrollment,
+  isLectureLiked,
+  likeLecture,
+  unlikeLecture,
 } from '../api/lecture';
 import fallbackThumbnail from '../../../assets/images/null.png';
 import { resolveLectureThumbnail } from '../../../utils/youtubeThumbnail';
@@ -36,15 +39,18 @@ function LectureDetailPage() {
         // 조회수 증가를 먼저 처리한 뒤 상세 정보를 조회해야 갱신된 숫자가 바로 표시된다.
         // 비로그인 등으로 증가 요청이 실패해도 공개된 강의 상세 조회는 계속 진행한다.
         await increaseLectureViewCount(id).catch(() => null);
-        const [data, enrolledStatus] = await Promise.all([
+        const [data, enrolledStatus, likedStatus] = await Promise.all([
           getLecture(id),
           // 수강신청 여부 조회가 실패해도(네트워크 등) 상세 화면 자체는 계속 보여준다.
           fetchIsEnrolled(id).catch(() => false),
+          // 좋아요 여부 조회가 실패해도 상세 화면 자체는 계속 보여준다.
+          isLectureLiked(id).catch(() => false),
         ]);
 
         if (cancelled) return;
         setLecture(data);
         setEnrolled(enrolledStatus);
+        setLiked(!!likedStatus);
         setStatus('success');
       } catch (err) {
         if (cancelled) return;
@@ -62,6 +68,22 @@ function LectureDetailPage() {
 
   const isFull =
     !enrolled && lecture?.capacity != null && (lecture.currentEnrolled ?? 0) >= lecture.capacity;
+
+  const handleToggleLike = async () => {
+    try {
+      if (liked) {
+        await unlikeLecture(id);
+        setLiked(false);
+        setLecture((l) => (l ? { ...l, likeCount: Math.max(0, (l.likeCount ?? 0) - 1) } : l));
+      } else {
+        await likeLecture(id);
+        setLiked(true);
+        setLecture((l) => (l ? { ...l, likeCount: (l.likeCount ?? 0) + 1 } : l));
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+  };
 
   const handleEnrollClick = async () => {
     if (enrollBusy) return;
@@ -117,7 +139,7 @@ function LectureDetailPage() {
 
           <div className="lecture-detail-page__meta">
             <span>조회 {lecture.viewCount ?? 0}</span>
-            <span>좋아요 {(lecture.likeCount ?? 0) + (liked ? 1 : 0)}</span>
+            <span>좋아요 {lecture.likeCount ?? 0}</span>
             <span>
               수강 {lecture.currentEnrolled ?? 0}
               {lecture.capacity != null ? ` / ${lecture.capacity}` : ''}
@@ -129,7 +151,7 @@ function LectureDetailPage() {
               type="button"
               className={`lecture-detail-page__like-btn${liked ? ' is-active' : ''}`}
               aria-pressed={liked}
-              onClick={() => setLiked((v) => !v)}
+              onClick={handleToggleLike}
             >
               {liked ? '♥ 좋아요 취소' : '♡ 좋아요'}
             </button>
