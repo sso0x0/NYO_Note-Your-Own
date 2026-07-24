@@ -253,3 +253,50 @@
   ※ 입력창(input)과 라벨(label) 스타일을 강제로 덮어쓰던 코드를 삭제했습니다.
   이제 로그인 화면의 예쁘고 둥근 기본 스타일을 그대로 똑같이 따라갑니다!
 */
+
+.auth-page__password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-page__password-wrap input {
+  width: 100%;
+  padding-right: 42px; /* 눈 아이콘 자리 확보 */
+}
+
+.auth-page__password-toggle {
+  position: absolute;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.auth-page__password-toggle:hover {
+  color: var(--text-h);
+}
+
+/* ===== 필드별 실시간 에러 문구 ===== */
+.auth-page__field-error {
+  font-size: 12px;
+  color: #D32F2F;
+  margin-top: -2px;
+}
+
+.auth-page__field input.is-invalid,
+.auth-page__password-wrap input.is-invalid {
+  border-color: #D32F2F;
+  background: #FDECEA;
+}
+
+.auth-page__field input.is-invalid:focus,
+.auth-page__password-wrap input.is-invalid:focus {
+  border-color: #D32F2F;
+}
