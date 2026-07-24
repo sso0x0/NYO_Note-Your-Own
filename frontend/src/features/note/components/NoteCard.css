@@ -3,9 +3,15 @@
   flex-direction: column;
   text-align: left;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   background: var(--bg);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.note-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
 }
 
 .note-card__link {
@@ -17,7 +23,7 @@
 .note-card__thumb {
   position: relative;
   aspect-ratio: 16 / 9;
-  background: var(--code-bg);
+  background: #eef1fb;
 }
 
 .note-card__thumb img {
@@ -30,30 +36,32 @@
 .note-card__thumb-fallback {
   width: 100%;
   height: 100%;
-  background: var(--code-bg);
+  background: #eef1fb;
 }
 
 .note-card__body {
-  padding: 12px 16px 16px;
+  padding: 14px 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
 .note-card__lecture {
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--accent);
 }
 
 .note-card__title {
   margin: 0;
-  font-size: 17px;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-h);
 }
 
 .note-card__author {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text);
 }
 
@@ -61,6 +69,6 @@
   display: flex;
   gap: 10px;
   margin-top: 8px;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text);
 }

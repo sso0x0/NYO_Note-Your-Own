@@ -6,25 +6,77 @@ import nyoLogo from '../../../assets/images/nyo_logo.png';
 
 import './AuthPage.css';
 
+function EyeIcon({ open }) {
+    return open ? (
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    ) : (
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <path d="M3 3l18 18" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M10.58 10.58a3 3 0 1 0 4.24 4.24" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M6.1 6.1C3.4 7.9 1 12 1 12s4 7 11 7c2.05 0 3.83-.55 5.32-1.35M17.9 17.9C20.6 16.1 23 12 23 12s-1.6-2.8-4.32-4.9" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
+// 필드별 실시간 검증 규칙: 값이 바뀔 때마다 이 함수들로 즉시 재검사합니다.
+const validators = {
+    loginId: (value) => {
+        if (!value.trim()) return '아이디를 입력해 주세요.';
+        return '';
+    },
+    password: (value) => {
+        if (!value) return '비밀번호를 입력해 주세요.';
+        return '';
+    },
+};
+
 function LoginPage() {
     const { login } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
     const [form, setForm] = useState({ loginId: '', password: '' });
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [touched, setTouched] = useState({});
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
+        // 이미 한 번 건드린 필드는 입력할 때마다 바로바로 재검사합니다.
+        if (touched[name]) {
+            setFieldErrors((prev) => ({ ...prev, [name]: validators[name](value) }));
+        }
+    };
+
+    const handleBlur = (e) => {
+        const { name, value } = e.target;
+        setTouched((prev) => ({ ...prev, [name]: true }));
+        setFieldErrors((prev) => ({ ...prev, [name]: validators[name](value) }));
+    };
+
+    const validateAll = () => {
+        const nextErrors = {
+            loginId: validators.loginId(form.loginId),
+            password: validators.password(form.password),
+        };
+        setFieldErrors(nextErrors);
+        setTouched({ loginId: true, password: true });
+        return Object.values(nextErrors).every((msg) => !msg);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
-        setSubmitting(true);
 
+        if (!validateAll()) return;
+
+        setSubmitting(true);
         try {
             const response = await loginRequest(form);
             login(response);
@@ -50,7 +102,7 @@ function LoginPage() {
                 <h1>다시 만나서 반가워요</h1>
                 <p className="auth-page__subtitle">로그인하고 나만의 강의 노트를 이어서 정리해보세요.</p>
 
-                <form className="auth-page__form" onSubmit={handleSubmit}>
+                <form className="auth-page__form" onSubmit={handleSubmit} noValidate>
                     {!error && location.state?.justSignedUp && (
                         <p className="auth-page__success">회원가입이 완료되었습니다. 로그인해주세요.</p>
                     )}
@@ -65,21 +117,43 @@ function LoginPage() {
                             autoComplete="username"
                             value={form.loginId}
                             onChange={handleChange}
-                            required
+                            onBlur={handleBlur}
+                            className={fieldErrors.loginId ? 'is-invalid' : ''}
+                            aria-invalid={!!fieldErrors.loginId}
                         />
+                        {fieldErrors.loginId && (
+                            <p className="auth-page__field-error">{fieldErrors.loginId}</p>
+                        )}
                     </div>
 
                     <div className="auth-page__field">
                         <label htmlFor="password">비밀번호</label>
-                        <input
-                            id="password"
-                            name="password"
-                            type="password"
-                            autoComplete="current-password"
-                            value={form.password}
-                            onChange={handleChange}
-                            required
-                        />
+                        <div className="auth-page__password-wrap">
+                            <input
+                                id="password"
+                                name="password"
+                                type={showPassword ? 'text' : 'password'}
+                                autoComplete="current-password"
+                                value={form.password}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                                className={fieldErrors.password ? 'is-invalid' : ''}
+                                aria-invalid={!!fieldErrors.password}
+                            />
+                            <button
+                                type="button"
+                                className="auth-page__password-toggle"
+                                onClick={() => setShowPassword((v) => !v)}
+                                aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                                aria-pressed={showPassword}
+                                tabIndex={-1}
+                            >
+                                <EyeIcon open={showPassword} />
+                            </button>
+                        </div>
+                        {fieldErrors.password && (
+                            <p className="auth-page__field-error">{fieldErrors.password}</p>
+                        )}
                     </div>
 
                     <button type="submit" className="auth-page__submit" disabled={submitting}>
@@ -87,12 +161,10 @@ function LoginPage() {
                     </button>
                 </form>
 
-                {/* 수정된 구분선 */}
                 <div className="auth-page__divider">
                     <span>또는</span>
                 </div>
 
-                {/* 수정된 구글 로그인 버튼 */}
                 <button
                     type="button"
                     className="auth-page__google"
