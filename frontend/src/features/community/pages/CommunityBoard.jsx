@@ -13,6 +13,13 @@ const PAGES_PER_GROUP = 10
 const DEFAULT_MAIN_IMAGE = '/images/nullimg.png'
 const COMMUNITY_SORT_VALUES = new Set(sortOptions.map((option) => option.value))
 
+// 기본 이미지(nullimg)는 목록 hover 미리보기 대상으로 취급하지 않는다.
+const hasPreviewThumbnail = (thumbnailUrl) => {
+  if (!thumbnailUrl) return false
+  const imagePath = thumbnailUrl.split(/[?#]/)[0]
+  return !imagePath.endsWith(DEFAULT_MAIN_IMAGE)
+}
+
 const readListStateFromUrl = () => {
   const params = new URLSearchParams(window.location.search)
   const page = Number.parseInt(params.get('page') ?? '1', 10)
@@ -144,7 +151,6 @@ function CommunityBoard({ onCreate, onOpenPost }) {
 
       <section className="note-list-panel">
         <div className="note-section-title">
-          <h2>게시글 목록</h2>
           <p>{message}</p>
         </div>
 
@@ -189,7 +195,23 @@ function CommunityBoard({ onCreate, onOpenPost }) {
           {notices.map((post) => (
             <li className="note-list-item notice-list-item" key={`notice-${post.id}`}>
               <button type="button" onClick={() => onOpenPost(post.id)}>
-                <strong><span className="notice-badge">공지</span>{post.title}</strong>
+                {/* 공지도 일반 게시글과 동일하게 제목 hover 시 실제 썸네일을 표시한다. */}
+                <div className="note-title-preview-trigger">
+                  <strong><span className="notice-badge">공지</span>{post.title}</strong>
+                  {hasPreviewThumbnail(post.thumbnailUrl) && (
+                    <img
+                      className="note-main-image-preview"
+                      src={post.thumbnailUrl}
+                      alt={`${post.title} 메인 이미지`}
+                      onError={(event) => {
+                        // URL은 있지만 이미지 로딩에 실패한 경우에만 기본 이미지를 표시한다.
+                        if (!event.currentTarget.src.endsWith(DEFAULT_MAIN_IMAGE)) {
+                          event.currentTarget.src = DEFAULT_MAIN_IMAGE
+                        }
+                      }}
+                    />
+                  )}
+                </div>
                 {/* 게시판 날짜 표시: 생성일과 최종수정일을 모두 제공합니다. */}
                 <span>
                   작성자 {post.authorNickname || '알 수 없는 사용자'} | 생성일 {formatDate(post.createdAt)} | 최종수정일 {formatDate(post.updatedAt)}
@@ -203,17 +225,19 @@ function CommunityBoard({ onCreate, onOpenPost }) {
                 {/* 커뮤니티 메인 이미지 미리보기: 제목 hover 시 게시글 대표 이미지를 표시합니다. */}
                 <div className="note-title-preview-trigger">
                   <strong>{post.notice && <span className="notice-badge">공지</span>}{post.title}</strong>
-                  <img
-                    className="note-main-image-preview"
-                    src={post.thumbnailUrl || DEFAULT_MAIN_IMAGE}
-                    alt={`${post.title} 메인 이미지`}
-                    onError={(event) => {
-                      // 서버 이미지 URL 로딩 실패 시 public/images/nullimg.png를 한 번만 대체 적용합니다.
-                      if (!event.currentTarget.src.endsWith(DEFAULT_MAIN_IMAGE)) {
-                        event.currentTarget.src = DEFAULT_MAIN_IMAGE
-                      }
-                    }}
-                  />
+                  {hasPreviewThumbnail(post.thumbnailUrl) && (
+                    <img
+                      className="note-main-image-preview"
+                      src={post.thumbnailUrl}
+                      alt={`${post.title} 메인 이미지`}
+                      onError={(event) => {
+                        // URL은 있지만 이미지 로딩에 실패한 경우에만 기본 이미지를 표시한다.
+                        if (!event.currentTarget.src.endsWith(DEFAULT_MAIN_IMAGE)) {
+                          event.currentTarget.src = DEFAULT_MAIN_IMAGE
+                        }
+                      }}
+                    />
+                  )}
                 </div>
                 <span>
                   작성자 {post.authorNickname || '알 수 없는 사용자'} | 생성일 {formatDate(post.createdAt)} | 최종수정일 {formatDate(post.updatedAt)}
