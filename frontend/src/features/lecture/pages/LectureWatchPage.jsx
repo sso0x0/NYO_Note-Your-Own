@@ -48,6 +48,7 @@ function LectureWatchPage() {
 
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus('loading');
     setError(null);
     setIsPlaying(false);
@@ -84,6 +85,7 @@ function LectureWatchPage() {
   }, [id, auth?.userId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadNotes();
   }, [loadNotes]);
 

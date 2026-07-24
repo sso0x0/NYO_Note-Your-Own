@@ -68,7 +68,7 @@ function NoteBoard({ onCreate, onOpenNote }) {
     } finally {
       setLoading(false)
     }
-  }, [auth?.accessToken])
+  }, [auth])
 
   const movePage = useCallback((page, sort = sortBy) => {
     const safePage = Math.max(1, page)
