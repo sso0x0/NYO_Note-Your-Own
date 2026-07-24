@@ -5,6 +5,18 @@ import ChatInput from './ChatInput'
 import '../../components/widget.css'
 import './chat.css'
 
+// 말풍선 모양의 선(line) 아이콘. 이모지(💬) 대신 다른 위젯(뽀모도로)과
+// 톤을 맞춘 단색 아웃라인 아이콘을 쓰기 위해 인라인 SVG로 직접 그린다.
+function CommentIcon() {
+  return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M4 5.5h16a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H9l-4.5 4V16H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z" />
+        <path d="M8 10h8M8 13h5" />
+      </svg>
+  )
+}
+
 // 챗봇 아이콘 + 팝업창. WidgetDock을 통해 ProtectedLayout에 한 번만 마운트되어
 // 모든 /main/* 페이지에서 보이고, 페이지를 이동해도 대화 내용이 유지된다.
 export default function ChatWidget() {
@@ -73,7 +85,7 @@ export default function ChatWidget() {
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? '챗봇 닫기' : '챗봇 열기'}
         >
-          {open ? '✕' : '💬'}
+          {open ? '✕' : <CommentIcon />}
         </button>
       </div>
   )

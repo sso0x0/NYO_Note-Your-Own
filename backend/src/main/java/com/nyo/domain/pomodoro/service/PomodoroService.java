@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -59,6 +60,30 @@ public class PomodoroService {
     }
 
     // update()와 동일한 소유권 검증 패턴: 존재 여부 먼저 확인 후 본인 기록인지 확인
+    @Transactional
+    public void delete(Long userId, Long id) {
+        PomodoroRecord record = pomodoroRecordRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.POMODORO_NOT_FOUND));
+
+        if (!record.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.POMODORO_ACCESS_DENIED);
+        }
+
+        pomodoroRecordRepository.delete(record);
+    }
+
+    // 선택 삭제. ids에 남의 기록이 섞여 있어도 본인 것만 지워지고 나머지는 조용히 무시된다.
+    @Transactional
+    public void deleteBulk(Long userId, List<Long> ids) {
+        pomodoroRecordRepository.deleteByIdInAndUserId(ids, userId);
+    }
+
+    @Transactional
+    public void deleteAll(Long userId) {
+        pomodoroRecordRepository.deleteAllByUserId(userId);
+    }
+
+    // getRecord/delete 공통: 존재 여부 먼저 확인 후 본인 기록인지 확인
     public PomodoroRecordResponse getRecord(Long userId, Long id) {
         PomodoroRecord record = pomodoroRecordRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POMODORO_NOT_FOUND));
