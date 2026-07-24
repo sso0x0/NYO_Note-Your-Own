@@ -31,3 +31,16 @@ export function enrollLecture(id) {
 export function cancelEnrollment(id) {
   return apiDelete(`/api/lectures/${id}/enroll`);
 }
+
+// 현재 로그인 사용자가 이 강의에 좋아요를 눌렀는지 여부.
+export function isLectureLiked(id) {
+  return apiGet(`/api/lectures/${id}/like`);
+}
+
+export function likeLecture(id) {
+  return apiPost(`/api/lectures/${id}/like`);
+}
+
+export function unlikeLecture(id) {
+  return apiDelete(`/api/lectures/${id}/like`);
+}

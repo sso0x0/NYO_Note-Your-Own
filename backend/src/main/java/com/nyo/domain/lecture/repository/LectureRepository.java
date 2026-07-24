@@ -19,6 +19,16 @@ public interface LectureRepository extends JpaRepository<Lecture, Long> {
             nativeQuery = true)
     Optional<Long> findFirstActiveLectureId();
 
+    // 강의 시청 화면에서 전달한 ID가 실제 활성 강의인지 엔티티 전체 조회 없이 확인한다.
+    @Query(value = "SELECT id FROM lectures WHERE id = :lectureId AND is_deleted = 0",
+            nativeQuery = true)
+    Optional<Long> findActiveLectureIdById(@Param("lectureId") Long lectureId);
+
+    // 노트 상세 화면에는 강의 ID 대신 제목을 보여주므로 제목 한 컬럼만 조회한다.
+    @Query(value = "SELECT title FROM lectures WHERE id = :lectureId AND is_deleted = 0",
+            nativeQuery = true)
+    Optional<String> findActiveLectureTitleById(@Param("lectureId") Long lectureId);
+
     // 삭제된 강의 제외, 강의 전체 조회 (페이징, category 즉시 로딩으로 N+1 방지)
     @Query(value = "SELECT l FROM Lecture l JOIN FETCH l.category WHERE l.isDeleted = false",
             countQuery = "SELECT count(l) FROM Lecture l WHERE l.isDeleted = false")

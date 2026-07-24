@@ -8,12 +8,15 @@ import { createPendingContentImage, uploadPendingContentImages } from '../../../
 import { getYoutubeVideoId, resolveLectureThumbnail } from '../../../utils/youtubeThumbnail';
 import fallbackThumbnail from '../../../assets/images/null.png';
 import RichTextEditor from '../../../components/RichTextEditor';
+import ResizableMainImage from '../../../components/ResizableMainImage';
+import { parseMainImage, storeMainImageWidth } from '../../../utils/mainImage';
+import TextColorPicker from '../../note/components/TextColorPicker';
 import ChatMessage from '../../chat/ChatMessage';
 import ChatInput from '../../chat/ChatInput';
 import '../../chat/chat.css';
 import './LectureWatchPage.css';
 
-const emptyForm = { title: '', content: '' };
+const emptyForm = { title: '', content: '', thumbnailUrl: '', thumbnailWidth: 500 };
 
 // 유튜브 링크(watch/youtu.be/embed/shorts)에서 embed용 URL을 뽑아낸다. 유튜브가 아니면 null.
 // TODO: 추후 영상을 자체 저장 방식으로 바꾸면 이 유튜브 재생 로직 전체를 다시 확인해야 한다.
@@ -36,9 +39,12 @@ function LectureWatchPage() {
   const [notes, setNotes] = useState([]);
   const [myNote, setMyNote] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [mainImageFile, setMainImageFile] = useState(null);
+  const [mainImagePreviewUrl, setMainImagePreviewUrl] = useState('');
   const [contentImageFiles, setContentImageFiles] = useState([]);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [textColor, setTextColor] = useState('#d32f2f');
   const contentRef = useRef(null);
 
   const [chatMessages, setChatMessages] = useState([]);
@@ -75,9 +81,15 @@ function LectureWatchPage() {
     try {
       const list = await getNotesByLecture(id);
       setNotes(list ?? []);
-      const own = (list ?? []).find((note) => note.userId === auth?.userId) ?? null;
+      // 로그인 ID의 자료형이 달라도 같은 사용자의 기존 노트를 찾아 수정 모드로 유지합니다.
+      const own = (list ?? []).find((note) => String(note.userId) === String(auth?.userId)) ?? null;
       setMyNote(own);
-      setForm(own ? { title: own.title, content: own.content } : emptyForm);
+      const mainImage = parseMainImage(own?.thumbnailUrl);
+      setForm(own
+        ? { title: own.title, content: own.content, thumbnailUrl: mainImage.url, thumbnailWidth: mainImage.width }
+        : emptyForm);
+      setMainImageFile(null);
+      setMainImagePreviewUrl('');
       setContentImageFiles([]);
     } catch (err) {
       setSaveMessage(`노트를 불러오지 못했습니다: ${err.message}`);
@@ -109,7 +121,7 @@ function LectureWatchPage() {
 
   const insertCodeBlock = () => {
     const codeBlock = '\n```\n// 코드를 입력하세요\n```\n';
-    setForm((prev) => ({ ...prev, content: `${prev.content}${codeBlock}` }));
+    contentRef.current?.insertCodeBlock(codeBlock);
   };
 
   const uploadImage = async (file) => {
@@ -141,6 +153,21 @@ function LectureWatchPage() {
     event.target.value = '';
   };
 
+  const applyTextColor = (color) => {
+    // 선택한 글자는 에디터에서 즉시 색으로 보이고 저장할 때 본문 색상 코드로 직렬화됩니다.
+    contentRef.current?.applyColor(color);
+  };
+
+  const handleMainImageChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // 메인 이미지는 저장 버튼을 누르기 전까지 로컬 미리보기로만 표시합니다.
+    if (mainImagePreviewUrl) URL.revokeObjectURL(mainImagePreviewUrl);
+    setMainImageFile(file);
+    setMainImagePreviewUrl(URL.createObjectURL(file));
+  };
+
   const handleSaveNote = async (event) => {
     event.preventDefault();
     if (saving || !form.title.trim() || !form.content.trim()) return;
@@ -148,25 +175,49 @@ function LectureWatchPage() {
     setSaving(true);
     setSaveMessage('노트를 저장하는 중입니다.');
     try {
+      const uploadedMainImage = mainImageFile ? await uploadImage(mainImageFile) : null;
+      const mainImageUrl = uploadedMainImage?.imageUrl ?? form.thumbnailUrl;
+      const storedMainImageUrl = mainImageUrl
+        ? storeMainImageWidth(mainImageUrl, form.thumbnailWidth)
+        : null;
       const uploadedContent = await uploadPendingContentImages(form.content, contentImageFiles, uploadImage);
 
+      let savedNote;
       if (myNote) {
         // thumbnailUrl을 함께 보내지 않으면 서버가 기존 썸네일을 null로 덮어쓰므로 그대로 유지해서 보낸다.
-        await updateNote(myNote.id, {
+        savedNote = await updateNote(myNote.id, {
           lectureId,
           title: form.title,
           content: uploadedContent.savedContent,
-          thumbnailUrl: myNote.thumbnailUrl ?? null,
+          thumbnailUrl: storedMainImageUrl,
+          imageOriginalName: uploadedMainImage?.originalName ?? null,
+          imageFileSize: uploadedMainImage?.fileSize ?? null,
           contentImages: uploadedContent.contentImages,
         });
       } else {
-        await createNote({
+        savedNote = await createNote({
           lectureId,
           title: form.title,
           content: uploadedContent.savedContent,
+          thumbnailUrl: storedMainImageUrl,
+          imageOriginalName: uploadedMainImage?.originalName ?? null,
+          imageFileSize: uploadedMainImage?.fileSize ?? null,
           contentImages: uploadedContent.contentImages,
         });
       }
+      // 저장 직후에도 같은 폼을 수정 모드로 유지해 다음 저장부터 기존 노트를 계속 갱신합니다.
+      setMyNote(savedNote);
+      const savedMainImage = parseMainImage(savedNote.thumbnailUrl);
+      setForm({
+        title: savedNote.title,
+        content: savedNote.content,
+        thumbnailUrl: savedMainImage.url,
+        thumbnailWidth: savedMainImage.width,
+      });
+      setContentImageFiles([]);
+      setMainImageFile(null);
+      if (mainImagePreviewUrl) URL.revokeObjectURL(mainImagePreviewUrl);
+      setMainImagePreviewUrl('');
       setSaveMessage('노트를 저장했습니다.');
       await loadNotes();
     } catch (err) {
@@ -308,13 +359,31 @@ function LectureWatchPage() {
                 <div className="lecture-watch-page__note-toolbar">
                   <div className="lecture-watch-page__note-toolbar-group">
                     <label className="lecture-watch-page__image-btn">
+                      메인 이미지 삽입
+                      <input type="file" accept="image/*" onChange={handleMainImageChange} disabled={saving} hidden />
+                    </label>
+                    <label className="lecture-watch-page__image-btn">
                       이미지 삽입
                       <input type="file" accept="image/*" onChange={handleContentImageChange} disabled={saving} hidden />
                     </label>
                     <button type="button" onClick={insertCodeBlock}>코드블럭 삽입</button>
+                    {/* 노트 상세 작성기와 같은 팔레트로 선택한 글자색을 적용합니다. */}
+                    <TextColorPicker value={textColor} onChange={setTextColor} onApply={applyTextColor} />
                   </div>
-                  <button type="submit" disabled={saving}>{saving ? '저장 중...' : '저장'}</button>
+                  <button type="submit" disabled={saving}>
+                    {saving ? '저장 중...' : myNote ? '수정 저장' : '저장'}
+                  </button>
                 </div>
+                {(mainImagePreviewUrl || form.thumbnailUrl) && (
+                  <div className="lecture-watch-page__main-image">
+                    <ResizableMainImage
+                      src={mainImagePreviewUrl || form.thumbnailUrl}
+                      alt="노트 메인 이미지 미리보기"
+                      width={form.thumbnailWidth}
+                      onWidthChange={(thumbnailWidth) => setForm((prev) => ({ ...prev, thumbnailWidth }))}
+                    />
+                  </div>
+                )}
                 <RichTextEditor
                   ref={contentRef}
                   value={form.content}

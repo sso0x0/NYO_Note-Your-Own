@@ -1,11 +1,82 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { parseTextColors } from '../../../utils/textColor'
 import { useAuth } from '../../../context/AuthContext'
 import { parseMainImage } from '../../../utils/mainImage'
 import { generateAiTags, getNoteTags } from '../api/tag'
+import { getHistories, sendMessage } from '../../chat/api/chat'
+import ChatMessage from '../../chat/ChatMessage'
+import ChatInput from '../../chat/ChatInput'
+import '../../chat/chat.css'
 
 const EMPTY_HEART_IMAGE = '/images/heart.png'
 const FILLED_HEART_IMAGE = '/images/hearts.png'
+
+function NoteDetailChat({ lectureId }) {
+  const [chatMessages, setChatMessages] = useState([])
+  const [chatSending, setChatSending] = useState(false)
+  const [chatError, setChatError] = useState(null)
+  const chatBottomRef = useRef(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setChatMessages([])
+    setChatError(null)
+
+    // 연결된 강의와 같은 대화 기록을 조회해 양쪽 화면에서 동일한 내용을 보여줍니다.
+    getHistories({ lectureId })
+      .then((response) => {
+        if (!cancelled) setChatMessages([...(response?.content ?? [])].reverse())
+      })
+      .catch((error) => {
+        if (!cancelled) setChatError(error.message)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [lectureId])
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chatMessages])
+
+  const handleChatSend = async (message) => {
+    setChatError(null)
+    setChatSending(true)
+    setChatMessages((previous) => [
+      ...previous,
+      { id: `pending-${Date.now()}`, senderRole: 'USER', message },
+    ])
+
+    try {
+      // 연결된 강의 ID로 저장해 노트와 강의 화면에서 같은 대화를 이어갑니다.
+      const answer = await sendMessage({ lectureId, message })
+      setChatMessages((previous) => [...previous, answer])
+    } catch (error) {
+      setChatError(error.message)
+    } finally {
+      setChatSending(false)
+    }
+  }
+
+  return (
+    <aside className="note-detail-chat">
+      <div className="note-detail-chat__header">학습 챗봇</div>
+      <div className="chat-messages">
+        {chatMessages.map((chatMessage) => (
+          <ChatMessage
+            key={chatMessage.id}
+            senderRole={chatMessage.senderRole}
+            message={chatMessage.message}
+          />
+        ))}
+        <div ref={chatBottomRef} />
+      </div>
+      {chatError && <p className="chat-error">{chatError}</p>}
+      <ChatInput sending={chatSending} onSend={handleChatSend} />
+    </aside>
+  )
+}
 
 function NoteDetail({ noteId, onBack, onEdit }) {
   const { auth } = useAuth()
@@ -316,7 +387,8 @@ function NoteDetail({ noteId, onBack, onEdit }) {
         </div>
       </header>
 
-      <article className="note-detail-panel">
+      <div className="note-detail-layout">
+        <article className="note-detail-panel">
         {note ? (
           <>
             {/* 게시판 상세처럼 제목 아래에 작성자·강의·수정일·조회수를 한 줄로 표시한다. */}
@@ -421,7 +493,9 @@ function NoteDetail({ noteId, onBack, onEdit }) {
         ) : (
           <p>{loading ? '불러오는 중입니다.' : message}</p>
         )}
-      </article>
+        </article>
+        {note?.lectureId && <NoteDetailChat lectureId={note.lectureId} />}
+      </div>
     </>
   )
 }
