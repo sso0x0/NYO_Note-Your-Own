@@ -1,0 +1,100 @@
+/* 표/페이지네이션/버튼 공통 스타일은 AdminLayout.css의 .admin-page / .admin-pagination /
+   .admin-btn 을 공유해서 쓴다. 여기는 강의 등록·수정 폼 전용 레이아웃만 남긴다.
+   목록 위에 작게 끼워 넣던 기존 폼과 달리, 별도 페이지로 분리해 콘텐츠 영역 전체를
+   채우도록 폭 제한 없이 넓게 배치한다. */
+.admin-toolbar--form {
+  justify-content: space-between;
+}
+
+.admin-page__title {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.admin-lecture-form__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.admin-lecture-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: #000000;
+}
+
+.admin-lecture-form input,
+.admin-lecture-form select,
+.admin-lecture-form textarea {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.admin-lecture-form textarea {
+  resize: vertical;
+}
+
+/* "선택하세요" 안내 문구가 선택된 동안(= required인데 값이 비어 있어 :invalid)에는
+   회색으로, 실제 카테고리를 고르면 다른 입력칸과 같은 진한 글자색으로 바뀐다. */
+.admin-lecture-form select:invalid {
+  color: var(--text);
+}
+
+/* select 자체의 색(위 :invalid 회색 포함)이 옵션 목록에도 그대로 상속돼, 드롭다운을
+   열었을 때 실제 카테고리 이름까지 회색으로 보였다. 옵션은 select 상태와 무관하게
+   항상 진한 색으로, 안내 문구만 그대로 회색으로 고정한다. */
+.admin-lecture-form select option {
+  color: var(--text-h);
+}
+
+.admin-lecture-form select option[value=''] {
+  color: var(--text);
+}
+
+/* 네이티브 화살표는 브라우저마다 오른쪽 테두리에 바짝 붙어 보여서, 직접 그린
+   화살표로 바꾸고 오른쪽 여백을 넉넉히 줘 테두리와 떨어지게 한다. */
+.admin-lecture-form select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236b6b6b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+
+.admin-lecture-form__full {
+  grid-column: 1 / -1;
+}
+
+/* 필수 입력을 비운 채 저장을 누르면 그 입력칸만 테두리를 빨갛게 바꾸고,
+   바로 아래에 경고 문구를 띄운다. */
+.admin-lecture-form .admin-field--invalid {
+  border-color: #d92d20;
+}
+
+.admin-field-error {
+  color: #d92d20;
+  font-size: 12px;
+}
+
+@media (max-width: 1024px) {
+  .admin-lecture-form__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-lecture-form__grid {
+    grid-template-columns: 1fr;
+  }
+}

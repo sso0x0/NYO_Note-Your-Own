@@ -80,7 +80,8 @@ function LoginPage() {
         try {
             const response = await loginRequest(form);
             login(response);
-            const redirectTo = location.state?.from?.pathname || '/main';
+            const defaultPath = response.role === 'ADMIN' ? '/admin' : '/main';
+            const redirectTo = location.state?.from?.pathname || defaultPath;
             navigate(redirectTo, { replace: true });
         } catch (err) {
             setError(err.message);

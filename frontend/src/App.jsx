@@ -33,8 +33,10 @@ function App() {
                     <Route path="notes/*" element={<NoteSectionRoutes />} />
                     <Route path="community/*" element={<CommunitySectionRoutes />} />
                     <Route path="mypage" element={<MyPage />} />
-                    <Route path="admin/*" element={<AdminSectionRoutes />} />
                 </Route>
+
+                {/* 관리자 화면은 일반 회원용 헤더/레이아웃을 공유하지 않는 완전히 별도의 콘솔입니다. */}
+                <Route path="/admin/*" element={<AdminSectionRoutes />} />
             </Route>
         </Routes>
     );

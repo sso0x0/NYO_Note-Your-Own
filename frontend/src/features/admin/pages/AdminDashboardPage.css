@@ -1,3 +1,7 @@
+.admin-dashboard {
+  padding-bottom: 48px;
+}
+
 .admin-dashboard__summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -7,67 +11,45 @@
 .admin-dashboard__stat {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   padding: 20px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 .admin-dashboard__stat-label {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text);
 }
 
 .admin-dashboard__stat-value {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--text-h);
 }
 
-.admin-dashboard__section {
-  margin-top: 32px;
-}
-
-.admin-bar-list {
-  list-style: none;
-  margin: 16px 0 0;
-  padding: 0;
+/* 강의별 인기도·회원 가입 추이·노트 작성 현황을 모두 같은 폭으로 위아래로 쌓는다. */
+.admin-dashboard__grid {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
+  margin-top: 24px;
 }
 
-.admin-bar-list__row {
-  display: grid;
-  grid-template-columns: 160px 1fr 48px;
-  align-items: center;
-  gap: 12px;
+.admin-dashboard__section {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
 
-.admin-bar-list__label {
-  font-size: 13px;
+.admin-dashboard__section h4 {
+  margin: 0 0 16px;
   color: var(--text-h);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.admin-bar-list__track {
-  height: 10px;
-  border-radius: 999px;
-  background: var(--border);
-  overflow: hidden;
-}
-
-.admin-bar-list__bar {
-  height: 100%;
-  min-width: 2px;
-  background: var(--accent);
-  border-radius: 999px;
-}
-
-.admin-bar-list__value {
   font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-dashboard__empty {
   color: var(--text);
-  text-align: right;
+  font-size: 13px;
 }

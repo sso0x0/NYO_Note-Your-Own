@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ChartTableModal from './ChartTableModal';
 import './charts.css';
 
 // 단일 계열 가로 막대 차트 (강의 제목처럼 긴 라벨에 적합). 각 막대가 곧 히트 영역이라
@@ -36,21 +37,17 @@ function BarChart({ data, color, valueLabel = '값' }) {
           ))}
         </div>
 
-        <button type="button" className="chart__table-toggle" onClick={() => setShowTable((v) => !v)}>
-          {showTable ? '차트로 보기' : '표로 보기'}
+        <button type="button" className="chart__table-toggle" onClick={() => setShowTable(true)}>
+          표로 보기
         </button>
 
         {showTable && (
-            <table className="chart__table">
-              <thead>
-              <tr><th>강의</th><th>{valueLabel}</th></tr>
-              </thead>
-              <tbody>
-              {data.map((d) => (
-                  <tr key={d.label}><td>{d.label}</td><td>{d.value.toLocaleString()}</td></tr>
-              ))}
-              </tbody>
-            </table>
+            <ChartTableModal
+                title={`강의별 ${valueLabel}`}
+                columns={['강의', valueLabel]}
+                rows={data.map((d) => [d.label, d.value.toLocaleString()])}
+                onClose={() => setShowTable(false)}
+            />
         )}
       </div>
   );

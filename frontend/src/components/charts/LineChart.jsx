@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import ChartTableModal from './ChartTableModal';
 import './charts.css';
 
 const WIDTH = 600;
@@ -108,21 +109,17 @@ function LineChart({ data, color, valueLabel = '값' }) {
             </div>
         )}
 
-        <button type="button" className="chart__table-toggle" onClick={() => setShowTable((v) => !v)}>
-          {showTable ? '차트로 보기' : '표로 보기'}
+        <button type="button" className="chart__table-toggle" onClick={() => setShowTable(true)}>
+          표로 보기
         </button>
 
         {showTable && (
-            <table className="chart__table">
-              <thead>
-              <tr><th>날짜</th><th>{valueLabel}</th></tr>
-              </thead>
-              <tbody>
-              {data.map((d) => (
-                  <tr key={d.label}><td>{d.label}</td><td>{d.value.toLocaleString()}</td></tr>
-              ))}
-              </tbody>
-            </table>
+            <ChartTableModal
+                title={`날짜별 ${valueLabel}`}
+                columns={['날짜', valueLabel]}
+                rows={data.map((d) => [d.label, d.value.toLocaleString()])}
+                onClose={() => setShowTable(false)}
+            />
         )}
       </div>
   );
