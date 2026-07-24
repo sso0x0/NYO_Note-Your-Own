@@ -18,7 +18,8 @@ import java.util.List;
 @Schema(description = "노트 등록/수정 요청 DTO")
 public class NoteRequest {
 
-    // 생성 시 서버가 DB의 강의를 자동 선택하므로 클라이언트 입력은 필수가 아니다.
+    // 강의 시청 화면에서는 현재 보고 있는 강의 id를 실어 보낸다. 비워서 보내면 서버가 DB의 첫 활성
+    // 강의를 임시로 자동 선택한다(레거시 노트 작성 화면 호환용).
     @Schema(description = "연결된 강의 ID", example = "1")
     private Long lectureId;
 
