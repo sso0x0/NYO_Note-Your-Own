@@ -1,14 +1,21 @@
 package com.nyo.domain.comment.service;
 
+import com.nyo.domain.comment.dto.CommentAdminResponse;
 import com.nyo.domain.comment.dto.CommentRequest;
 import com.nyo.domain.comment.dto.CommentResponse;
 import com.nyo.domain.comment.entity.Comment;
 import com.nyo.domain.comment.repository.CommentRepository;
+import com.nyo.domain.lecture.entity.Lecture;
+import com.nyo.domain.lecture.repository.LectureRepository;
+import com.nyo.domain.post.entity.Post;
 import com.nyo.domain.post.repository.PostRepository;
+import com.nyo.domain.user.dto.UserResponse;
 import com.nyo.domain.user.service.UserService;
 import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -16,6 +23,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,20 +34,29 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
+    private final LectureRepository lectureRepository;
     private final UserService userService;
     private final JdbcTemplate jdbcTemplate;
 
     @Transactional
     public CommentResponse create(Long userId, CommentRequest request) {
-        validatePost(request.getPostId());
-        validateParent(request.getPostId(), request.getParentCommentId());
+        boolean hasPostId = request.getPostId() != null;
+        boolean hasLectureId = request.getLectureId() != null;
+        if (hasPostId == hasLectureId) {
+            // 게시글 댓글이면 postId만, 강의 댓글이면 lectureId만 채워져야 한다.
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
 
-        Comment comment = Comment.create(
-                request.getPostId(),
-                userId,
-                request.getParentCommentId(),
-                request.getContent()
-        );
+        Comment comment;
+        if (hasPostId) {
+            validatePost(request.getPostId());
+            validateParent(request.getParentCommentId(), parent -> request.getPostId().equals(parent.getPostId()));
+            comment = Comment.createForPost(request.getPostId(), userId, request.getParentCommentId(), request.getContent());
+        } else {
+            validateLecture(request.getLectureId());
+            validateParent(request.getParentCommentId(), parent -> request.getLectureId().equals(parent.getLectureId()));
+            comment = Comment.createForLecture(request.getLectureId(), userId, request.getParentCommentId(), request.getContent());
+        }
 
         Comment savedComment = commentRepository.save(comment);
         return toResponse(savedComment, List.of(), userService.getDisplayNickname(savedComment.getUserId()));
@@ -49,6 +67,72 @@ public class CommentService {
 
         // 삭제된 댓글도 함께 조회해야 그 밑에 달린(아직 삭제되지 않은) 대댓글이 트리에서 유실되지 않는다.
         List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
+        return buildTree(comments);
+    }
+
+    public List<CommentResponse> findByLecture(Long lectureId) {
+        validateLecture(lectureId);
+
+        List<Comment> comments = commentRepository.findByLectureIdOrderByCreatedAtAsc(lectureId);
+        return buildTree(comments);
+    }
+
+    // 관리자 댓글 관리 목록: 게시글/강의 댓글을 한 화면에서 최신순으로 페이징 조회하고,
+    // 작성자 상세 정보(이메일/권한 등)와 댓글이 달린 게시글/강의 제목까지 함께 내려준다.
+    // targetType이 null이면 전체, POST/LECTURE면 해당 유형만 필터링한다.
+    public Page<CommentAdminResponse> adminGetCommentList(CommentAdminResponse.CommentTargetType targetType, Pageable pageable) {
+        Page<Comment> comments;
+        if (targetType == CommentAdminResponse.CommentTargetType.POST) {
+            comments = commentRepository.findByIsDeletedAndPostIdIsNotNullOrderByCreatedAtDesc(0, pageable);
+        } else if (targetType == CommentAdminResponse.CommentTargetType.LECTURE) {
+            comments = commentRepository.findByIsDeletedAndLectureIdIsNotNullOrderByCreatedAtDesc(0, pageable);
+        } else {
+            comments = commentRepository.findByIsDeletedOrderByCreatedAtDesc(0, pageable);
+        }
+
+        List<Comment> content = comments.getContent();
+        Map<Long, UserResponse> usersById = userService.adminGetUsersByIds(
+                content.stream().map(Comment::getUserId).distinct().toList()
+        );
+        Map<Long, String> postTitlesById = postRepository.findAllById(
+                content.stream().map(Comment::getPostId).filter(Objects::nonNull).distinct().toList()
+        ).stream().collect(Collectors.toMap(Post::getId, Post::getTitle));
+        Map<Long, String> lectureTitlesById = lectureRepository.findAllById(
+                content.stream().map(Comment::getLectureId).filter(Objects::nonNull).distinct().toList()
+        ).stream().collect(Collectors.toMap(Lecture::getId, Lecture::getTitle));
+
+        return comments.map(comment -> toAdminResponse(comment, usersById, postTitlesById, lectureTitlesById));
+    }
+
+    private CommentAdminResponse toAdminResponse(
+            Comment comment,
+            Map<Long, UserResponse> usersById,
+            Map<Long, String> postTitlesById,
+            Map<Long, String> lectureTitlesById
+    ) {
+        boolean isPostComment = comment.getPostId() != null;
+        UserResponse author = usersById.get(comment.getUserId());
+
+        return CommentAdminResponse.builder()
+                .id(comment.getId())
+                .targetType(isPostComment ? CommentAdminResponse.CommentTargetType.POST : CommentAdminResponse.CommentTargetType.LECTURE)
+                .targetId(isPostComment ? comment.getPostId() : comment.getLectureId())
+                .targetTitle(isPostComment ? postTitlesById.get(comment.getPostId()) : lectureTitlesById.get(comment.getLectureId()))
+                .parentCommentId(comment.getParentCommentId())
+                .content(comment.getContent())
+                .isDeleted(comment.isDeleted())
+                .userId(comment.getUserId())
+                .authorLoginId(author != null ? author.getLoginId() : null)
+                .authorNickname(author != null ? author.getNickname() : "알 수 없는 사용자")
+                .authorEmail(author != null ? author.getEmail() : null)
+                .authorRole(author != null ? author.getRole() : null)
+                .authorStatus(author != null ? author.getStatus() : null)
+                .createdAt(comment.getCreatedAt())
+                .updatedAt(comment.getUpdatedAt())
+                .build();
+    }
+
+    private List<CommentResponse> buildTree(List<Comment> comments) {
         Map<Long, List<Comment>> childrenByParentId = comments.stream()
                 .filter(comment -> comment.getParentCommentId() != null)
                 .collect(Collectors.groupingBy(Comment::getParentCommentId));
@@ -109,6 +193,7 @@ public class CommentService {
         return CommentResponse.builder()
                 .id(comment.getId())
                 .postId(comment.getPostId())
+                .lectureId(comment.getLectureId())
                 .userId(comment.getUserId())
                 .authorNickname(authorNickname)
                 .parentCommentId(comment.getParentCommentId())
@@ -131,14 +216,25 @@ public class CommentService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
     }
 
-    private void validateParent(Long postId, Long parentCommentId) {
+    // Lecture.isDeleted는 Boolean이라 Comment/Post처럼 findByIdAndIsDeleted 리포지토리 메서드를 쓸 수 없다
+    // (LectureServiceImpl.validateLectureExists와 동일한 방식).
+    private void validateLecture(Long lectureId) {
+        boolean exists = lectureRepository.findById(lectureId)
+                .filter(lecture -> !lecture.getIsDeleted())
+                .isPresent();
+        if (!exists) {
+            throw new BusinessException(ErrorCode.COURSE_NOT_FOUND);
+        }
+    }
+
+    private void validateParent(Long parentCommentId, Predicate<Comment> belongsToSameTarget) {
         if (parentCommentId == null) {
             return;
         }
 
         Comment parent = getComment(parentCommentId);
-        if (!parent.getPostId().equals(postId)) {
-            // 대댓글은 같은 게시글 안의 댓글에만 연결할 수 있다.
+        if (!belongsToSameTarget.test(parent)) {
+            // 대댓글은 같은 게시글(또는 같은 강의)의 댓글에만 연결할 수 있다.
             throw new BusinessException(ErrorCode.COMMENT_PARENT_MISMATCH);
         }
     }

@@ -11,6 +11,14 @@ const SANCTION_TYPES = [
   { value: 'WITHDRAWAL', label: '강제 탈퇴' },
 ];
 
+// SUSPENDED/WITHDRAWN 같은 영문 상태값을 그대로 보여주면 상태 열 폭(80px)을 넘어
+// 옆 열(가입일)과 겹쳐 보이는 문제가 있어, 표에는 짧은 한글 라벨로 바꿔서 보여준다.
+const STATUS_LABEL = {
+  ACTIVE: '정상',
+  SUSPENDED: '정지',
+  WITHDRAWN: '탈퇴',
+};
+
 function SanctionPanel({ user, onDone }) {
   const [type, setType] = useState('WARNING');
   const [reason, setReason] = useState('');
@@ -177,7 +185,7 @@ function AdminUsersPage() {
                     <td>{user.nickname}</td>
                     <td>{user.email}</td>
                     <td>{user.role}</td>
-                    <td>{user.status}</td>
+                    <td>{STATUS_LABEL[user.status] ?? user.status}</td>
                     <td>{user.createdAt?.slice(0, 10)}</td>
                     <td>
                       <button type="button" className="admin-btn admin-btn--sm" onClick={() => handleToggle(user.id)}>

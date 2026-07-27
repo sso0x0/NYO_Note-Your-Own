@@ -3,12 +3,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { getMyInfo, updateMyProfile, withdraw } from '../api/mypage';
 import { getMyNotes, getLikedNotes } from '../../note/api/note';
 import { getPostList } from '../../community/api/post';
+import { getLectureList, isEnrolled } from '../../lecture/api/lecture';
 import { useAuth } from '../../../context/AuthContext';
 import NoteCard from '../../note/components/NoteCard';
 import './MyPage.css';
 
 const LIST_SIZE = 8;
 const POST_SCAN_SIZE = 50; // 내 글을 찾기 위해 넉넉히 훑어볼 최근 게시글 수
+const LECTURE_SCAN_SIZE = 30; // 수강신청 여부를 물어볼 최근 강의 수 (개별 API 호출 방식이라 너무 크게 잡지 않습니다)
 
 function MyPage() {
     const { logout, updateNickname } = useAuth();
@@ -25,7 +27,8 @@ function MyPage() {
 
     const [myNotes, setMyNotes] = useState([]);
     const [likedNotes, setLikedNotes] = useState([]);
-    const [myPosts, setMyPosts] = useState([]); // ← 추가
+    const [myPosts, setMyPosts] = useState([]);
+    const [myLectures, setMyLectures] = useState([]); // ← 추가
 
     useEffect(() => {
         let cancelled = false;
@@ -36,9 +39,10 @@ function MyPage() {
             getMyInfo(),
             getMyNotes({ size: LIST_SIZE }),
             getLikedNotes({ size: LIST_SIZE }),
-            getPostList({ size: POST_SCAN_SIZE, sort: 'createdAt' }), // ← 추가
+            getPostList({ size: POST_SCAN_SIZE, sort: 'createdAt' }),
+            getLectureList({ size: LECTURE_SCAN_SIZE }), // ← 추가
         ])
-            .then(([me, mine, liked, posts]) => {
+            .then(async ([me, mine, liked, posts, lectures]) => {
                 if (cancelled) return;
                 setProfile(me);
                 setForm({ name: me.name ?? '', nickname: me.nickname ?? '', phone: me.phone ?? '', currentPassword: '', newPassword: '' });
@@ -46,11 +50,21 @@ function MyPage() {
                 setLikedNotes(liked?.content ?? []);
 
                 // 백엔드에 "내 글만" 조회 API가 없어 프론트에서 닉네임으로 걸러냅니다.
-                // 최근 POST_SCAN_SIZE개 안에서만 찾으므로 오래된 글은 누락될 수 있습니다.
                 const mineOnly = (posts?.content ?? []).filter(
                     (post) => post.authorNickname === me.nickname
                 );
                 setMyPosts(mineOnly.slice(0, LIST_SIZE));
+
+                // TODO: 수강신청 목록 API(예: getMyEnrolledLectures)가 생기면 아래 임시 로직을 그걸로 교체하세요.
+                // 백엔드에 "내가 수강신청한 강의 목록" API가 없어, 최근 강의들을 하나씩
+                // isEnrolled로 물어봐서 신청한 것만 걸러냅니다. 강의 수만큼 요청이 나가는
+                // 비효율적인 방식이라 LECTURE_SCAN_SIZE를 넘는 강의는 확인하지 못합니다.
+                const lectureList = lectures?.content ?? [];
+                const enrolledFlags = await Promise.all(
+                    lectureList.map((lecture) => isEnrolled(lecture.id).catch(() => false))
+                );
+                const enrolledOnly = lectureList.filter((_, index) => enrolledFlags[index]);
+                if (!cancelled) setMyLectures(enrolledOnly.slice(0, LIST_SIZE));
 
                 setStatus('success');
             })
@@ -93,7 +107,7 @@ function MyPage() {
         setSaveError(null);
 
         try {
-            const updated = await updateMyProfile(form);
+            const updated = await updateMyProfile({ ...form, name: profile.name });
             setProfile(updated);
             updateNickname(updated.nickname);
             setForm({ name: updated.name ?? '', nickname: updated.nickname ?? '', phone: updated.phone ?? '', currentPassword: '', newPassword: '' });
@@ -155,10 +169,13 @@ function MyPage() {
                             <form className="mypage__profile-form" onSubmit={handleSaveProfile}>
                                 {saveError && <p className="mypage__error" role="alert">{saveError}</p>}
 
-                                <label>
-                                    이름
-                                    <input name="name" value={form.name} onChange={handleFormChange} required />
-                                </label>
+                                <dl className="mypage__profile-view mypage__profile-view--readonly">
+                                    <dt>아이디</dt>
+                                    <dd>{profile.loginId}</dd>
+                                    <dt>이름</dt>
+                                    <dd>{profile.name}</dd>
+                                </dl>
+
                                 <label>
                                     닉네임
                                     <input name="nickname" value={form.nickname} onChange={handleFormChange} required />
@@ -200,6 +217,30 @@ function MyPage() {
                             </form>
                         )}
                     </div>
+
+                    <section className="mypage__section">
+                        <h3>내가 수강신청한 강의</h3>
+                        {myLectures.length === 0 ? (
+                            <p>수강신청한 강의가 없습니다.</p>
+                        ) : (
+                            <ul className="mypage__post-list">
+                                {myLectures.map((lecture) => (
+                                    <li key={lecture.id} className="mypage__post-item">
+                                        <Link to={`/main/lectures/${lecture.id}`} className="mypage__post-link">
+                      <span className="mypage__post-title">
+                        {lecture.isPopular && <span className="mypage__post-badge">인기</span>}
+                          {lecture.title}
+                      </span>
+                                            <span className="mypage__post-meta">
+                        {lecture.instructor && `${lecture.instructor} · `}
+                                                조회 {lecture.viewCount ?? 0} · 좋아요 {lecture.likeCount ?? 0}
+                      </span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </section>
 
                     <section className="mypage__section">
                         <h3>내가 작성한 게시글</h3>
@@ -262,4 +303,4 @@ function MyPage() {
     );
 }
 
-export default MyPage;
+export default MyPage;``

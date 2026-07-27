@@ -40,4 +40,8 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
     @Modifying
     @Query("update Note n set n.likeCount = n.likeCount - 1 where n.id = :id and n.isDeleted = 0 and n.likeCount > 0")
     void decreaseLikeCountOnly(@Param("id") Long id);
+
+    // 관리자 강의 관리 목록용: 강의별 노트 개수를 한 번에 집계한다 (결과 각 행은 [lectureId, count]).
+    @Query("SELECT n.lectureId, COUNT(n) FROM Note n WHERE n.lectureId IN :lectureIds AND n.isDeleted = 0 GROUP BY n.lectureId")
+    List<Object[]> countByLectureIdsGrouped(@Param("lectureIds") List<Long> lectureIds);
 }

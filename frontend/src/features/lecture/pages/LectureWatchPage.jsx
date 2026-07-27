@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getLecture, isEnrolled as fetchIsEnrolled } from '../api/lecture';
+import {
+  getLectureComments,
+  createLectureComment,
+  updateLectureComment,
+  deleteLectureComment,
+} from '../api/lectureComment';
 import { getNotesByLecture, createNote, updateNote } from '../../note/api/note';
 import { getHistories, sendMessage } from '../../chat/api/chat';
 import { useAuth } from '../../../context/AuthContext';
@@ -28,6 +34,44 @@ function getYoutubeEmbedUrl(url) {
   return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
 }
 
+function LectureCommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
+  const [editing, setEditing] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
+  const isOwner = auth && String(comment.userId) === String(auth.userId);
+  const canDelete = !comment.isDeleted && (isOwner || auth?.role === 'ADMIN');
+
+  const saveEdit = async () => {
+    const saved = await onUpdate(comment, editContent);
+    if (saved) setEditing(false);
+  };
+
+  return (
+    <li className="comment-item">
+      <div className="comment-body">
+        {editing ? (
+          <div className="comment-edit-form">
+            <textarea value={editContent} onChange={(event) => setEditContent(event.target.value)} rows="3" />
+            <button type="button" onClick={saveEdit}>저장</button>
+            <button type="button" onClick={() => setEditing(false)}>취소</button>
+          </div>
+        ) : <p>{comment.content}</p>}
+        <span>작성자 {comment.authorNickname || '알 수 없는 사용자'}</span>
+        {!comment.isDeleted && <button type="button" onClick={() => onReply(comment)}>답글</button>}
+        {!comment.isDeleted && isOwner && !editing && <button type="button" onClick={() => setEditing(true)}>수정</button>}
+        {canDelete && <button type="button" className="danger-button" onClick={() => onDelete(comment)}>삭제</button>}
+      </div>
+
+      {comment.replies?.length > 0 && (
+        <ul className="comment-replies">
+          {comment.replies.map((reply) => (
+            <LectureCommentItem key={reply.id} comment={reply} auth={auth} onReply={onReply} onUpdate={onUpdate} onDelete={onDelete} />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
 function LectureWatchPage() {
   const { id } = useParams();
   const lectureId = Number(id);
@@ -52,6 +96,11 @@ function LectureWatchPage() {
   const [chatSending, setChatSending] = useState(false);
   const [chatError, setChatError] = useState(null);
   const chatBottomRef = useRef(null);
+
+  const [comments, setComments] = useState([]);
+  const [commentForm, setCommentForm] = useState({ content: '', parentCommentId: null });
+  const [commentMessage, setCommentMessage] = useState('');
+  const [commentSaving, setCommentSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,6 +161,80 @@ function LectureWatchPage() {
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
+
+  const loadComments = useCallback(async () => {
+    try {
+      const list = await getLectureComments(lectureId);
+      setComments(list ?? []);
+    } catch (err) {
+      setCommentMessage(`댓글을 불러오지 못했습니다: ${err.message}`);
+    }
+  }, [lectureId]);
+
+  useEffect(() => {
+    loadComments();
+  }, [loadComments]);
+
+  const selectCommentReplyTarget = (comment) => {
+    setCommentForm((prev) => ({ ...prev, parentCommentId: comment.id, content: '' }));
+  };
+
+  const cancelCommentReply = () => {
+    setCommentForm((prev) => ({ ...prev, parentCommentId: null }));
+  };
+
+  const handleCreateComment = async (event) => {
+    event.preventDefault();
+    if (!commentForm.content.trim()) {
+      setCommentMessage('댓글 내용을 입력해 주세요.');
+      return;
+    }
+
+    setCommentSaving(true);
+    try {
+      await createLectureComment({
+        lectureId,
+        parentCommentId: commentForm.parentCommentId,
+        content: commentForm.content,
+      });
+      setCommentForm({ content: '', parentCommentId: null });
+      setCommentMessage('');
+      await loadComments();
+    } catch (err) {
+      setCommentMessage(`댓글 저장 실패: ${err.message}`);
+    } finally {
+      setCommentSaving(false);
+    }
+  };
+
+  const handleUpdateComment = async (comment, content) => {
+    if (!content.trim()) {
+      setCommentMessage('댓글 내용을 입력해 주세요.');
+      return false;
+    }
+    try {
+      await updateLectureComment(comment.id, {
+        lectureId,
+        parentCommentId: comment.parentCommentId,
+        content,
+      });
+      await loadComments();
+      return true;
+    } catch (err) {
+      setCommentMessage(`댓글 수정 실패: ${err.message}`);
+      return false;
+    }
+  };
+
+  const handleDeleteComment = async (comment) => {
+    if (!window.confirm('댓글을 삭제할까요?')) return;
+    try {
+      await deleteLectureComment(comment.id);
+      await loadComments();
+    } catch (err) {
+      setCommentMessage(`댓글 삭제 실패: ${err.message}`);
+    }
+  };
 
   const insertCodeBlock = () => {
     const codeBlock = '\n```\n// 코드를 입력하세요\n```\n';
@@ -341,6 +464,13 @@ function LectureWatchPage() {
               >
                 다른 학습자 노트
               </button>
+              <button
+                type="button"
+                className={activeTab === 'comments' ? 'is-active' : ''}
+                onClick={() => setActiveTab('comments')}
+              >
+                댓글
+              </button>
             </div>
 
             {activeTab === 'write' && (
@@ -395,6 +525,41 @@ function LectureWatchPage() {
                   </Link>
                 ))}
               </div>
+            )}
+
+            {activeTab === 'comments' && (
+              <section className="comment-panel">
+                <h2>댓글</h2>
+                <form className="comment-form" onSubmit={handleCreateComment}>
+                  {commentForm.parentCommentId && (
+                    <div className="reply-target">
+                      답글 작성 중
+                      <button type="button" onClick={cancelCommentReply}>취소</button>
+                    </div>
+                  )}
+                  <textarea
+                    rows="4"
+                    value={commentForm.content}
+                    onChange={(event) => setCommentForm((prev) => ({ ...prev, content: event.target.value }))}
+                    placeholder="댓글 내용"
+                  />
+                  <button type="submit" disabled={commentSaving}>댓글 등록</button>
+                </form>
+                {commentMessage && <p className="lecture-watch-page__note-message">{commentMessage}</p>}
+
+                <ul className="comment-list">
+                  {comments.map((comment) => (
+                    <LectureCommentItem
+                      key={comment.id}
+                      comment={comment}
+                      auth={auth}
+                      onReply={selectCommentReplyTarget}
+                      onUpdate={handleUpdateComment}
+                      onDelete={handleDeleteComment}
+                    />
+                  ))}
+                </ul>
+              </section>
             )}
           </div>
 
