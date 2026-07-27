@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getLecture, isEnrolled as fetchIsEnrolled } from '../api/lecture';
+import {
+  getLectureComments,
+  createLectureComment,
+  updateLectureComment,
+  deleteLectureComment,
+} from '../api/lectureComment';
 import { getNotesByLecture, createNote, updateNote } from '../../note/api/note';
 import { getHistories, sendMessage } from '../../chat/api/chat';
 import { useAuth } from '../../../context/AuthContext';
@@ -8,21 +14,62 @@ import { createPendingContentImage, uploadPendingContentImages } from '../../../
 import { getYoutubeVideoId, resolveLectureThumbnail } from '../../../utils/youtubeThumbnail';
 import fallbackThumbnail from '../../../assets/images/null.png';
 import RichTextEditor from '../../../components/RichTextEditor';
-import ResizableMainImage from '../../../components/ResizableMainImage';
-import { parseMainImage, storeMainImageWidth } from '../../../utils/mainImage';
 import TextColorPicker from '../../note/components/TextColorPicker';
 import ChatMessage from '../../chat/ChatMessage';
 import ChatInput from '../../chat/ChatInput';
 import '../../chat/chat.css';
 import './LectureWatchPage.css';
 
-const emptyForm = { title: '', content: '', thumbnailUrl: '', thumbnailWidth: 500 };
+const emptyForm = { title: '', content: '' };
+
+const findFirstContentImageUrl = (content) => {
+  const match = String(content ?? '').match(/!\[[^\]]*]\((https?:\/\/[^)]+)\)/);
+  return match?.[1] ?? null;
+};
 
 // 유튜브 링크(watch/youtu.be/embed/shorts)에서 embed용 URL을 뽑아낸다. 유튜브가 아니면 null.
 // TODO: 추후 영상을 자체 저장 방식으로 바꾸면 이 유튜브 재생 로직 전체를 다시 확인해야 한다.
 function getYoutubeEmbedUrl(url) {
   const videoId = getYoutubeVideoId(url);
   return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+}
+
+function LectureCommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
+  const [editing, setEditing] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
+  const isOwner = auth && String(comment.userId) === String(auth.userId);
+  const canDelete = !comment.isDeleted && (isOwner || auth?.role === 'ADMIN');
+
+  const saveEdit = async () => {
+    const saved = await onUpdate(comment, editContent);
+    if (saved) setEditing(false);
+  };
+
+  return (
+    <li className="comment-item">
+      <div className="comment-body">
+        {editing ? (
+          <div className="comment-edit-form">
+            <textarea value={editContent} onChange={(event) => setEditContent(event.target.value)} rows="3" />
+            <button type="button" onClick={saveEdit}>저장</button>
+            <button type="button" onClick={() => setEditing(false)}>취소</button>
+          </div>
+        ) : <p>{comment.content}</p>}
+        <span>작성자 {comment.authorNickname || '알 수 없는 사용자'}</span>
+        {!comment.isDeleted && <button type="button" onClick={() => onReply(comment)}>답글</button>}
+        {!comment.isDeleted && isOwner && !editing && <button type="button" onClick={() => setEditing(true)}>수정</button>}
+        {canDelete && <button type="button" className="danger-button" onClick={() => onDelete(comment)}>삭제</button>}
+      </div>
+
+      {comment.replies?.length > 0 && (
+        <ul className="comment-replies">
+          {comment.replies.map((reply) => (
+            <LectureCommentItem key={reply.id} comment={reply} auth={auth} onReply={onReply} onUpdate={onUpdate} onDelete={onDelete} />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
 }
 
 function LectureWatchPage() {
@@ -39,8 +86,6 @@ function LectureWatchPage() {
   const [notes, setNotes] = useState([]);
   const [myNote, setMyNote] = useState(null);
   const [form, setForm] = useState(emptyForm);
-  const [mainImageFile, setMainImageFile] = useState(null);
-  const [mainImagePreviewUrl, setMainImagePreviewUrl] = useState('');
   const [contentImageFiles, setContentImageFiles] = useState([]);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
@@ -51,6 +96,11 @@ function LectureWatchPage() {
   const [chatSending, setChatSending] = useState(false);
   const [chatError, setChatError] = useState(null);
   const chatBottomRef = useRef(null);
+
+  const [comments, setComments] = useState([]);
+  const [commentForm, setCommentForm] = useState({ content: '', parentCommentId: null });
+  const [commentMessage, setCommentMessage] = useState('');
+  const [commentSaving, setCommentSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,12 +133,7 @@ function LectureWatchPage() {
       // 로그인 ID의 자료형이 달라도 같은 사용자의 기존 노트를 찾아 수정 모드로 유지합니다.
       const own = (list ?? []).find((note) => String(note.userId) === String(auth?.userId)) ?? null;
       setMyNote(own);
-      const mainImage = parseMainImage(own?.thumbnailUrl);
-      setForm(own
-        ? { title: own.title, content: own.content, thumbnailUrl: mainImage.url, thumbnailWidth: mainImage.width }
-        : emptyForm);
-      setMainImageFile(null);
-      setMainImagePreviewUrl('');
+      setForm(own ? { title: own.title, content: own.content } : emptyForm);
       setContentImageFiles([]);
     } catch (err) {
       setSaveMessage(`노트를 불러오지 못했습니다: ${err.message}`);
@@ -116,6 +161,80 @@ function LectureWatchPage() {
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
+
+  const loadComments = useCallback(async () => {
+    try {
+      const list = await getLectureComments(lectureId);
+      setComments(list ?? []);
+    } catch (err) {
+      setCommentMessage(`댓글을 불러오지 못했습니다: ${err.message}`);
+    }
+  }, [lectureId]);
+
+  useEffect(() => {
+    loadComments();
+  }, [loadComments]);
+
+  const selectCommentReplyTarget = (comment) => {
+    setCommentForm((prev) => ({ ...prev, parentCommentId: comment.id, content: '' }));
+  };
+
+  const cancelCommentReply = () => {
+    setCommentForm((prev) => ({ ...prev, parentCommentId: null }));
+  };
+
+  const handleCreateComment = async (event) => {
+    event.preventDefault();
+    if (!commentForm.content.trim()) {
+      setCommentMessage('댓글 내용을 입력해 주세요.');
+      return;
+    }
+
+    setCommentSaving(true);
+    try {
+      await createLectureComment({
+        lectureId,
+        parentCommentId: commentForm.parentCommentId,
+        content: commentForm.content,
+      });
+      setCommentForm({ content: '', parentCommentId: null });
+      setCommentMessage('');
+      await loadComments();
+    } catch (err) {
+      setCommentMessage(`댓글 저장 실패: ${err.message}`);
+    } finally {
+      setCommentSaving(false);
+    }
+  };
+
+  const handleUpdateComment = async (comment, content) => {
+    if (!content.trim()) {
+      setCommentMessage('댓글 내용을 입력해 주세요.');
+      return false;
+    }
+    try {
+      await updateLectureComment(comment.id, {
+        lectureId,
+        parentCommentId: comment.parentCommentId,
+        content,
+      });
+      await loadComments();
+      return true;
+    } catch (err) {
+      setCommentMessage(`댓글 수정 실패: ${err.message}`);
+      return false;
+    }
+  };
+
+  const handleDeleteComment = async (comment) => {
+    if (!window.confirm('댓글을 삭제할까요?')) return;
+    try {
+      await deleteLectureComment(comment.id);
+      await loadComments();
+    } catch (err) {
+      setCommentMessage(`댓글 삭제 실패: ${err.message}`);
+    }
+  };
 
   const insertCodeBlock = () => {
     const codeBlock = '\n```\n// 코드를 입력하세요\n```\n';
@@ -156,40 +275,40 @@ function LectureWatchPage() {
     contentRef.current?.applyColor(color);
   };
 
-  const handleMainImageChange = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // 메인 이미지는 저장 버튼을 누르기 전까지 로컬 미리보기로만 표시합니다.
-    if (mainImagePreviewUrl) URL.revokeObjectURL(mainImagePreviewUrl);
-    setMainImageFile(file);
-    setMainImagePreviewUrl(URL.createObjectURL(file));
+  const applyTextStyle = (styleName) => {
+    contentRef.current?.applyTextStyle(styleName);
   };
 
   const handleSaveNote = async (event) => {
     event.preventDefault();
-    if (saving || !form.title.trim() || !form.content.trim()) return;
+    if (saving) return;
+    if (!form.title.trim()) {
+      setSaveMessage('노트 제목을 입력해 주세요.');
+      return;
+    }
+    if (!form.content.trim()) {
+      setSaveMessage('노트 내용을 입력해 주세요.');
+      return;
+    }
 
     setSaving(true);
     setSaveMessage('노트를 저장하는 중입니다.');
     try {
-      const uploadedMainImage = mainImageFile ? await uploadImage(mainImageFile) : null;
-      const mainImageUrl = uploadedMainImage?.imageUrl ?? form.thumbnailUrl;
-      const storedMainImageUrl = mainImageUrl
-        ? storeMainImageWidth(mainImageUrl, form.thumbnailWidth)
-        : null;
       const uploadedContent = await uploadPendingContentImages(form.content, contentImageFiles, uploadImage);
+      // 본문의 첫 번째 이미지를 게시판 대표 이미지로 자동 사용하고, 없으면 기본 이미지가 나오게 null로 저장합니다.
+      const firstImageUrl = findFirstContentImageUrl(uploadedContent.savedContent);
+      const firstUploadedImage = uploadedContent.contentImages
+        .find((image) => image.imageUrl === firstImageUrl);
 
       let savedNote;
       if (myNote) {
-        // thumbnailUrl을 함께 보내지 않으면 서버가 기존 썸네일을 null로 덮어쓰므로 그대로 유지해서 보낸다.
         savedNote = await updateNote(myNote.id, {
           lectureId,
           title: form.title,
           content: uploadedContent.savedContent,
-          thumbnailUrl: storedMainImageUrl,
-          imageOriginalName: uploadedMainImage?.originalName ?? null,
-          imageFileSize: uploadedMainImage?.fileSize ?? null,
+          thumbnailUrl: firstImageUrl,
+          imageOriginalName: firstUploadedImage?.originalName ?? null,
+          imageFileSize: firstUploadedImage?.fileSize ?? null,
           contentImages: uploadedContent.contentImages,
         });
       } else {
@@ -197,25 +316,19 @@ function LectureWatchPage() {
           lectureId,
           title: form.title,
           content: uploadedContent.savedContent,
-          thumbnailUrl: storedMainImageUrl,
-          imageOriginalName: uploadedMainImage?.originalName ?? null,
-          imageFileSize: uploadedMainImage?.fileSize ?? null,
+          thumbnailUrl: firstImageUrl,
+          imageOriginalName: firstUploadedImage?.originalName ?? null,
+          imageFileSize: firstUploadedImage?.fileSize ?? null,
           contentImages: uploadedContent.contentImages,
         });
       }
       // 저장 직후에도 같은 폼을 수정 모드로 유지해 다음 저장부터 기존 노트를 계속 갱신합니다.
       setMyNote(savedNote);
-      const savedMainImage = parseMainImage(savedNote.thumbnailUrl);
       setForm({
         title: savedNote.title,
         content: savedNote.content,
-        thumbnailUrl: savedMainImage.url,
-        thumbnailWidth: savedMainImage.width,
       });
       setContentImageFiles([]);
-      setMainImageFile(null);
-      if (mainImagePreviewUrl) URL.revokeObjectURL(mainImagePreviewUrl);
-      setMainImagePreviewUrl('');
       setSaveMessage('노트를 저장했습니다.');
       await loadNotes();
     } catch (err) {
@@ -240,7 +353,14 @@ function LectureWatchPage() {
     }
   };
 
-  const othersNotes = notes.filter((note) => note.userId !== auth?.userId);
+  // 다른 학습자 노트는 좋아요가 많은 순서로, 좋아요가 같으면 최신 작성 순서로 보여줍니다.
+  const othersNotes = notes
+    .filter((note) => String(note.userId) !== String(auth?.userId))
+    .sort((first, second) => {
+      const likeDifference = (second.likeCount ?? 0) - (first.likeCount ?? 0);
+      if (likeDifference !== 0) return likeDifference;
+      return new Date(second.createdAt ?? 0) - new Date(first.createdAt ?? 0);
+    });
   const youtubeEmbedUrl = getYoutubeEmbedUrl(lecture?.lectureUrl);
 
   return (
@@ -344,6 +464,13 @@ function LectureWatchPage() {
               >
                 다른 학습자 노트
               </button>
+              <button
+                type="button"
+                className={activeTab === 'comments' ? 'is-active' : ''}
+                onClick={() => setActiveTab('comments')}
+              >
+                댓글
+              </button>
             </div>
 
             {activeTab === 'write' && (
@@ -357,37 +484,27 @@ function LectureWatchPage() {
                 <div className="lecture-watch-page__note-toolbar">
                   <div className="lecture-watch-page__note-toolbar-group">
                     <label className="lecture-watch-page__image-btn">
-                      메인 이미지 삽입
-                      <input type="file" accept="image/*" onChange={handleMainImageChange} disabled={saving} hidden />
-                    </label>
-                    <label className="lecture-watch-page__image-btn">
                       이미지 삽입
                       <input type="file" accept="image/*" onChange={handleContentImageChange} disabled={saving} hidden />
                     </label>
                     <button type="button" onClick={insertCodeBlock}>코드블럭 삽입</button>
+                    <button type="button" onClick={() => applyTextStyle('bold')}><strong>볼드</strong></button>
+                    <button type="button" onClick={() => applyTextStyle('underline')}><u>밑줄</u></button>
                     {/* 노트 상세 작성기와 같은 팔레트로 선택한 글자색을 적용합니다. */}
                     <TextColorPicker value={textColor} onChange={setTextColor} onApply={applyTextColor} />
                   </div>
-                  <button type="submit" disabled={saving}>
-                    {saving ? '저장 중...' : myNote ? '수정 저장' : '저장'}
-                  </button>
                 </div>
-                {(mainImagePreviewUrl || form.thumbnailUrl) && (
-                  <div className="lecture-watch-page__main-image">
-                    <ResizableMainImage
-                      src={mainImagePreviewUrl || form.thumbnailUrl}
-                      alt="노트 메인 이미지 미리보기"
-                      width={form.thumbnailWidth}
-                      onWidthChange={(thumbnailWidth) => setForm((prev) => ({ ...prev, thumbnailWidth }))}
-                    />
-                  </div>
-                )}
                 <RichTextEditor
                   ref={contentRef}
                   value={form.content}
                   onChange={(content) => setForm((prev) => ({ ...prev, content }))}
                 />
-                {saveMessage && <p className="lecture-watch-page__note-message">{saveMessage}</p>}
+                <div className="lecture-watch-page__note-save-row">
+                  {saveMessage && <p className="lecture-watch-page__note-message">{saveMessage}</p>}
+                  <button type="submit" className="lecture-watch-page__note-submit" disabled={saving}>
+                    {saving ? '저장 중...' : myNote ? '저장' : '저장'}
+                  </button>
+                </div>
               </form>
             )}
 
@@ -408,6 +525,41 @@ function LectureWatchPage() {
                   </Link>
                 ))}
               </div>
+            )}
+
+            {activeTab === 'comments' && (
+              <section className="comment-panel">
+                <h2>댓글</h2>
+                <form className="comment-form" onSubmit={handleCreateComment}>
+                  {commentForm.parentCommentId && (
+                    <div className="reply-target">
+                      답글 작성 중
+                      <button type="button" onClick={cancelCommentReply}>취소</button>
+                    </div>
+                  )}
+                  <textarea
+                    rows="4"
+                    value={commentForm.content}
+                    onChange={(event) => setCommentForm((prev) => ({ ...prev, content: event.target.value }))}
+                    placeholder="댓글 내용"
+                  />
+                  <button type="submit" disabled={commentSaving}>댓글 등록</button>
+                </form>
+                {commentMessage && <p className="lecture-watch-page__note-message">{commentMessage}</p>}
+
+                <ul className="comment-list">
+                  {comments.map((comment) => (
+                    <LectureCommentItem
+                      key={comment.id}
+                      comment={comment}
+                      auth={auth}
+                      onReply={selectCommentReplyTarget}
+                      onUpdate={handleUpdateComment}
+                      onDelete={handleDeleteComment}
+                    />
+                  ))}
+                </ul>
+              </section>
             )}
           </div>
 

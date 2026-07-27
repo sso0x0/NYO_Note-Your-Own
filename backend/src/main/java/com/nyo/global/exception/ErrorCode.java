@@ -41,8 +41,8 @@ public enum ErrorCode {
     // 댓글 관련 에러코드
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 댓글입니다."),
     COMMENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "댓글에 대한 권한이 없습니다."),
-    // 대댓글의 부모 댓글은 반드시 같은 게시글에 속해야 합니다.
-    COMMENT_PARENT_MISMATCH(HttpStatus.BAD_REQUEST, "같은 게시글의 댓글에만 답글을 작성할 수 있습니다."),
+    // 대댓글의 부모 댓글은 반드시 같은 게시글/강의에 속해야 합니다.
+    COMMENT_PARENT_MISMATCH(HttpStatus.BAD_REQUEST, "같은 글의 댓글에만 답글을 작성할 수 있습니다."),
 
     // 좋아요 관련 에러코드
     ALREADY_LIKED(HttpStatus.CONFLICT, "이미 좋아요를 눌렀습니다."),
