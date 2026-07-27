@@ -19,6 +19,11 @@ export function getTodayStudyTime() {
   return apiGet('/api/pomodoros/stats/today')
 }
 
+// 기간별 조회 (startDate~endDate, 최신순). 마이페이지의 학습 기록 조회에 사용.
+export function getRecordsByPeriod({ startDate, endDate, page = 0, size = 100 } = {}) {
+  return apiGet('/api/pomodoros/period', { startDate, endDate, page, size })
+}
+
 export function getTotalStudyTime() {
   return apiGet('/api/pomodoros/stats/total')
 }

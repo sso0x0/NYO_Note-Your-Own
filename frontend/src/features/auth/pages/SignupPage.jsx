@@ -125,6 +125,8 @@ function SignupPage() {
 
     setSubmitting(true);
     try {
+      // passwordConfirm은 서버로 보내면 안 되는 필드라 구조분해로 걸러내기만 하고 값은 쓰지 않는다.
+      // eslint-disable-next-line no-unused-vars
       const { passwordConfirm, phone, ...rest } = form;
       await signup({ ...rest, phone: phone || undefined });
       navigate('/login', { replace: true, state: { justSignedUp: true } });

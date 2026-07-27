@@ -17,4 +17,9 @@ public interface ChatHistoryRepository extends JpaRepository<ChatHistory, Long> 
     List<ChatHistory> findTop6ByUserIdAndLectureIdOrderByIdDesc(Long userId, Long lectureId);
 
     List<ChatHistory> findTop6ByUserIdAndLectureIdIsNullOrderByIdDesc(Long userId);
+
+    // 선택 삭제: 요청 id 목록 중 본인 소유가 아닌 id는 조건에 안 걸려 조용히 무시된다
+    void deleteByIdInAndUserId(List<Long> ids, Long userId);
+
+    void deleteAllByUserId(Long userId);
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { getHistories, sendMessage } from './api/chat'
+import { useLocation } from 'react-router-dom'
+import { sendMessage } from './api/chat'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
 import '../../components/widget.css'
@@ -18,28 +19,23 @@ function CommentIcon() {
 }
 
 // 챗봇 아이콘 + 팝업창. WidgetDock을 통해 ProtectedLayout에 한 번만 마운트되어
-// 모든 /main/* 페이지에서 보이고, 페이지를 이동해도 대화 내용이 유지된다.
+// 모든 /main/* 페이지에서 보인다. 대화 기록은 서버(chat_histories)에 계속 쌓이지만,
+// 페이지를 이동하면 화면에는 이전 대화가 다시 뜨지 않도록 로컬 상태만 비운다.
 export default function ChatWidget() {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [sending, setSending] = useState(false)
   const [error, setError] = useState(null)
   const bottomRef = useRef(null)
+  const location = useLocation()
 
-  // 아이콘을 아직 안 눌러도 대화 내역은 미리 불러와둔다 (열자마자 바로 보이도록)
+  // 다른 페이지로 이동하면 이전 페이지에서 열려 있던 대화창은 닫고 화면 상태만 초기화한다.
+  // (서버에 저장된 대화 기록 자체는 지우지 않음 — 다시 불러오지 않을 뿐)
   useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const res = await getHistories()
-        if (!cancelled) setMessages([...res.content].reverse())
-      } catch (err) {
-        if (!cancelled) setError(err.message)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [])
+    setOpen(false)
+    setMessages([])
+    setError(null)
+  }, [location.pathname])
 
   // 패널이 열려 있을 때만 스크롤 (닫힌 상태에서 굳이 스크롤할 필요 없음)
   useEffect(() => {

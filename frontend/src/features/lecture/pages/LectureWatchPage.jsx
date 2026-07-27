@@ -8,7 +8,7 @@ import {
   deleteLectureComment,
 } from '../api/lectureComment';
 import { getNotesByLecture, createNote, updateNote } from '../../note/api/note';
-import { getHistories, sendMessage } from '../../chat/api/chat';
+import { sendMessage } from '../../chat/api/chat';
 import { useAuth } from '../../../context/AuthContext';
 import { createPendingContentImage, uploadPendingContentImages } from '../../../utils/contentImages';
 import { getYoutubeVideoId, resolveLectureThumbnail } from '../../../utils/youtubeThumbnail';
@@ -104,6 +104,7 @@ function LectureWatchPage() {
 
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus('loading');
     setError(null);
     setIsPlaying(false);
@@ -141,21 +142,15 @@ function LectureWatchPage() {
   }, [id, auth?.userId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadNotes();
   }, [loadNotes]);
 
+  // 대화는 서버(chat_histories)에 계속 저장되지만, 페이지를 나갔다 들어오거나
+  // 다른 강의로 이동하면 화면에는 이전 대화를 다시 불러오지 않고 빈 상태로 시작한다.
   useEffect(() => {
-    let cancelled = false;
-    getHistories({ lectureId })
-      .then((res) => {
-        if (!cancelled) setChatMessages([...res.content].reverse());
-      })
-      .catch((err) => {
-        if (!cancelled) setChatError(err.message);
-      });
-    return () => {
-      cancelled = true;
-    };
+    setChatMessages([]);
+    setChatError(null);
   }, [lectureId]);
 
   useEffect(() => {
