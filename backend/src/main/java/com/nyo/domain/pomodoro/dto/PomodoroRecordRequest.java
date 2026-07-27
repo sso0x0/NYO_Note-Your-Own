@@ -27,10 +27,6 @@ public class PomodoroRecordRequest {
     @Schema(description = "집중 시간(분)", example = "25", defaultValue = "25")
     private Integer focusMinutes;
 
-    @Min(value = 1, message = "휴식 시간은 1분 이상이어야 합니다.")
-    @Schema(description = "휴식 시간(분)", example = "5", defaultValue = "5")
-    private Integer breakMinutes;
-
     @NotNull(message = "타이머 시작 시각은 필수입니다.")
     @Schema(description = "타이머 시작 시각")
     private LocalDateTime startedAt;

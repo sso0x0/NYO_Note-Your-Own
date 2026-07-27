@@ -47,6 +47,8 @@ public class PomodoroRecord {
     @Column(name = "focus_minutes", nullable = false)
     private Integer focusMinutes;
 
+    // 휴식 타이머 기능은 제거됐지만 DB 컬럼(break_minutes, NOT NULL)은 팀 공용 스키마라 그대로 두고
+    // 항상 0을 채워 넣는다. API 요청/응답에는 더 이상 노출하지 않는다.
     @Column(name = "break_minutes", nullable = false)
     private Integer breakMinutes;
 
@@ -66,28 +68,25 @@ public class PomodoroRecord {
 
     @Builder
     public PomodoroRecord(Long userId, Long lectureId, Long noteId,
-                          Integer focusMinutes, Integer breakMinutes,
+                          Integer focusMinutes,
                           LocalDateTime startedAt, LocalDateTime endedAt) {
         this.userId = userId;
         this.lectureId = lectureId;
         this.noteId = noteId;
         this.focusMinutes = focusMinutes != null ? focusMinutes : 25;
-        this.breakMinutes = breakMinutes != null ? breakMinutes : 5;
+        this.breakMinutes = 0;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
         this.recordDate = startedAt.toLocalDate();
     }
 
     public void update(Long lectureId, Long noteId,
-                       Integer focusMinutes, Integer breakMinutes,
+                       Integer focusMinutes,
                        LocalDateTime startedAt, LocalDateTime endedAt) {
         this.lectureId = lectureId;
         this.noteId = noteId;
         if (focusMinutes != null) {
             this.focusMinutes = focusMinutes;
-        }
-        if (breakMinutes != null) {
-            this.breakMinutes = breakMinutes;
         }
         this.startedAt = startedAt;
         this.endedAt = endedAt;

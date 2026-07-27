@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { parseTextColors } from '../../../utils/textColor'
 import { useAuth } from '../../../context/AuthContext'
 import { parseMainImage } from '../../../utils/mainImage'
-import { getHistories, sendMessage } from '../../chat/api/chat'
+import { generateAiTags, getNoteTags } from '../api/tag'
+import { sendMessage } from '../../chat/api/chat'
 import ChatMessage from '../../chat/ChatMessage'
 import ChatInput from '../../chat/ChatInput'
 import '../../chat/chat.css'
@@ -10,30 +11,13 @@ import '../../chat/chat.css'
 const EMPTY_HEART_IMAGE = '/images/heart.png'
 const FILLED_HEART_IMAGE = '/images/hearts.png'
 
+// key={noteId}로 노트가 바뀔 때마다 이 컴포넌트를 통째로 새로 마운트해서
+// 대화 기록은 서버(chat_histories)에 계속 쌓이지만, 화면에는 다른 노트의 대화가 이어서 보이지 않는다.
 function NoteDetailChat({ lectureId }) {
   const [chatMessages, setChatMessages] = useState([])
   const [chatSending, setChatSending] = useState(false)
   const [chatError, setChatError] = useState(null)
   const chatBottomRef = useRef(null)
-
-  useEffect(() => {
-    let cancelled = false
-    setChatMessages([])
-    setChatError(null)
-
-    // 연결된 강의와 같은 대화 기록을 조회해 양쪽 화면에서 동일한 내용을 보여줍니다.
-    getHistories({ lectureId })
-        .then((response) => {
-          if (!cancelled) setChatMessages([...(response?.content ?? [])].reverse())
-        })
-        .catch((error) => {
-          if (!cancelled) setChatError(error.message)
-        })
-
-    return () => {
-      cancelled = true
-    }
-  }, [lectureId])
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -77,14 +61,16 @@ function NoteDetailChat({ lectureId }) {
   )
 }
 
-function NoteDetail({ noteId, onBack, onEdit }) {
+function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
   const { auth } = useAuth()
-  const notePrintRef = useRef(null)
   const [note, setNote] = useState(null)
   const [message, setMessage] = useState('노트를 불러오는 중입니다.')
   const [loading, setLoading] = useState(false)
   const [liked, setLiked] = useState(false)
   const [likeLoading, setLikeLoading] = useState(false)
+  const [tags, setTags] = useState([])
+  const [tagGenerating, setTagGenerating] = useState(false)
+  const [tagError, setTagError] = useState(null)
   const userId = auth?.userId
 
   const loadNote = async () => {
@@ -116,6 +102,15 @@ function NoteDetail({ noteId, onBack, onEdit }) {
     if (response.ok) setLiked(await response.json())
   }
 
+  const loadTags = async () => {
+    try {
+      setTags(await getNoteTags(noteId))
+    } catch (error) {
+      // 태그 조회는 부가 정보라 실패해도 노트 본문 표시를 막지 않는다.
+      setTagError(error.message)
+    }
+  }
+
   useEffect(() => {
     const increaseViewCount = async () => {
       // 상세 페이지에 들어오면 common.view_logs로 하루 1회만 조회수를 올린다.
@@ -127,7 +122,7 @@ function NoteDetail({ noteId, onBack, onEdit }) {
 
     const load = async () => {
       // 조회수나 좋아요 상태 요청 하나가 실패해도 노트 본문 조회까지 중단되지 않게 독립 실행합니다.
-      await Promise.allSettled([increaseViewCount(), loadNote(), loadLikeStatus()])
+      await Promise.allSettled([increaseViewCount(), loadNote(), loadLikeStatus(), loadTags()])
     }
 
     load()
@@ -153,9 +148,22 @@ function NoteDetail({ noteId, onBack, onEdit }) {
     }
   }
 
-  const exportNotePdf = async () => {
-    const printableNote = notePrintRef.current
-    if (!note || !printableNote) {
+  const handleGenerateTags = async () => {
+    if (tagGenerating) return
+    setTagGenerating(true)
+    setTagError(null)
+    try {
+      await generateAiTags(noteId)
+      await loadTags()
+    } catch (error) {
+      setTagError(error.message)
+    } finally {
+      setTagGenerating(false)
+    }
+  }
+
+  const exportNotePdf = () => {
+    if (!note) {
       return
     }
 
@@ -165,67 +173,32 @@ function NoteDetail({ noteId, onBack, onEdit }) {
       return
     }
 
-    // 현재 렌더링된 상세 영역을 복제해 글자색·서식·이미지 위치를 화면과 동일하게 출력합니다.
-    const styleNodes = [...document.querySelectorAll('link[rel="stylesheet"], style')]
-        .map((node) => node.outerHTML)
-        .join('')
-    const titleHtml = printableNote.querySelector('.post-detail-title')?.outerHTML
-        ?? `<h1 class="post-detail-title">${escapeHtml(note.title)}</h1>`
-    const contentHtml = printableNote.querySelector('.note-content')?.outerHTML
-        ?? '<div class="note-content"></div>'
+    // 제목, 메인 이미지, 내용을 출력용 HTML로 만들어 브라우저의 PDF 저장 기능을 사용한다.
     printWindow.document.write(`
       <!doctype html>
       <html>
         <head>
           <meta charset="utf-8" />
-          <base href="${window.location.origin}/" />
           <title>${escapeHtml(note.title)}</title>
-          ${styleNodes}
           <style>
-            body { max-width: 1000px; margin: 32px auto; padding: 0 24px; background: #fff; }
-            .note-detail-panel { box-shadow: none; }
-            button { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body { max-width: 760px; margin: 40px auto; font-family: Arial, sans-serif; color: #222; }
+            h1 { margin: 0 0 24px; font-size: 28px; }
+            img { max-width: 100%; margin: 16px 0; border-radius: 6px; }
+            p { white-space: pre-wrap; line-height: 1.65; }
+            pre { padding: 14px; overflow-x: auto; border-radius: 6px; background: #1f2933; color: #f7fafc; }
+            code { font-family: Consolas, Monaco, monospace; }
           </style>
         </head>
         <body>
-          <article class="note-detail-panel">
-            ${titleHtml}
-            ${contentHtml}
-          </article>
+          <h1>${escapeHtml(note.title)}</h1>
+          ${note.thumbnailUrl ? `<img src="${escapeAttribute(note.thumbnailUrl)}" alt="메인 이미지" />` : ''}
+          ${createPrintableContent(note.content)}
         </body>
       </html>
     `)
     printWindow.document.close()
-
-    // 새 출력 창의 이미지가 모두 준비된 뒤 인쇄를 열어 PDF에서 이미지가 빠지지 않게 합니다.
-    await Promise.all([...printWindow.document.images].map((image) => (
-        image.complete
-            ? Promise.resolve()
-            : new Promise((resolve) => {
-              image.addEventListener('load', resolve, { once: true })
-              image.addEventListener('error', resolve, { once: true })
-            })
-    )))
     printWindow.focus()
     printWindow.print()
-  }
-
-  const exportNoteMarkdown = () => {
-    if (!note) return
-
-    // 노트 제목과 저장된 본문 문법을 UTF-8 마크다운 파일로 다운로드합니다.
-    const markdown = `# ${note.title}\n\n${note.content}\n`
-    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' })
-    const downloadUrl = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    const safeTitle = note.title.replace(/[\\/:*?"<>|]/g, '_').trim() || `note-${note.id}`
-    link.href = downloadUrl
-    link.download = `${safeTitle}.md`
-    document.body.append(link)
-    link.click()
-    link.remove()
-    URL.revokeObjectURL(downloadUrl)
   }
 
   const deleteNote = async () => {
@@ -266,10 +239,6 @@ function NoteDetail({ noteId, onBack, onEdit }) {
   // 수정은 관리자 권한과 관계없이 노트를 작성한 로그인 사용자 본인에게만 허용합니다.
   const canEdit = note && auth && String(note.userId) === String(auth.userId)
   const mainImage = parseMainImage(note?.thumbnailUrl)
-  const mainImageAlreadyInContent = mainImage.url
-      ? [...String(note?.content ?? '').matchAll(/!\[[^\]]*]\((https?:\/\/[^)]+)\)/g)]
-          .some((match) => match[1] === mainImage.url)
-      : false
 
   const escapeHtml = (value) => String(value ?? '')
       .replaceAll('&', '&amp;')
@@ -284,7 +253,7 @@ function NoteDetail({ noteId, onBack, onEdit }) {
     // PDF 출력 화면에서도 본문 이미지와 코드블럭을 실제 이미지/코드 영역으로 변환한다.
     return String(content ?? '').split('```').map((part, index) => {
       if (index % 2 === 1) {
-        return `<pre><code>${createPrintableColoredText(part.trim())}</code></pre>`
+        return `<pre><code>${escapeHtml(part.trim())}</code></pre>`
       }
 
       return createPrintableTextWithImages(part)
@@ -316,15 +285,9 @@ function NoteDetail({ noteId, onBack, onEdit }) {
   }
 
   const createPrintableColoredText = (text) => parseTextColors(text)
-      .map((part) => {
-        const styles = [
-          part.color ? `color: ${part.color}` : '',
-          part.bold ? 'font-weight: 700' : '',
-          part.italic ? 'font-style: italic' : '',
-          part.underline ? 'text-decoration: underline' : '',
-        ].filter(Boolean).join('; ')
-        return styles ? `<span style="${styles}">${escapeHtml(part.text)}</span>` : escapeHtml(part.text)
-      })
+      .map((part) => part.color
+          ? `<span style="color: ${part.color}">${escapeHtml(part.text)}</span>`
+          : escapeHtml(part.text))
       .join('')
 
   const renderNoteContent = (content) => {
@@ -333,8 +296,7 @@ function NoteDetail({ noteId, onBack, onEdit }) {
       if (index % 2 === 1) {
         return (
             <pre className="note-code-block" key={index}>
-            {/* 코드블록 안에서도 저장된 글자색·볼드·밑줄 문법을 실제 서식으로 표시합니다. */}
-              <code>{renderColoredText(part.trim(), `note-code-${index}`)}</code>
+            <code>{part.trim()}</code>
           </pre>
         )
       }
@@ -388,13 +350,7 @@ function NoteDetail({ noteId, onBack, onEdit }) {
       // 글자색 기능: #RRGGBB 형식으로 검증된 값만 React style에 전달합니다.
       parseTextColors(text).map((part, index) => (
           <span style={part.color ? { color: part.color } : undefined} key={`${keyPrefix}-${index}`}>
-        <span style={{
-          fontWeight: part.bold ? 700 : undefined,
-          fontStyle: part.italic ? 'italic' : undefined,
-          textDecoration: part.underline ? 'underline' : undefined,
-        }}>
         {part.text}
-        </span>
       </span>
       ))
   )
@@ -408,15 +364,14 @@ function NoteDetail({ noteId, onBack, onEdit }) {
           </div>
           <div className="note-header-actions">
             {note && <button type="button" onClick={exportNotePdf}>PDF 저장</button>}
-            {note && <button type="button" onClick={exportNoteMarkdown}>마크다운 저장</button>}
-            {canEdit && <button type="button" onClick={() => onEdit(음표)}>수정</button>}
+            {canEdit && <button type="button" onClick={() => onEdit(note.id)}>수정</button>}
             {canDelete && <button type="button" className="danger-button" onClick={deleteNote} disabled={loading}>삭제</button>}
             <button type="button" onClick={onBack}>목록</button>
           </div>
         </header>
 
         <div className="note-detail-layout">
-          <article ref={notePrintRef} className="note-detail-panel">
+          <article className="note-detail-panel">
             {note ? (
                 <>
                   {/* 게시판 상세처럼 제목 아래에 작성자·강의·수정일·조회수를 한 줄로 표시한다. */}
@@ -426,12 +381,37 @@ function NoteDetail({ noteId, onBack, onEdit }) {
                     <span aria-hidden="true"> | </span>
                     <span>{note.lectureTitle || '강의 정보 없음'}</span>
                     <span aria-hidden="true"> | </span>
-                    <time dateTime={note.createdAt}>작성일 {formatDate(note.createdAt)}</time>
-                    <span aria-hidden="true"> | </span>
-                    <time dateTime={note.updatedAt}>수정일 {formatDate(note.updatedAt)}</time>
+                    <time dateTime={note.updatedAt}>최종 수정일 {formatDate(note.updatedAt)}</time>
                     <span aria-hidden="true"> | </span>
                     <span>조회수 {note.viewCount ?? 0}</span>
                   </p>
+
+                  <div className="note-tags">
+                    {tags.map((tag) => (
+                        <button
+                            key={tag.tagId}
+                            type="button"
+                            className="note-tag-chip"
+                            onClick={() => onTagClick?.(tag.tagName)}
+                            title={`'${tag.tagName}' 태그가 붙은 다른 노트 보기`}
+                        >
+                          {tag.isAiGenerated && <span className="note-tag-chip__ai">AI</span>}
+                          {tag.tagName}
+                        </button>
+                    ))}
+                    {canEdit && (
+                        <button
+                            type="button"
+                            className="note-tag-generate"
+                            onClick={handleGenerateTags}
+                            disabled={tagGenerating}
+                        >
+                          {tagGenerating ? 'AI 태그 생성 중...' : (tags.length > 0 ? 'AI 태그 다시 생성' : 'AI 태그 생성')}
+                        </button>
+                    )}
+                  </div>
+                  {tagError && <p className="note-tag-error">{tagError}</p>}
+
                   <dl className="note-meta">
                     <div>
                       <dt>노트 ID</dt>
@@ -446,7 +426,7 @@ function NoteDetail({ noteId, onBack, onEdit }) {
                       <dd>{note.userId}</dd>
                     </div>
                     <div>
-                      <dt>수정일</dt>
+                      <dt>최종 수정일</dt>
                       <dd>{formatDate(note.updatedAt)}</dd>
                     </div>
                     <div>
@@ -473,7 +453,7 @@ function NoteDetail({ noteId, onBack, onEdit }) {
                   </div>
 
                   {/* 노트 상세 화면의 이미지를 마우스로 끌어서 복사하지 못하게 합니다. */}
-                  {mainImage.url && !mainImageAlreadyInContent && (
+                  {mainImage.url && (
                       <img
                           className="note-thumbnail"
                           src={mainImage.url}
@@ -503,7 +483,7 @@ function NoteDetail({ noteId, onBack, onEdit }) {
                 <p>{loading ? '불러오는 중입니다.' : message}</p>
             )}
           </article>
-          {note?.lectureId && <NoteDetailChat lectureId={note.lectureId} />}
+          {note?.lectureId && <NoteDetailChat key={noteId} lectureId={note.lectureId} />}
         </div>
       </>
   )
