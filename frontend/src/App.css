@@ -462,10 +462,10 @@ body {
     align-items: center;
 }
 
-/* 노트 카드 게시판: 데스크톱에서 4열×3행 카드 레이아웃을 구성합니다. */
+/* 노트 카드 게시판: 데스크톱에서 5열×3행 카드 레이아웃을 구성합니다. */
 .note-card-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 1rem;
     margin: 0;
     padding: 0;
@@ -506,6 +506,11 @@ body {
     background: #f1f3f5;
     color: #888;
     font-size: 0.85rem;
+}
+
+/* 메인 이미지의 원본 비율을 유지해 게시판 카드 안에서 잘리지 않게 표시합니다. */
+.note-card-image {
+    object-fit: contain;
 }
 
 .note-card-title,
