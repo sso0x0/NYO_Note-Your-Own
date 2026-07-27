@@ -3,7 +3,7 @@ import { parseTextColors } from '../../../utils/textColor'
 import { useAuth } from '../../../context/AuthContext'
 import { parseMainImage } from '../../../utils/mainImage'
 import { generateAiTags, getNoteTags } from '../api/tag'
-import { getHistories, sendMessage } from '../../chat/api/chat'
+import { sendMessage } from '../../chat/api/chat'
 import ChatMessage from '../../chat/ChatMessage'
 import ChatInput from '../../chat/ChatInput'
 import '../../chat/chat.css'
@@ -11,30 +11,13 @@ import '../../chat/chat.css'
 const EMPTY_HEART_IMAGE = '/images/heart.png'
 const FILLED_HEART_IMAGE = '/images/hearts.png'
 
+// key={noteId}로 노트가 바뀔 때마다 이 컴포넌트를 통째로 새로 마운트해서
+// 대화 기록은 서버(chat_histories)에 계속 쌓이지만, 화면에는 다른 노트의 대화가 이어서 보이지 않는다.
 function NoteDetailChat({ lectureId }) {
   const [chatMessages, setChatMessages] = useState([])
   const [chatSending, setChatSending] = useState(false)
   const [chatError, setChatError] = useState(null)
   const chatBottomRef = useRef(null)
-
-  useEffect(() => {
-    let cancelled = false
-    setChatMessages([])
-    setChatError(null)
-
-    // 연결된 강의와 같은 대화 기록을 조회해 양쪽 화면에서 동일한 내용을 보여줍니다.
-    getHistories({ lectureId })
-      .then((response) => {
-        if (!cancelled) setChatMessages([...(response?.content ?? [])].reverse())
-      })
-      .catch((error) => {
-        if (!cancelled) setChatError(error.message)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [lectureId])
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -78,7 +61,7 @@ function NoteDetailChat({ lectureId }) {
   )
 }
 
-function NoteDetail({ noteId, onBack, onEdit }) {
+function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
   const { auth } = useAuth()
   const [note, setNote] = useState(null)
   const [message, setMessage] = useState('노트를 불러오는 중입니다.')
@@ -405,10 +388,16 @@ function NoteDetail({ noteId, onBack, onEdit }) {
 
             <div className="note-tags">
               {tags.map((tag) => (
-                  <span key={tag.tagId} className="note-tag-chip">
+                  <button
+                      key={tag.tagId}
+                      type="button"
+                      className="note-tag-chip"
+                      onClick={() => onTagClick?.(tag.tagName)}
+                      title={`'${tag.tagName}' 태그가 붙은 다른 노트 보기`}
+                  >
                     {tag.isAiGenerated && <span className="note-tag-chip__ai">AI</span>}
                     {tag.tagName}
-                  </span>
+                  </button>
               ))}
               {canEdit && (
                   <button
@@ -494,7 +483,7 @@ function NoteDetail({ noteId, onBack, onEdit }) {
           <p>{loading ? '불러오는 중입니다.' : message}</p>
         )}
         </article>
-        {note?.lectureId && <NoteDetailChat lectureId={note.lectureId} />}
+        {note?.lectureId && <NoteDetailChat key={noteId} lectureId={note.lectureId} />}
       </div>
     </>
   )

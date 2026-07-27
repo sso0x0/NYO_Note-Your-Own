@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,6 +77,17 @@ public class ChatService {
                 .build());
 
         return toResponse(saved);
+    }
+
+    // 선택 삭제. ids에 남의 기록이 섞여 있어도 본인 것만 지워지고 나머지는 조용히 무시된다.
+    @Transactional
+    public void deleteBulk(Long userId, List<Long> ids) {
+        chatHistoryRepository.deleteByIdInAndUserId(ids, userId);
+    }
+
+    @Transactional
+    public void deleteAll(Long userId) {
+        chatHistoryRepository.deleteAllByUserId(userId);
     }
 
     public PageResponse<ChatHistoryResponse> getHistories(Long userId, Long lectureId, Pageable pageable) {

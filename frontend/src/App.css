@@ -724,11 +724,40 @@ body {
     align-items: center;
     gap: 0.3rem;
     padding: 0.25rem 0.6rem;
+    border: none;
     border-radius: 999px;
     background: var(--accent-bg, #eef2ff);
     color: var(--accent, #3730a3);
     font-size: 0.82rem;
     font-weight: 500;
+    cursor: pointer;
+}
+
+.note-tag-chip:hover {
+    background: var(--nyo-accent, var(--accent, #4338ca));
+    color: #fff;
+}
+
+.note-tag-filter-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0 0 0.8rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    background: var(--accent-bg, #eef2ff);
+    color: var(--accent, #3730a3);
+    font-size: 0.9rem;
+}
+
+.note-tag-filter-banner button {
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid var(--nyo-accent, var(--accent, #4338ca));
+    background: none;
+    color: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
 }
 
 .note-tag-chip__ai {

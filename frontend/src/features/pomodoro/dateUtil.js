@@ -6,3 +6,9 @@ export function toLocalDateTimeString(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
       `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
+
+// 기간별 조회(GET /api/pomodoros/period)의 startDate/endDate(LocalDate)용. 시:분:초 없이 날짜만.
+export function toLocalDateString(date) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
