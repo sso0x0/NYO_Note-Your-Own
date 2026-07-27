@@ -20,8 +20,11 @@ public class CommentResponse {
     @Schema(description = "댓글 ID", example = "1")
     private Long id;
 
-    @Schema(description = "게시글 ID", example = "1")
+    @Schema(description = "게시글 ID. 게시글 댓글일 때만 채워짐", example = "1")
     private Long postId;
+
+    @Schema(description = "강의 ID. 강의 댓글일 때만 채워짐", example = "null")
+    private Long lectureId;
 
     @Schema(description = "작성자 ID", example = "10")
     private Long userId;

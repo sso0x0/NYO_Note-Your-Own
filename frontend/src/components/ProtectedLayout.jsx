@@ -42,7 +42,7 @@ function ProtectedLayout() {
               마이페이지
             </NavLink>
             {auth?.role === 'ADMIN' && (
-              <NavLink to="/main/admin" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+              <NavLink to="/admin" className={({ isActive }) => (isActive ? 'is-active' : '')}>
                 관리자
               </NavLink>
             )}

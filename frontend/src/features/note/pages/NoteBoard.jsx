@@ -7,7 +7,7 @@ const sortOptions = [
   { value: 'viewCount', label: '조회수' },
 ]
 
-const NOTES_PER_PAGE = 12
+const NOTES_PER_PAGE = 15
 const PAGES_PER_GROUP = 10
 const DEFAULT_MAIN_IMAGE = '/images/nullimg.png'
 const NOTE_SORT_VALUES = new Set(sortOptions.map((option) => option.value))
@@ -24,7 +24,7 @@ const readListStateFromUrl = () => {
   }
 }
 
-function NoteBoard({ onCreate, onOpenNote }) {
+function NoteBoard({ onOpenNote }) {
   const { auth } = useAuth()
   const [notes, setNotes] = useState([])
   const initialListState = readListStateFromUrl()
@@ -160,15 +160,6 @@ function NoteBoard({ onCreate, onOpenNote }) {
       <header className="note-header">
         <div>
           <h1>노트 게시판</h1>
-          <p>DB에 저장된 노트를 자동으로 불러옵니다.</p>
-        </div>
-        <div className="note-header-actions">
-          <button type="button" onClick={() => loadNotes(currentPage, sortBy, keyword)} disabled={loading}>
-            새로고침
-          </button>
-          <button type="button" onClick={onCreate}>
-            노트 작성
-          </button>
         </div>
       </header>
 
@@ -215,12 +206,11 @@ function NoteBoard({ onCreate, onOpenNote }) {
           <div className="board-state board-empty">
             <img src={DEFAULT_MAIN_IMAGE} alt="등록된 노트 없음" />
             <strong>아직 등록된 노트가 없습니다.</strong>
-            <p>첫 번째 노트를 작성해 보세요.</p>
-            <button type="button" onClick={onCreate}>노트 작성</button>
+            <p>강의 시청 화면에서 노트를 작성할 수 있습니다.</p>
           </div>
         )}
 
-        {/* 노트 카드 게시판: 서버에서 받은 현재 페이지의 노트 최대 12개를 표시합니다. */}
+        {/* 노트 카드 게시판: 서버에서 받은 현재 페이지의 노트 최대 15개를 5열×3행으로 표시합니다. */}
         {!loading && !error && totalElements > 0 && <ul className="note-card-grid">
           {notes.map((note) => (
             <li className="note-card" key={note.id}>

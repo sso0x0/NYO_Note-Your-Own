@@ -8,12 +8,14 @@ import com.nyo.domain.common.repository.ImageRepository;
 import com.nyo.domain.common.service.LikeService;
 import com.nyo.domain.common.service.ViewService;
 import com.nyo.domain.post.document.PostDocument;
+import com.nyo.domain.post.dto.PostAdminResponse;
 import com.nyo.domain.post.dto.PostRequest;
 import com.nyo.domain.post.dto.PostResponse;
 import com.nyo.domain.post.dto.PostPageResponse;
 import com.nyo.domain.post.entity.Post;
 import com.nyo.domain.post.repository.PostRepository;
 import com.nyo.domain.post.repository.PostSearchRepository;
+import com.nyo.domain.user.dto.UserResponse;
 import com.nyo.domain.user.service.UserService;
 import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
@@ -159,6 +161,15 @@ public class PostService {
         return toResponse(getPost(postId));
     }
 
+    // 관리자 게시글 관리 목록: 공지 여부와 관계없이 최신순으로 페이징하고, 작성자 상세 정보(이메일/권한 등)를 함께 내려준다.
+    public Page<PostAdminResponse> adminGetPostList(Pageable pageable) {
+        Page<Post> posts = postRepository.findByIsDeleted(0, pageable);
+        Map<Long, UserResponse> usersById = userService.adminGetUsersByIds(
+                posts.getContent().stream().map(Post::getUserId).distinct().toList()
+        );
+        return posts.map(post -> toAdminResponse(post, usersById));
+    }
+
     public boolean isLiked(Long postId, Long userId) {
         getPost(postId);
         return likeService.isLiked(userId, "POST", postId);
@@ -295,6 +306,28 @@ public class PostService {
                 .id(post.getId())
                 .userId(post.getUserId())
                 .authorNickname(authorNickname)
+                .title(post.getTitle())
+                .content(post.getContent())
+                .thumbnailUrl(post.getThumbnailUrl())
+                .viewCount(post.getViewCount())
+                .likeCount(post.getLikeCount())
+                .isDeleted(post.isDeleted())
+                .notice(post.isNotice())
+                .createdAt(post.getCreatedAt())
+                .updatedAt(post.getUpdatedAt())
+                .build();
+    }
+
+    private PostAdminResponse toAdminResponse(Post post, Map<Long, UserResponse> usersById) {
+        UserResponse author = usersById.get(post.getUserId());
+        return PostAdminResponse.builder()
+                .id(post.getId())
+                .userId(post.getUserId())
+                .authorLoginId(author != null ? author.getLoginId() : null)
+                .authorNickname(author != null ? author.getNickname() : "알 수 없는 사용자")
+                .authorEmail(author != null ? author.getEmail() : null)
+                .authorRole(author != null ? author.getRole() : null)
+                .authorStatus(author != null ? author.getStatus() : null)
                 .title(post.getTitle())
                 .content(post.getContent())
                 .thumbnailUrl(post.getThumbnailUrl())

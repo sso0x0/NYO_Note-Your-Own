@@ -199,6 +199,13 @@ public class UserService {
                 ));
     }
 
+    // 댓글 관리 등 다른 도메인에서 여러 작성자의 상세 정보(이메일/권한 등)를 한 번에 조회할 때 사용
+    @Transactional(readOnly = true)
+    public java.util.Map<Long, UserResponse> adminGetUsersByIds(List<Long> userIds) {
+        return userRepository.findAllById(userIds).stream()
+                .collect(java.util.stream.Collectors.toMap(User::getId, this::toResponse));
+    }
+
     // ================== 여기까지 관리자 기능 ==================
     // ================== 관리자 기능 ==================
 

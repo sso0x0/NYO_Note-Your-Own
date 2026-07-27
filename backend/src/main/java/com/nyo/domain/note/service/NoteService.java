@@ -11,7 +11,9 @@ import com.nyo.domain.common.repository.LikeRepository;
 import com.nyo.domain.common.service.LikeService;
 import com.nyo.domain.common.service.ViewService;
 import com.nyo.domain.note.document.NoteDocument;
+import com.nyo.domain.lecture.entity.Lecture;
 import com.nyo.domain.lecture.repository.LectureRepository;
+import com.nyo.domain.note.dto.NoteAdminResponse;
 import com.nyo.domain.note.dto.NoteRequest;
 import com.nyo.domain.note.dto.NoteResponse;
 import com.nyo.domain.note.entity.Note;
@@ -20,6 +22,7 @@ import com.nyo.domain.note.repository.NoteHistoryRepository;
 import com.nyo.domain.note.repository.NoteRepository;
 import com.nyo.domain.note.repository.NoteSearchRepository;
 import com.nyo.domain.tag.repository.NoteTagRepository;
+import com.nyo.domain.user.dto.UserResponse;
 import com.nyo.domain.user.service.UserService;
 import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
@@ -170,6 +173,23 @@ public class NoteService {
                 note -> toResponse(note, nicknames.getOrDefault(note.getUserId(), "알 수 없는 사용자"))
         );
         return PageResponse.of(responsePage);
+    }
+
+    // 관리자 노트 관리 목록: 최신순으로 페이징하고, 작성자 상세 정보(이메일/권한 등)와
+    // 연결된 강의명을 함께 내려준다.
+    public Page<NoteAdminResponse> adminGetNoteList(Pageable pageable) {
+        Page<Note> notePage = noteRepository.findByIsDeleted(0, pageable);
+        List<Note> notes = notePage.getContent();
+
+        Map<Long, UserResponse> usersById = userService.adminGetUsersByIds(
+                notes.stream().map(Note::getUserId).distinct().toList()
+        );
+        // JOIN FETCH로 카테고리까지 함께 가져와야 트랜잭션 종료 전에 category.getName()을 지연 로딩 없이 읽을 수 있다.
+        Map<Long, Lecture> lecturesById = lectureRepository.findAllByIdInAndIsDeletedFalse(
+                notes.stream().map(Note::getLectureId).filter(Objects::nonNull).distinct().toList()
+        ).stream().collect(Collectors.toMap(Lecture::getId, Function.identity()));
+
+        return notePage.map(note -> toAdminResponse(note, usersById, lecturesById));
     }
 
     // 마이페이지 - 내가 작성한 노트 목록
@@ -334,6 +354,34 @@ public class NoteService {
         } catch (EmptyResultDataAccessException e) {
             throw new BusinessException(ErrorCode.MEMBER_NOT_FOUND);
         }
+    }
+
+    private NoteAdminResponse toAdminResponse(Note note, Map<Long, UserResponse> usersById, Map<Long, Lecture> lecturesById) {
+        UserResponse author = usersById.get(note.getUserId());
+        Lecture lecture = lecturesById.get(note.getLectureId());
+        return NoteAdminResponse.builder()
+                .id(note.getId())
+                .lectureId(note.getLectureId())
+                .lectureTitle(lecture != null ? lecture.getTitle() : null)
+                .lectureCategoryName(lecture != null ? lecture.getCategory().getName() : null)
+                .lectureInstructor(lecture != null ? lecture.getInstructor() : null)
+                .lectureCapacity(lecture != null ? lecture.getCapacity() : null)
+                .lectureCurrentEnrolled(lecture != null ? lecture.getCurrentEnrolled() : null)
+                .userId(note.getUserId())
+                .authorLoginId(author != null ? author.getLoginId() : null)
+                .authorNickname(author != null ? author.getNickname() : "알 수 없는 사용자")
+                .authorEmail(author != null ? author.getEmail() : null)
+                .authorRole(author != null ? author.getRole() : null)
+                .authorStatus(author != null ? author.getStatus() : null)
+                .title(note.getTitle())
+                .content(note.getContent())
+                .thumbnailUrl(note.getThumbnailUrl())
+                .viewCount(note.getViewCount())
+                .likeCount(note.getLikeCount())
+                .isDeleted(note.isDeleted())
+                .createdAt(note.getCreatedAt())
+                .updatedAt(note.getUpdatedAt())
+                .build();
     }
 
     private NoteResponse toResponse(Note note) {

@@ -43,26 +43,27 @@ function NoteDetailChat({ lectureId }) {
   }
 
   return (
-    <aside className="note-detail-chat">
-      <div className="note-detail-chat__header">학습 챗봇</div>
-      <div className="chat-messages">
-        {chatMessages.map((chatMessage) => (
-          <ChatMessage
-            key={chatMessage.id}
-            senderRole={chatMessage.senderRole}
-            message={chatMessage.message}
-          />
-        ))}
-        <div ref={chatBottomRef} />
-      </div>
-      {chatError && <p className="chat-error">{chatError}</p>}
-      <ChatInput sending={chatSending} onSend={handleChatSend} />
-    </aside>
+      <aside className="note-detail-chat">
+        <div className="note-detail-chat__header">학습 챗봇</div>
+        <div className="chat-messages">
+          {chatMessages.map((chatMessage) => (
+              <ChatMessage
+                  key={chatMessage.id}
+                  senderRole={chatMessage.senderRole}
+                  message={chatMessage.message}
+              />
+          ))}
+          <div ref={chatBottomRef} />
+        </div>
+        {chatError && <p className="chat-error">{chatError}</p>}
+        <ChatInput sending={chatSending} onSend={handleChatSend} />
+      </aside>
   )
 }
 
 function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
   const { auth } = useAuth()
+  const notePrintRef = useRef(null)
   const [note, setNote] = useState(null)
   const [message, setMessage] = useState('노트를 불러오는 중입니다.')
   const [loading, setLoading] = useState(false)
@@ -162,8 +163,9 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
     }
   }
 
-  const exportNotePdf = () => {
-    if (!note) {
+  const exportNotePdf = async () => {
+    const printableNote = notePrintRef.current
+    if (!note || !printableNote) {
       return
     }
 
@@ -173,32 +175,67 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
       return
     }
 
-    // 제목, 메인 이미지, 내용을 출력용 HTML로 만들어 브라우저의 PDF 저장 기능을 사용한다.
+    // 현재 렌더링된 상세 영역을 복제해 글자색·서식·이미지 위치를 화면과 동일하게 출력합니다.
+    const styleNodes = [...document.querySelectorAll('link[rel="stylesheet"], style')]
+        .map((node) => node.outerHTML)
+        .join('')
+    const titleHtml = printableNote.querySelector('.post-detail-title')?.outerHTML
+        ?? `<h1 class="post-detail-title">${escapeHtml(note.title)}</h1>`
+    const contentHtml = printableNote.querySelector('.note-content')?.outerHTML
+        ?? '<div class="note-content"></div>'
     printWindow.document.write(`
       <!doctype html>
       <html>
         <head>
           <meta charset="utf-8" />
+          <base href="${window.location.origin}/" />
           <title>${escapeHtml(note.title)}</title>
+          ${styleNodes}
           <style>
-            body { max-width: 760px; margin: 40px auto; font-family: Arial, sans-serif; color: #222; }
-            h1 { margin: 0 0 24px; font-size: 28px; }
-            img { max-width: 100%; margin: 16px 0; border-radius: 6px; }
-            p { white-space: pre-wrap; line-height: 1.65; }
-            pre { padding: 14px; overflow-x: auto; border-radius: 6px; background: #1f2933; color: #f7fafc; }
-            code { font-family: Consolas, Monaco, monospace; }
+            body { max-width: 1000px; margin: 32px auto; padding: 0 24px; background: #fff; }
+            .note-detail-panel { box-shadow: none; }
+            button { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           </style>
         </head>
         <body>
-          <h1>${escapeHtml(note.title)}</h1>
-          ${note.thumbnailUrl ? `<img src="${escapeAttribute(note.thumbnailUrl)}" alt="메인 이미지" />` : ''}
-          ${createPrintableContent(note.content)}
+          <article class="note-detail-panel">
+            ${titleHtml}
+            ${contentHtml}
+          </article>
         </body>
       </html>
     `)
     printWindow.document.close()
+
+    // 새 출력 창의 이미지가 모두 준비된 뒤 인쇄를 열어 PDF에서 이미지가 빠지지 않게 합니다.
+    await Promise.all([...printWindow.document.images].map((image) => (
+        image.complete
+            ? Promise.resolve()
+            : new Promise((resolve) => {
+              image.addEventListener('load', resolve, { once: true })
+              image.addEventListener('error', resolve, { once: true })
+            })
+    )))
     printWindow.focus()
     printWindow.print()
+  }
+
+  const exportNoteMarkdown = () => {
+    if (!note) return
+
+    // 노트 제목과 저장된 본문 문법을 UTF-8 마크다운 파일로 다운로드합니다.
+    const markdown = `# ${note.title}\n\n${note.content}\n`
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' })
+    const downloadUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const safeTitle = note.title.replace(/[\\/:*?"<>|]/g, '_').trim() || `note-${note.id}`
+    link.href = downloadUrl
+    link.download = `${safeTitle}.md`
+    document.body.append(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(downloadUrl)
   }
 
   const deleteNote = async () => {
@@ -234,18 +271,22 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
 
   // 삭제 버튼은 작성자 본인 또는 로그인 정보의 DB 역할이 ADMIN인 경우에만 표시합니다.
   const canDelete = note && auth && (
-    String(note.userId) === String(auth.userId) || auth.role === 'ADMIN'
+      String(note.userId) === String(auth.userId) || auth.role === 'ADMIN'
   )
   // 수정은 관리자 권한과 관계없이 노트를 작성한 로그인 사용자 본인에게만 허용합니다.
   const canEdit = note && auth && String(note.userId) === String(auth.userId)
   const mainImage = parseMainImage(note?.thumbnailUrl)
+  const mainImageAlreadyInContent = mainImage.url
+      ? [...String(note?.content ?? '').matchAll(/!\[[^\]]*]\((https?:\/\/[^)]+)\)/g)]
+          .some((match) => match[1] === mainImage.url)
+      : false
 
   const escapeHtml = (value) => String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;')
 
   const escapeAttribute = (value) => escapeHtml(value)
 
@@ -253,7 +294,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
     // PDF 출력 화면에서도 본문 이미지와 코드블럭을 실제 이미지/코드 영역으로 변환한다.
     return String(content ?? '').split('```').map((part, index) => {
       if (index % 2 === 1) {
-        return `<pre><code>${escapeHtml(part.trim())}</code></pre>`
+        return `<pre><code>${createPrintableColoredText(part.trim())}</code></pre>`
       }
 
       return createPrintableTextWithImages(part)
@@ -285,18 +326,25 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
   }
 
   const createPrintableColoredText = (text) => parseTextColors(text)
-    .map((part) => part.color
-      ? `<span style="color: ${part.color}">${escapeHtml(part.text)}</span>`
-      : escapeHtml(part.text))
-    .join('')
+      .map((part) => {
+        const styles = [
+          part.color ? `color: ${part.color}` : '',
+          part.bold ? 'font-weight: 700' : '',
+          part.italic ? 'font-style: italic' : '',
+          part.underline ? 'text-decoration: underline' : '',
+        ].filter(Boolean).join('; ')
+        return styles ? `<span style="${styles}">${escapeHtml(part.text)}</span>` : escapeHtml(part.text)
+      })
+      .join('')
 
   const renderNoteContent = (content) => {
     // 저장된 본문에서 ```로 감싼 부분은 코드블럭으로 분리해서 보여준다.
     return content.split('```').map((part, index) => {
       if (index % 2 === 1) {
         return (
-          <pre className="note-code-block" key={index}>
-            <code>{part.trim()}</code>
+            <pre className="note-code-block" key={index}>
+            {/* 코드블록 안에서도 저장된 글자색·볼드·밑줄 문법을 실제 서식으로 표시합니다. */}
+              <code>{renderColoredText(part.trim(), `note-code-${index}`)}</code>
           </pre>
         )
       }
@@ -315,21 +363,21 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
       const textBeforeImage = text.slice(lastIndex, match.index)
       if (textBeforeImage) {
         blocks.push(
-          <p className="note-text-block" key={`${keyPrefix}-text-${blocks.length}`}>
-            {renderColoredText(textBeforeImage, `${keyPrefix}-color-${blocks.length}`)}
-          </p>
+            <p className="note-text-block" key={`${keyPrefix}-text-${blocks.length}`}>
+              {renderColoredText(textBeforeImage, `${keyPrefix}-color-${blocks.length}`)}
+            </p>
         )
       }
 
       blocks.push(
-        <img
-          className="content-inline-image"
-          src={match[1]}
-          style={match[2] ? { width: `${match[2]}px` } : undefined}
-          draggable={false}
-          alt="본문 이미지"
-          key={`${keyPrefix}-image-${blocks.length}`}
-        />
+          <img
+              className="content-inline-image"
+              src={match[1]}
+              style={match[2] ? { width: `${match[2]}px` } : undefined}
+              draggable={false}
+              alt="본문 이미지"
+              key={`${keyPrefix}-image-${blocks.length}`}
+          />
       )
       lastIndex = match.index + match[0].length
     }
@@ -337,9 +385,9 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
     const restText = text.slice(lastIndex)
     if (restText) {
       blocks.push(
-        <p className="note-text-block" key={`${keyPrefix}-text-rest`}>
-          {renderColoredText(restText, `${keyPrefix}-color-rest`)}
-        </p>
+          <p className="note-text-block" key={`${keyPrefix}-text-rest`}>
+            {renderColoredText(restText, `${keyPrefix}-color-rest`)}
+          </p>
       )
     }
 
@@ -347,145 +395,154 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
   }
 
   const renderColoredText = (text, keyPrefix) => (
-    // 글자색 기능: #RRGGBB 형식으로 검증된 값만 React style에 전달합니다.
-    parseTextColors(text).map((part, index) => (
-      <span style={part.color ? { color: part.color } : undefined} key={`${keyPrefix}-${index}`}>
+      // 글자색 기능: #RRGGBB 형식으로 검증된 값만 React style에 전달합니다.
+      parseTextColors(text).map((part, index) => (
+          <span style={part.color ? { color: part.color } : undefined} key={`${keyPrefix}-${index}`}>
+        <span style={{
+          fontWeight: part.bold ? 700 : undefined,
+          fontStyle: part.italic ? 'italic' : undefined,
+          textDecoration: part.underline ? 'underline' : undefined,
+        }}>
         {part.text}
+        </span>
       </span>
-    ))
+      ))
   )
 
   return (
-    <>
-      <header className="note-header">
-        <div>
-          <h1>노트 상세</h1>
-          <p>선택한 노트의 내용을 확인합니다.</p>
-        </div>
-        <div className="note-header-actions">
-          {note && <button type="button" onClick={exportNotePdf}>PDF 저장</button>}
-          {canEdit && <button type="button" onClick={() => onEdit(note.id)}>수정</button>}
-          {canDelete && <button type="button" className="danger-button" onClick={deleteNote} disabled={loading}>삭제</button>}
-          <button type="button" onClick={onBack}>목록</button>
-        </div>
-      </header>
+      <>
+        <header className="note-header">
+          <div>
+            <h1>노트 상세</h1>
+            <p>선택한 노트의 내용을 확인합니다.</p>
+          </div>
+          <div className="note-header-actions">
+            {note && <button type="button" onClick={exportNotePdf}>PDF 저장</button>}
+            {note && <button type="button" onClick={exportNoteMarkdown}>마크다운 저장</button>}
+            {canEdit && <button type="button" onClick={() => onEdit(note)}>수정</button>}
+            {canDelete && <button type="button" className="danger-button" onClick={deleteNote} disabled={loading}>삭제</button>}
+            <button type="button" onClick={onBack}>목록</button>
+          </div>
+        </header>
 
-      <div className="note-detail-layout">
-        <article className="note-detail-panel">
-        {note ? (
-          <>
-            {/* 게시판 상세처럼 제목 아래에 작성자·강의·수정일·조회수를 한 줄로 표시한다. */}
-            <h1 className="post-detail-title">{note.title}</h1>
-            <p className="post-detail-byline note-detail-byline">
-              <strong>{note.authorNickname || '알 수 없는 사용자'}</strong>
-              <span aria-hidden="true"> | </span>
-              <span>{note.lectureTitle || '강의 정보 없음'}</span>
-              <span aria-hidden="true"> | </span>
-              <time dateTime={note.updatedAt}>최종 수정일 {formatDate(note.updatedAt)}</time>
-              <span aria-hidden="true"> | </span>
-              <span>조회수 {note.viewCount ?? 0}</span>
-            </p>
+        <div className="note-detail-layout">
+          <article ref={notePrintRef} className="note-detail-panel">
+            {note ? (
+                <>
+                  {/* 게시판 상세처럼 제목 아래에 작성자·강의·수정일·조회수를 한 줄로 표시한다. */}
+                  <h1 className="post-detail-title">{note.title}</h1>
+                  <p className="post-detail-byline note-detail-byline">
+                    <strong>{note.authorNickname || '알 수 없는 사용자'}</strong>
+                    <span aria-hidden="true"> | </span>
+                    <span>{note.lectureTitle || '강의 정보 없음'}</span>
+                    <span aria-hidden="true"> | </span>
+                    <time dateTime={note.createdAt}>작성일 {formatDate(note.createdAt)}</time>
+                    <span aria-hidden="true"> | </span>
+                    <time dateTime={note.updatedAt}>수정일 {formatDate(note.updatedAt)}</time>
+                    <span aria-hidden="true"> | </span>
+                    <span>조회수 {note.viewCount ?? 0}</span>
+                  </p>
 
-            <div className="note-tags">
-              {tags.map((tag) => (
-                  <button
-                      key={tag.tagId}
-                      type="button"
-                      className="note-tag-chip"
-                      onClick={() => onTagClick?.(tag.tagName)}
-                      title={`'${tag.tagName}' 태그가 붙은 다른 노트 보기`}
-                  >
-                    {tag.isAiGenerated && <span className="note-tag-chip__ai">AI</span>}
-                    {tag.tagName}
-                  </button>
-              ))}
-              {canEdit && (
-                  <button
-                      type="button"
-                      className="note-tag-generate"
-                      onClick={handleGenerateTags}
-                      disabled={tagGenerating}
-                  >
-                    {tagGenerating ? 'AI 태그 생성 중...' : (tags.length > 0 ? 'AI 태그 다시 생성' : 'AI 태그 생성')}
-                  </button>
-              )}
-            </div>
-            {tagError && <p className="note-tag-error">{tagError}</p>}
+                  <div className="note-tags">
+                    {tags.map((tag) => (
+                        <button
+                            key={tag.tagId}
+                            type="button"
+                            className="note-tag-chip"
+                            onClick={() => onTagClick?.(tag.tagName)}
+                            title={`'${tag.tagName}' 태그가 붙은 다른 노트 보기`}
+                        >
+                          {tag.isAiGenerated && <span className="note-tag-chip__ai">AI</span>}
+                          {tag.tagName}
+                        </button>
+                    ))}
+                    {canEdit && (
+                        <button
+                            type="button"
+                            className="note-tag-generate"
+                            onClick={handleGenerateTags}
+                            disabled={tagGenerating}
+                        >
+                          {tagGenerating ? 'AI 태그 생성 중...' : (tags.length > 0 ? 'AI 태그 다시 생성' : 'AI 태그 생성')}
+                        </button>
+                    )}
+                  </div>
+                  {tagError && <p className="note-tag-error">{tagError}</p>}
 
-            <dl className="note-meta">
-              <div>
-                <dt>노트 ID</dt>
-                <dd>{note.id}</dd>
-              </div>
-              <div>
-                <dt>강의 ID</dt>
-                <dd>{note.lectureId}</dd>
-              </div>
-              <div>
-                <dt>작성자 ID</dt>
-                <dd>{note.userId}</dd>
-              </div>
-              <div>
-                <dt>최종 수정일</dt>
-                <dd>{formatDate(note.updatedAt)}</dd>
-              </div>
-              <div>
-                <dt>조회수</dt>
-                <dd>{note.viewCount}</dd>
-              </div>
-              <div>
-                <dt>좋아요</dt>
-                <dd>{note.likeCount}</dd>
-              </div>
-            </dl>
+                  <dl className="note-meta">
+                    <div>
+                      <dt>노트 ID</dt>
+                      <dd>{note.id}</dd>
+                    </div>
+                    <div>
+                      <dt>강의 ID</dt>
+                      <dd>{note.lectureId}</dd>
+                    </div>
+                    <div>
+                      <dt>작성자 ID</dt>
+                      <dd>{note.userId}</dd>
+                    </div>
+                    <div>
+                      <dt>수정일</dt>
+                      <dd>{formatDate(note.updatedAt)}</dd>
+                    </div>
+                    <div>
+                      <dt>조회수</dt>
+                      <dd>{note.viewCount}</dd>
+                    </div>
+                    <div>
+                      <dt>좋아요</dt>
+                      <dd>{note.likeCount}</dd>
+                    </div>
+                  </dl>
 
-            <div className="note-header-actions legacy-note-like">
-              <button
-                type="button"
-                className="like-icon-button"
-                onClick={toggleLike}
-                disabled={likeLoading}
-                aria-label={liked ? '좋아요 취소' : '좋아요'}
-                aria-pressed={liked}
-              >
-                <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" draggable={false} />
-              </button>
-            </div>
+                  <div className="note-header-actions legacy-note-like">
+                    <button
+                        type="button"
+                        className="like-icon-button"
+                        onClick={toggleLike}
+                        disabled={likeLoading}
+                        aria-label={liked ? '좋아요 취소' : '좋아요'}
+                        aria-pressed={liked}
+                    >
+                      <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" draggable={false} />
+                    </button>
+                  </div>
 
-            {/* 노트 상세 화면의 이미지를 마우스로 끌어서 복사하지 못하게 합니다. */}
-            {mainImage.url && (
-              <img
-                className="note-thumbnail"
-                src={mainImage.url}
-                style={{ width: `${mainImage.width}px` }}
-                alt=""
-                draggable={false}
-              />
+                  {/* 노트 상세 화면의 이미지를 마우스로 끌어서 복사하지 못하게 합니다. */}
+                  {mainImage.url && !mainImageAlreadyInContent && (
+                      <img
+                          className="note-thumbnail"
+                          src={mainImage.url}
+                          style={{ width: `${mainImage.width}px` }}
+                          alt=""
+                          draggable={false}
+                      />
+                  )}
+                  <div className="note-content">{renderNoteContent(note.content)}</div>
+
+                  {/* 본문 아래에서 좋아요 버튼과 현재 좋아요 수를 함께 보여준다. */}
+                  <div className="note-like-summary">
+                    <button
+                        type="button"
+                        className="like-icon-button"
+                        onClick={toggleLike}
+                        disabled={likeLoading}
+                        aria-label={liked ? '좋아요 취소' : '좋아요'}
+                        aria-pressed={liked}
+                    >
+                      <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" draggable={false} />
+                    </button>
+                    <span>좋아요 {note.likeCount ?? 0}</span>
+                  </div>
+                </>
+            ) : (
+                <p>{loading ? '불러오는 중입니다.' : message}</p>
             )}
-            <div className="note-content">{renderNoteContent(note.content)}</div>
-
-            {/* 본문 아래에서 좋아요 버튼과 현재 좋아요 수를 함께 보여준다. */}
-            <div className="note-like-summary">
-              <button
-                type="button"
-                className="like-icon-button"
-                onClick={toggleLike}
-                disabled={likeLoading}
-                aria-label={liked ? '좋아요 취소' : '좋아요'}
-                aria-pressed={liked}
-              >
-                <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" draggable={false} />
-              </button>
-              <span>좋아요 {note.likeCount ?? 0}</span>
-            </div>
-          </>
-        ) : (
-          <p>{loading ? '불러오는 중입니다.' : message}</p>
-        )}
-        </article>
-        {note?.lectureId && <NoteDetailChat key={noteId} lectureId={note.lectureId} />}
-      </div>
-    </>
+          </article>
+          {note?.lectureId && <NoteDetailChat key={noteId} lectureId={note.lectureId} />}
+        </div>
+      </>
   )
 }
 
