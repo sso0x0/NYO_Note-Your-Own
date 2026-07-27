@@ -33,7 +33,6 @@ public class PomodoroService {
                 .lectureId(request.getLectureId())
                 .noteId(request.getNoteId())
                 .focusMinutes(request.getFocusMinutes())
-                .breakMinutes(request.getBreakMinutes())
                 .startedAt(request.getStartedAt())
                 .endedAt(request.getEndedAt())
                 .build();
@@ -53,7 +52,7 @@ public class PomodoroService {
         validateTimeRange(request.getStartedAt(), request.getEndedAt());
 
         record.update(request.getLectureId(), request.getNoteId(),
-                request.getFocusMinutes(), request.getBreakMinutes(),
+                request.getFocusMinutes(),
                 request.getStartedAt(), request.getEndedAt());
 
         return toResponse(record);
@@ -136,7 +135,6 @@ public class PomodoroService {
                 .lectureId(record.getLectureId())
                 .noteId(record.getNoteId())
                 .focusMinutes(record.getFocusMinutes())
-                .breakMinutes(record.getBreakMinutes())
                 .startedAt(record.getStartedAt())
                 .endedAt(record.getEndedAt())
                 .recordDate(record.getRecordDate())

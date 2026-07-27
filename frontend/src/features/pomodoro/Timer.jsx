@@ -1,20 +1,28 @@
 import { useEffect, useRef, useState } from 'react'
 import { createRecord, updateRecord } from './api/pomodoro'
-import { DEFAULT_BREAK_MINUTES, DEFAULT_FOCUS_MINUTES } from './constants'
+import { DEFAULT_FOCUS_MINUTES } from './constants'
 import { toLocalDateTimeString } from './dateUtil'
 
-// 뽀모도로 카운트다운 타이머. 집중/휴식 분을 사용자가 설정할 수 있고,
+// 뽀모도로 카운트다운 타이머. 집중 분을 사용자가 설정할 수 있고,
 // "시작"을 누른 시점에 백엔드에 진행 중 기록을 만들고(POST), 끝나면(자동 만료 또는
 // "종료" 클릭) endedAt을 채워 같은 기록을 업데이트(PATCH)한다.
+// 휴식 타이머는 일시정지 기능과 역할이 겹쳐서 제거함 — 쉬고 싶으면 일시정지를 쓰면 된다.
+// lectureId/noteId: PomodoroWidget이 현재 페이지(강의 시청/노트 상세)에서 뽑아 넘겨준다.
 // status: 'idle'(시작 전) | 'running'(진행 중) | 'paused'(일시정지)
-export default function Timer({ onFinished }) {
+export default function Timer({ onFinished, lectureId = null, noteId = null }) {
   const [focusMinutes, setFocusMinutes] = useState(DEFAULT_FOCUS_MINUTES)
-  const [breakMinutes, setBreakMinutes] = useState(DEFAULT_BREAK_MINUTES)
   const [remainingSeconds, setRemainingSeconds] = useState(DEFAULT_FOCUS_MINUTES * 60)
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState(null)
+  // 자동 감지된 강의/노트를 실제로 연결할지는 사용자가 체크박스로 직접 고른다 (기본은 연결).
+  const [linkEnabled, setLinkEnabled] = useState(true)
   const intervalRef = useRef(null)
-  // 시작 시점의 집중/휴식 분을 세션에 고정해둔다. 카운트다운 도중 설정 입력을 다시
+
+  // 감지된 대상이 바뀌면(다른 강의/노트 페이지로 이동) 다시 기본값(연결)으로 초기화한다.
+  useEffect(() => {
+    setLinkEnabled(true)
+  }, [lectureId, noteId])
+  // 시작 시점의 집중 분을 세션에 고정해둔다. 카운트다운 도중 설정 입력을 다시
   // 보여주지 않기 때문에 값이 바뀔 일은 없지만, state 대신 ref로 들고 있어야
   // setInterval 콜백(클로저)이 항상 이 세션의 값을 참조하게 된다.
   const sessionRef = useRef(null)
@@ -46,9 +54,12 @@ export default function Timer({ onFinished }) {
     const elapsedSeconds = session.focusMinutes * 60 - remainingAtFinish
     const elapsedMinutes = Math.max(1, Math.round(elapsedSeconds / 60))
     try {
+      // update()는 lectureId/noteId를 무조건 덮어쓰므로, 시작할 때 연결된 값을 여기서도 그대로 보내야
+      // 종료 시점에 연결이 풀리지 않는다.
       await updateRecord(session.id, {
+        lectureId: session.lectureId,
+        noteId: session.noteId,
         focusMinutes: elapsedMinutes,
-        breakMinutes: session.breakMinutes,
         startedAt: toLocalDateTimeString(session.startedAt),
         endedAt: toLocalDateTimeString(endedAt),
       })
@@ -64,13 +75,16 @@ export default function Timer({ onFinished }) {
   const start = async () => {
     setError(null)
     const startedAt = new Date()
+    const linkedLectureId = linkEnabled ? lectureId : null
+    const linkedNoteId = linkEnabled ? noteId : null
     try {
       const record = await createRecord({
+        lectureId: linkedLectureId,
+        noteId: linkedNoteId,
         focusMinutes,
-        breakMinutes,
         startedAt: toLocalDateTimeString(startedAt),
       })
-      sessionRef.current = { id: record.id, startedAt, focusMinutes, breakMinutes }
+      sessionRef.current = { id: record.id, startedAt, focusMinutes, lectureId: linkedLectureId, noteId: linkedNoteId }
       setRemainingSeconds(focusMinutes * 60)
       setStatus('running')
       runCountdown()
@@ -113,16 +127,24 @@ export default function Timer({ onFinished }) {
                     }}
                 />
               </label>
-              <label>
-                휴식(분)
-                <input
-                    type="number"
-                    min="1"
-                    value={breakMinutes}
-                    onChange={(e) => setBreakMinutes(Number(e.target.value) || 1)}
-                />
-              </label>
             </div>
+        )}
+        {status === 'idle' && (lectureId || noteId) && (
+            <label className="pomodoro-context">
+              <input
+                  type="checkbox"
+                  checked={linkEnabled}
+                  onChange={(e) => setLinkEnabled(e.target.checked)}
+              />
+              {lectureId ? `강의 #${lectureId}` : `노트 #${noteId}`}와(과) 연결하기
+            </label>
+        )}
+        {/* 실행/일시정지 중에는 시작할 때 확정된 연결 값(sessionRef)을 그대로 보여준다 — 체크박스는
+            시작 전에만 바꿀 수 있고, 일시정지해도 이 값은 바뀌지 않는다. */}
+        {status !== 'idle' && (sessionRef.current?.lectureId || sessionRef.current?.noteId) && (
+            <p className="pomodoro-context pomodoro-context--readonly">
+              {sessionRef.current.lectureId ? `강의 #${sessionRef.current.lectureId}` : `노트 #${sessionRef.current.noteId}`}와(과) 연결됨
+            </p>
         )}
         <div className="pomodoro-clock">{minutes}:{seconds}</div>
         {status === 'idle' ? (
