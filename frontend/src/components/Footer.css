@@ -1,0 +1,62 @@
+.app-footer {
+  background: #1c1c1e;
+  color: #c8c8c8;
+  padding: 40px 6%;
+}
+
+.app-footer__content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.app-footer__brand {
+  max-width: 440px;
+}
+
+.app-footer__logo-mark {
+  display: block;
+  margin-bottom: 14px;
+}
+
+/* 로고는 밝은 배경용으로 그려져 있어 어두운 푸터에서는 흰색으로 반전한다. */
+.app-footer__logo-mark img {
+  display: block;
+  height: 20px;
+  width: auto;
+  filter: brightness(0) invert(1);
+}
+
+.app-footer__brand p {
+  color: #8a8a8e;
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.app-footer__col h4 {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: #fff;
+}
+
+.app-footer__col p {
+  color: #8a8a8e;
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.app-footer__copyright {
+  max-width: 1400px;
+  margin: 24px auto 0;
+  padding-top: 20px;
+  border-top: 1px solid #333;
+  font-size: 12px;
+  color: #666;
+}
