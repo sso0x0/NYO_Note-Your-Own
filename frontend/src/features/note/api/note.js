@@ -1,11 +1,11 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '../../../api/client';
 
-export function getNoteList({ page = 0, size = 12, sort } = {}) {
-  return apiGet('/api/notes', { page, size, sort });
+export function getNoteList({ page = 0, size = 12, sort, categoryId } = {}) {
+  return apiGet('/api/notes', { page, size, sort, categoryId });
 }
 
-export function searchNotes({ keyword, page = 0, size = 12 } = {}) {
-  return apiGet('/api/notes/search', { keyword, page, size });
+export function searchNotes({ keyword, searchType = 'all', page = 0, size = 12 } = {}) {
+  return apiGet('/api/notes/search', { keyword, searchType, page, size });
 }
 
 export function getNotesByLecture(lectureId) {

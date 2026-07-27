@@ -50,12 +50,20 @@ public class NoteDocument {
     )
     private List<String> tags;
 
-    public static NoteDocument from(Note note, List<String> tagNames) {
+    // 작성자 닉네임도 노트 검색어로 사용할 수 있도록 검색 문서에 함께 저장한다.
+    @MultiField(
+            mainField = @Field(type = FieldType.Text, analyzer = "nori"),
+            otherFields = @InnerField(suffix = "ngram", type = FieldType.Text, analyzer = "partial_ngram", searchAnalyzer = "partial_ngram_search")
+    )
+    private String authorNickname;
+
+    public static NoteDocument from(Note note, List<String> tagNames, String authorNickname) {
         return NoteDocument.builder()
                 .id(note.getId())
                 .title(note.getTitle())
                 .content(note.getContent())
                 .tags(tagNames)
+                .authorNickname(authorNickname)
                 .build();
     }
 }

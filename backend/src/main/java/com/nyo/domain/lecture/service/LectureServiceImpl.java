@@ -363,7 +363,7 @@ public class LectureServiceImpl implements LectureService {
 
     // 키워드로 강의 검색 (Elasticsearch에서 관련도순 id를 찾은 뒤, DB에서 실제 데이터를 조회해 순서를 맞춘다)
     @Override
-    public Page<LectureResponse> searchLectures(String keyword, Pageable pageable) {
+    public Page<LectureResponse> searchLectures(String keyword, String searchType, Pageable pageable) {
         if (!StringUtils.hasText(keyword)) {
             return Page.empty(pageable);
         }
@@ -372,7 +372,13 @@ public class LectureServiceImpl implements LectureService {
         // (그대로 넘기면 색인에 없는 필드로 정렬을 시도해 전체 샤드 실패로 이어질 수 있음)
         Pageable searchPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
 
-        Page<LectureDocument> searchResult = lectureSearchRepository.searchByKeyword(keyword, searchPageable);
+        // 선택한 검색 종류에 따라 강의 제목, 설명, 강사명 또는 전체 필드를 검색한다.
+        Page<LectureDocument> searchResult = switch (searchType) {
+            case "title" -> lectureSearchRepository.searchByTitle(keyword, searchPageable);
+            case "content" -> lectureSearchRepository.searchByContent(keyword, searchPageable);
+            case "author" -> lectureSearchRepository.searchByAuthor(keyword, searchPageable);
+            default -> lectureSearchRepository.searchByKeyword(keyword, searchPageable);
+        };
         List<Long> ids = searchResult.getContent().stream().map(LectureDocument::getId).toList();
 
         if (ids.isEmpty()) {

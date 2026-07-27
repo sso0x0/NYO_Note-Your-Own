@@ -206,6 +206,14 @@ public class UserService {
                 .collect(java.util.stream.Collectors.toMap(User::getId, this::toResponse));
     }
 
+    // 작성자 닉네임 검색을 사용자 조회와 노트 조회로 분리하기 위해 일치하는 사용자 ID만 반환한다.
+    @Transactional(readOnly = true)
+    public List<Long> findUserIdsByNickname(String keyword) {
+        return userRepository.findByNicknameContainingIgnoreCase(keyword).stream()
+                .map(User::getId)
+                .toList();
+    }
+
     // ================== 여기까지 관리자 기능 ==================
     // ================== 관리자 기능 ==================
 
