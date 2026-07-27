@@ -1,12 +1,13 @@
 import { Fragment, useState } from 'react';
-import { getNoteList, deleteNote } from '../../note/api/note';
+import { getAdminNoteList } from '../api/note';
+import { deleteNote } from '../../note/api/note';
 import { usePagedList } from '../hooks/usePagedList';
 import './AdminNotesPage.css';
 
 const PAGE_SIZE = 10;
 
 function AdminNotesPage() {
-  const notes = usePagedList(getNoteList);
+  const notes = usePagedList(getAdminNoteList);
   const [expandedNoteId, setExpandedNoteId] = useState(null);
 
   const handleToggle = (noteId) => {
@@ -34,12 +35,13 @@ function AdminNotesPage() {
         <div className="admin-toolbar" />
         {notes.status === 'loading' && <p>불러오는 중...</p>}
         {notes.status === 'error' && <p role="alert">불러오지 못했습니다: {notes.error}</p>}
-        {notes.status === 'success' && (
-          <table className="admin-table admin-table--post">
+        {notes.status === 'success' && notes.pageData && (
+          <table className="admin-table admin-table--note">
             <thead>
               <tr>
                 <th>번호</th>
                 <th>제목</th>
+                <th>강의</th>
                 <th>작성자</th>
                 <th>조회</th>
                 <th>좋아요</th>
@@ -50,12 +52,13 @@ function AdminNotesPage() {
               {noteItems.map((note, index) => (
                 <Fragment key={note.id}>
                   <tr>
-                    <td>{notes.page * PAGE_SIZE + index + 1}</td>
+                    <td>{notes.pageData.number * PAGE_SIZE + index + 1}</td>
                     <td>
                       <button type="button" className="admin-table__title-btn" onClick={() => handleToggle(note.id)}>
                         {note.title}
                       </button>
                     </td>
+                    <td>{note.lectureTitle ?? '(연결 안 됨)'}</td>
                     <td>{note.authorNickname}</td>
                     <td>{note.viewCount ?? 0}</td>
                     <td>{note.likeCount ?? 0}</td>
@@ -65,8 +68,61 @@ function AdminNotesPage() {
                   </tr>
                   {expandedNoteId === note.id && (
                     <tr>
-                      <td colSpan={6}>
-                        <div className="admin-detail">{note.content}</div>
+                      <td colSpan={7}>
+                        <div className="admin-detail-wrap">
+                          <div className="admin-detail">{note.content}</div>
+
+                          <h4 className="admin-section-title">작성자 정보</h4>
+                          <dl className="admin-author-info">
+                            <div>
+                              <dt>유저 ID</dt>
+                              <dd>{note.userId}</dd>
+                            </div>
+                            <div>
+                              <dt>로그인 아이디</dt>
+                              <dd>{note.authorLoginId ?? '-'}</dd>
+                            </div>
+                            <div>
+                              <dt>이메일</dt>
+                              <dd>{note.authorEmail ?? '-'}</dd>
+                            </div>
+                            <div>
+                              <dt>권한</dt>
+                              <dd>{note.authorRole ?? '-'}</dd>
+                            </div>
+                            <div>
+                              <dt>상태</dt>
+                              <dd>{note.authorStatus ?? '-'}</dd>
+                            </div>
+                          </dl>
+
+                          <h4 className="admin-section-title">강의 정보</h4>
+                          <dl className="admin-author-info">
+                            <div>
+                              <dt>강의 ID</dt>
+                              <dd>{note.lectureId ?? '-'}</dd>
+                            </div>
+                            <div>
+                              <dt>강의명</dt>
+                              <dd>{note.lectureTitle ?? '(연결 안 됨)'}</dd>
+                            </div>
+                            <div>
+                              <dt>카테고리</dt>
+                              <dd>{note.lectureCategoryName ?? '-'}</dd>
+                            </div>
+                            <div>
+                              <dt>강사</dt>
+                              <dd>{note.lectureInstructor ?? '-'}</dd>
+                            </div>
+                            <div>
+                              <dt>수강 인원</dt>
+                              <dd>
+                                {note.lectureCurrentEnrolled ?? '-'}
+                                {note.lectureCapacity != null ? ` / ${note.lectureCapacity}` : ''}
+                              </dd>
+                            </div>
+                          </dl>
+                        </div>
                       </td>
                     </tr>
                   )}
@@ -74,7 +130,7 @@ function AdminNotesPage() {
               ))}
               {Array.from({ length: fillerCount }).map((_, i) => (
                 <tr key={`filler-${i}`} className="admin-filler-row" aria-hidden="true">
-                  <td colSpan={6}>&nbsp;</td>
+                  <td colSpan={7}>&nbsp;</td>
                 </tr>
               ))}
             </tbody>
@@ -83,12 +139,12 @@ function AdminNotesPage() {
       </div>
 
       {/* 노트 내용을 펼쳐 봐도 표 영역만 스크롤되고, 이전/다음 버튼은 화면의 같은 위치에 그대로 남는다. */}
-      {notes.status === 'success' && (
+      {notes.status === 'success' && notes.pageData && (
         <div className="admin-pagination">
-          <button type="button" className="admin-btn" onClick={() => notes.setPage((p) => Math.max(0, p - 1))} disabled={notes.page === 0}>
+          <button type="button" className="admin-btn" onClick={() => notes.setPage((p) => Math.max(0, p - 1))} disabled={notes.pageData.first}>
             이전
           </button>
-          <span>{notes.page + 1} / {Math.max(notes.pageData.totalPages, 1)}</span>
+          <span>{notes.pageData.number + 1} / {Math.max(notes.pageData.totalPages, 1)}</span>
           <button type="button" className="admin-btn" onClick={() => notes.setPage((p) => p + 1)} disabled={notes.pageData.last}>
             다음
           </button>
