@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom';
 import LandingPage from './features/landing/pages/LandingPage';
 import LoginPage from './features/auth/pages/LoginPage';
 import SignupPage from './features/auth/pages/SignupPage';
+import FindAccountPage from './features/auth/pages/FindAccountPage';
 import LectureListPage from './features/lecture/pages/LectureListPage';
 import LectureDetailPage from './features/lecture/pages/LectureDetailPage';
 import LectureWatchPage from './features/lecture/pages/LectureWatchPage';
@@ -21,6 +22,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/find-account" element={<FindAccountPage />} />
             <Route path="/oauth2/redirect" element={<OAuth2RedirectPage />} />
 
             <Route element={<ProtectedRoute />}>

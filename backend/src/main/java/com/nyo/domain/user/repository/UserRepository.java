@@ -23,6 +23,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // 💡 추가: 구글 로그인 시 동일 이메일의 로컬 가입 계정이 있으면 새로 만들지 않고 연동하기 위해 사용
     Optional<User> findByEmail(String email);
 
+    // 💡 추가: 아이디 찾기(이름+이메일 일치 확인)용
+    Optional<User> findByNameAndEmail(String name, String email);
+
     // 노트 검색에서 작성자 닉네임 일부가 일치하는 사용자 ID를 찾을 때 사용한다.
     List<User> findByNicknameContainingIgnoreCase(String nickname);
     // 💡 추가: 마이페이지 정보수정 시, 닉네임을 안 바꾸고 그대로 재저장해도

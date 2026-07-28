@@ -7,3 +7,15 @@ export function signup(request) {
 export function login(request) {
   return apiPost('/api/users/login', request);
 }
+
+export function findLoginId(request) {
+  return apiPost('/api/users/find-id', request);
+}
+
+export function sendPasswordResetCode(request) {
+  return apiPost('/api/users/password/send-code', request);
+}
+
+export function resetPassword(request) {
+  return apiPost('/api/users/password/reset', request);
+}

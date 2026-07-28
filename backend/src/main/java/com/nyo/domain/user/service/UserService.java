@@ -11,7 +11,9 @@ import com.nyo.global.enums.UserStatus;
 import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
 import com.nyo.global.jwt.JwtTokenProvider;
+import com.nyo.global.mail.MailService;
 import com.nyo.global.security.LoginAttemptGuard;
+import com.nyo.global.security.PasswordResetCodeStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -20,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -40,6 +43,10 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginAttemptGuard loginAttemptGuard;
+    private final PasswordResetCodeStore passwordResetCodeStore;
+    private final MailService mailService;
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     // 회원가입
     @Transactional
@@ -105,6 +112,54 @@ public class UserService {
     private BusinessException loginFailed(String loginId) {
         loginAttemptGuard.onFailure(loginId);
         return new BusinessException(ErrorCode.MEMBER_LOGIN_FAILED); // id 또는 비번 불일치 메시지
+    }
+
+    // 아이디 찾기: 이름+이메일이 모두 일치하는 회원의 아이디를 마스킹해서 반환.
+    // 이름만 또는 이메일만 일치하는 경우까지 구분해서 알려주면 계정 정보를 유추할 수 있어 하나로 통일한 에러만 던진다.
+    @Transactional(readOnly = true)
+    public FindLoginIdResponse findLoginId(FindLoginIdRequest request) {
+        User user = userRepository.findByNameAndEmail(request.getName(), request.getEmail())
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_FIND_ID_NOT_FOUND));
+
+        return FindLoginIdResponse.builder()
+                .maskedLoginId(maskLoginId(user.getLoginId()))
+                .build();
+    }
+
+    // 앞부분 일부만 남기고 나머지를 마스킹. loginId는 4자 이상이 보장되어 있어(UserRequest 검증) 항상 1자 이상은 마스킹된다.
+    private String maskLoginId(String loginId) {
+        int visibleLength = Math.max(1, loginId.length() / 3);
+        return loginId.substring(0, visibleLength) + "*".repeat(loginId.length() - visibleLength);
+    }
+
+    // 비밀번호 재설정 1단계: 아이디+이메일이 실제 회원과 일치하면 6자리 인증코드를 생성해 이메일로 발송.
+    // 소셜 로그인 전용 계정(password 없음)은 재설정할 비밀번호 자체가 없으므로 여기서 차단한다.
+    @Transactional(readOnly = true)
+    public void sendPasswordResetCode(PasswordResetCodeRequest request) {
+        User user = userRepository.findByLoginId(request.getLoginId())
+                .filter(u -> u.getEmail().equals(request.getEmail()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.PASSWORD_RESET_TARGET_NOT_FOUND));
+
+        if (user.getPassword() == null) {
+            throw new BusinessException(ErrorCode.MEMBER_OAUTH_PASSWORD_CHANGE_NOT_ALLOWED);
+        }
+
+        String code = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+        passwordResetCodeStore.save(request.getLoginId(), code);
+        mailService.sendPasswordResetCode(user.getEmail(), code);
+    }
+
+    // 비밀번호 재설정 2단계: 발송된 인증코드를 검증한 뒤 새 비밀번호로 교체.
+    // 아이디+이메일을 다시 검사하는 이유는, 1단계 이후 이메일이 유출된 코드만으로는 재설정이 안 되게 하기 위함이다.
+    @Transactional
+    public void resetPassword(PasswordResetRequest request) {
+        User user = userRepository.findByLoginId(request.getLoginId())
+                .filter(u -> u.getEmail().equals(request.getEmail()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.PASSWORD_RESET_TARGET_NOT_FOUND));
+
+        passwordResetCodeStore.verify(request.getLoginId(), request.getCode());
+
+        user.changePassword(passwordEncoder.encode(request.getNewPassword()));
     }
 
     // 회원가입 폼 실시간 검증용 중복 체크 3종 (id, email, nickname)
