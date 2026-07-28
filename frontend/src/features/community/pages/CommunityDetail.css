@@ -6,6 +6,7 @@
   --pd-accent-bg: #fdeef2;
   --pd-ink: #1c1c1a;
   --pd-line: #eaeaea;
+  --pd-focus: #2563eb;
 
   /* 부모(.protected-layout__content)가 flex-direction:column이라 width:100%
      없이 margin:0 auto만 쓰면 stretch가 풀리면서 내용물 크기로 쪼그라드는
@@ -235,12 +236,22 @@
   color: var(--pd-accent);
 }
 
+/* 입력창과 등록 버튼을 한 줄에 나란히 두고, 답글 안내 배너만 그 위에 전체 폭으로 띄운다. */
 .post-detail-page .comment-form {
-  margin: 0 0 28px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
   gap: 10px;
+  margin: 0 0 28px;
+}
+
+.post-detail-page .comment-form .reply-target {
+  grid-column: 1 / -1;
 }
 
 .post-detail-page .comment-form textarea {
+  width: 100%;
+  box-sizing: border-box;
   padding: 12px 14px;
   border: 1px solid var(--pd-line);
   border-radius: 10px;
@@ -255,12 +266,13 @@
 
 .post-detail-page .comment-form textarea:focus {
   outline: none;
-  border-color: var(--pd-accent);
+  border-color: var(--pd-focus);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .post-detail-page .comment-form button {
-  align-self: flex-end;
-  padding: 9px 20px;
+  padding: 12px 20px;
+  height: 46px;
   border: none;
   border-radius: 8px;
   background: var(--pd-ink);
@@ -268,6 +280,7 @@
   font: inherit;
   font-size: 13px;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
   transition: opacity 0.15s ease;
 }
@@ -330,11 +343,21 @@
   font-weight: 700;
 }
 
+/* 답글/수정/삭제 버튼을 본문 아래가 아니라 댓글 칸 우측에 붙인다. */
 .post-detail-page .comment-body {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   flex: 1;
   min-width: 0;
   padding: 0;
   border: none;
+}
+
+.post-detail-page .comment-body__main {
+  flex: 1;
+  min-width: 0;
 }
 
 .post-detail-page .comment-body__header {
@@ -356,6 +379,7 @@
 }
 
 .post-detail-page .comment-body__actions {
+  flex-shrink: 0;
   display: flex;
   gap: 4px;
 }
@@ -372,9 +396,26 @@
   transition: background 0.15s ease, color 0.15s ease;
 }
 
+/* 답글/수정 버튼은 마우스를 올리면(호버) 파란 배경 + 굵은 글씨로 바뀐다. 삭제 버튼은
+   아래 .danger-button:hover 규칙이 이 규칙보다 우선순위가 높아서 계속 빨간색으로 유지된다. */
 .post-detail-page .comment-body__actions button:hover {
-  background: var(--pd-accent-bg);
-  color: var(--pd-accent);
+  background: var(--pd-focus);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* 답글/수정/삭제 버튼에 포커스가 가면(키보드 탭 이동, 클릭 등) 삭제의 빨간 글자색이
+   아니라 항상 파란색 아웃라인으로 보이게 한다. */
+.post-detail-page .comment-body__actions button:focus {
+  outline: 2px solid var(--pd-focus);
+  outline-offset: 2px;
+}
+
+/* 답글/수정 버튼만 포커스 시 배경까지 파란색으로 채우고 글씨를 굵게 한다. 삭제 버튼은 빨간색을 유지한다. */
+.post-detail-page .comment-body__actions button:not(.danger-button):focus {
+  background: var(--pd-focus);
+  color: #fff;
+  font-weight: 700;
 }
 
 .post-detail-page .comment-body__actions .danger-button {
@@ -406,6 +447,12 @@
   overflow: hidden;
   min-height: 46px;
   transition: height 0.1s ease;
+}
+
+.post-detail-page .comment-edit-form textarea:focus {
+  outline: none;
+  border-color: var(--pd-focus);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .post-detail-page .comment-edit-form button {
