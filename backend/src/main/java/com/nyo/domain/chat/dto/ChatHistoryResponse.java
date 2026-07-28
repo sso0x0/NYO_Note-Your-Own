@@ -33,4 +33,9 @@ public class ChatHistoryResponse {
 
     @Schema(description = "대화 발생 시각")
     private LocalDateTime createdAt;
+
+    private Long postId;
+
+    private String content;
+
 }

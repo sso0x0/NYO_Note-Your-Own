@@ -49,4 +49,6 @@ public class CommentResponse {
 
     @Schema(description = "수정일")
     private LocalDateTime updatedAt;
+
+
 }

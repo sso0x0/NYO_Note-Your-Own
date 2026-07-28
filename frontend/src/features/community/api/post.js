@@ -43,3 +43,8 @@ export function likePost(postId) {
 export function unlikePost(postId) {
   return apiDelete(`/api/posts/${postId}/like`);
 }
+
+// 내 댓글 조회
+export function getMyComments({ page = 0, size = 10 } = {}) {
+  return apiGet('/api/comments/me', { page, size });
+}

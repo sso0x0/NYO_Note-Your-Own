@@ -1,6 +1,7 @@
 package com.nyo.domain.comment.service;
 
 import com.nyo.domain.comment.dto.CommentAdminResponse;
+import com.nyo.domain.comment.dto.CommentMyResponse;
 import com.nyo.domain.comment.dto.CommentRequest;
 import com.nyo.domain.comment.dto.CommentResponse;
 import com.nyo.domain.comment.entity.Comment;
@@ -114,6 +115,18 @@ public class CommentService {
         ).stream().collect(Collectors.toMap(Lecture::getId, Lecture::getTitle));
 
         return comments.map(comment -> toAdminResponse(comment, usersById, postsById, lectureTitlesById));
+    }
+
+    // 💡 추가: 마이페이지 - 내가 작성한 댓글 목록 (삭제되지 않은 것만, 최신순)
+    public Page<CommentMyResponse> getMyComments(Long userId, Pageable pageable) {
+        return commentRepository.findByUserIdAndIsDeletedOrderByCreatedAtDesc(userId, 0, pageable)
+                .map(comment -> CommentMyResponse.builder()
+                        .id(comment.getId())
+                        .postId(comment.getPostId())
+                        .lectureId(comment.getLectureId())
+                        .content(comment.getContent())
+                        .createdAt(comment.getCreatedAt())
+                        .build());
     }
 
     private CommentAdminResponse toAdminResponse(

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getMyInfo, updateMyProfile, withdraw } from '../api/mypage';
 import { getMyNotes, getLikedNotes } from '../../note/api/note';
-import { getPostList } from '../../community/api/post';
+import { getPostList, getMyComments } from '../../community/api/post';
 import { getLectureList, isEnrolled } from '../../lecture/api/lecture';
 import { deleteAllHistories, deleteHistories, getHistories } from '../../chat/api/chat';
 import { getRecordsByPeriod, getTodayStudyTime, getTotalStudyTime } from '../../pomodoro/api/pomodoro';
@@ -55,7 +55,8 @@ function MyPage() {
     const [myNotes, setMyNotes] = useState([]);
     const [likedNotes, setLikedNotes] = useState([]);
     const [myPosts, setMyPosts] = useState([]);
-    const [myLectures, setMyLectures] = useState([]); // ← 추가
+    const [myLectures, setMyLectures] = useState([]);
+    const [myComments, setMyComments] = useState([]);
 
     const [chatHistories, setChatHistories] = useState([]);
     const [chatHistoryPage, setChatHistoryPage] = useState(0);
@@ -88,6 +89,36 @@ function MyPage() {
         return pairs;
     }, [chatHistories]);
 
+    const selectedChatPair = useMemo(
+        () => chatPairs.find((pair) => pair.question.id === selectedChatId) ?? null,
+        [chatPairs, selectedChatId]
+    );
+
+    const pomodoroChartData = useMemo(() => {
+        const grouped = {};
+        pomodoroRecords.forEach((record) => {
+            const date = record.recordDate;
+            grouped[date] = (grouped[date] ?? 0) + (record.focusMinutes ?? 0) / 60;
+        });
+        return Object.keys(grouped)
+            .sort()
+            .map((date) => ({ label: date, value: grouped[date] }));
+    }, [pomodoroRecords]);
+    const fetchPomodoroRecords = useCallback((range) => {
+        setPomodoroStatus('loading');
+        setPomodoroError(null);
+
+        getRecordsByPeriod({ startDate: range.start, endDate: range.end, size: POMODORO_PERIOD_SIZE })
+            .then((page) => {
+                setPomodoroRecords(page?.content ?? []);
+                setPomodoroStatus('success');
+            })
+            .catch((err) => {
+                setPomodoroError(err.message);
+                setPomodoroStatus('error');
+            });
+    }, []);
+
     useEffect(() => {
         let cancelled = false;
         setStatus('loading');
@@ -98,12 +129,14 @@ function MyPage() {
             getMyNotes({ size: LIST_SIZE }),
             getLikedNotes({ size: LIST_SIZE }),
             getPostList({ size: POST_SCAN_SIZE, sort: 'createdAt' }),
-            getLectureList({ size: LECTURE_SCAN_SIZE }), // ← 추가
+            getLectureList({ size: LECTURE_SCAN_SIZE }),
             getHistories({ size: CHAT_HISTORY_SIZE }),
             getTodayStudyTime(),
             getTotalStudyTime(),
+            getRecordsByPeriod({ startDate: pomodoroRange.start, endDate: pomodoroRange.end, size: POMODORO_PERIOD_SIZE }).catch(() => ({ content: [] })),
+            getMyComments({ size: LIST_SIZE }).catch(() => ({ content: [] })),
         ])
-            .then(async ([me, mine, liked, posts, lectures, chatHistoryPage0, todayStudyTime, totalStudyTime]) => {
+            .then(async ([me, mine, liked, posts, lectures, chatHistoryPage0, todayStudyTime, totalStudyTime, initialPomodoroRecords, comments]) => {
                 if (cancelled) return;
                 setProfile(me);
                 setForm({ name: me.name ?? '', nickname: me.nickname ?? '', phone: me.phone ?? '', currentPassword: '', newPassword: '' });
@@ -113,17 +146,18 @@ function MyPage() {
                 setChatHistoryHasMore(!(chatHistoryPage0?.last ?? true));
                 setPomodoroToday(todayStudyTime?.totalFocusMinutes ?? 0);
                 setPomodoroTotal(totalStudyTime?.totalFocusMinutes ?? 0);
+                setPomodoroRecords(initialPomodoroRecords?.content ?? []);
+                setPomodoroStatus('success');
+                setMyComments(comments?.content ?? []);
 
                 // 백엔드에 "내 글만" 조회 API가 없어 프론트에서 닉네임으로 걸러냅니다.
+                // 최근 POST_SCAN_SIZE개 안에서만 찾으므로 오래된 글은 누락될 수 있습니다.
                 const mineOnly = (posts?.content ?? []).filter(
                     (post) => post.authorNickname === me.nickname
                 );
                 setMyPosts(mineOnly.slice(0, LIST_SIZE));
 
                 // TODO: 수강신청 목록 API(예: getMyEnrolledLectures)가 생기면 아래 임시 로직을 그걸로 교체하세요.
-                // 백엔드에 "내가 수강신청한 강의 목록" API가 없어, 최근 강의들을 하나씩
-                // isEnrolled로 물어봐서 신청한 것만 걸러냅니다. 강의 수만큼 요청이 나가는
-                // 비효율적인 방식이라 LECTURE_SCAN_SIZE를 넘는 강의는 확인하지 못합니다.
                 const lectureList = lectures?.content ?? [];
                 const enrolledFlags = await Promise.all(
                     lectureList.map((lecture) => isEnrolled(lecture.id).catch(() => false))
@@ -142,80 +176,8 @@ function MyPage() {
         return () => {
             cancelled = true;
         };
-    }, []);
-
-    // 기간별 조회(GET /api/pomodoros/period) — 백엔드엔 있었지만 프론트에서 안 쓰던 API.
-    const loadPomodoroRecords = useCallback(async (startDate, endDate) => {
-        setPomodoroStatus('loading');
-        setPomodoroError(null);
-        try {
-            const res = await getRecordsByPeriod({ startDate, endDate, size: POMODORO_PERIOD_SIZE });
-            setPomodoroRecords(res?.content ?? []);
-            setPomodoroStatus('success');
-        } catch (err) {
-            setPomodoroError(err.message);
-            setPomodoroStatus('error');
-        }
-    }, []);
-
-    useEffect(() => {
-        loadPomodoroRecords(pomodoroRange.start, pomodoroRange.end);
-        // 최초 진입 시 기본 범위(최근 14일)로만 자동 조회. 이후 범위 변경은 폼 제출로 처리.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    // "이번 주"/"이번 달" 요약 카드. 전용 집계 API가 없어 기간별 조회 결과를 받아 프론트에서 합산한다
-    // (오늘/전체 누적과 동일하게 endedAt이 채워진 완료 세션만 집계).
-    useEffect(() => {
-        let cancelled = false;
-        const today = new Date();
-        const todayStr = toLocalDateString(today);
-        const weekStartStr = toLocalDateString(startOfWeek(today));
-        const monthStartStr = toLocalDateString(startOfMonth(today));
-
-        const sumFocusMinutes = async (startDate, endDate) => {
-            const res = await getRecordsByPeriod({ startDate, endDate, size: 1000 });
-            return (res?.content ?? [])
-                .filter((record) => record.endedAt)
-                .reduce((sum, record) => sum + (record.focusMinutes ?? 0), 0);
-        };
-
-        Promise.all([
-            sumFocusMinutes(weekStartStr, todayStr),
-            sumFocusMinutes(monthStartStr, todayStr),
-        ])
-            .then(([week, month]) => {
-                if (cancelled) return;
-                setPomodoroWeek(week);
-                setPomodoroMonth(month);
-            })
-            .catch(() => {
-                // 요약 카드는 부가 정보라 실패해도 페이지 전체 에러로 취급하지 않고 0으로 둔다.
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
-    const handlePomodoroFilterSubmit = (e) => {
-        e.preventDefault();
-        loadPomodoroRecords(pomodoroRange.start, pomodoroRange.end);
-    };
-
-    // 날짜(recordDate)별로 집중 시간을 합산해 라인 차트용 데이터로 변환. 백엔드는 개별 기록(분 단위)만
-    // 주므로 프론트에서 집계 후 시간(h) 단위로 환산한다.
-    const pomodoroChartData = useMemo(() => {
-        const totalsByDate = new Map();
-        pomodoroRecords.forEach((record) => {
-            const key = record.recordDate;
-            if (!key) return;
-            totalsByDate.set(key, (totalsByDate.get(key) ?? 0) + (record.focusMinutes ?? 0));
-        });
-        return Array.from(totalsByDate.entries())
-            .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-            .map(([label, totalMinutes]) => ({ label, value: Math.round((totalMinutes / 60) * 100) / 100 }));
-    }, [pomodoroRecords]);
 
     const handleFormChange = (e) => {
         const { name, value } = e.target;
@@ -245,7 +207,7 @@ function MyPage() {
         setSaveError(null);
 
         try {
-            const updated = await updateMyProfile({ ...form, name: profile.name });
+            const updated = await updateMyProfile(form);
             setProfile(updated);
             updateNickname(updated.nickname);
             setForm({ name: updated.name ?? '', nickname: updated.nickname ?? '', phone: updated.phone ?? '', currentPassword: '', newPassword: '' });
@@ -271,31 +233,11 @@ function MyPage() {
         }
     };
 
-    useEffect(() => {
-        if (chatPairs.length === 0) return;
-        const stillExists = chatPairs.some((pair) => pair.question.id === selectedChatId);
-        if (!stillExists) setSelectedChatId(chatPairs[0].question.id);
-    }, [chatPairs, selectedChatId]);
-
-    const selectedChatPair = chatPairs.find((pair) => pair.question.id === selectedChatId) ?? null;
-
-    const handleLoadMoreChatHistory = async () => {
-        setChatHistoryLoadingMore(true);
-        setChatHistoryError(null);
-        try {
-            const nextPage = chatHistoryPage + 1;
-            const res = await getHistories({ page: nextPage, size: CHAT_HISTORY_SIZE });
-            setChatHistories((prev) => [...prev, ...(res?.content ?? [])]);
-            setChatHistoryPage(nextPage);
-            setChatHistoryHasMore(!(res?.last ?? true));
-        } catch (err) {
-            setChatHistoryError(err.message);
-        } finally {
-            setChatHistoryLoadingMore(false);
-        }
+    const handlePomodoroFilterSubmit = (e) => {
+        e.preventDefault();
+        fetchPomodoroRecords(pomodoroRange);
     };
 
-    // 질문 하나를 삭제 대상으로 표시/해제. 삭제할 때는 그 질문과 짝지어진 답변도 함께 지운다.
     const toggleChatPairSelected = (questionId) => {
         setSelectedChatPairIds((prev) =>
             prev.includes(questionId) ? prev.filter((id) => id !== questionId) : [...prev, questionId]
@@ -308,50 +250,63 @@ function MyPage() {
         );
     };
 
-    // 현재 불러온 목록에서 삭제된 id를 걷어내고, 페이지네이션은 처음부터 다시 세도록 리셋한다.
-    const removeChatHistoryEntries = (deletedIds) => {
-        const deletedSet = new Set(deletedIds);
-        setChatHistories((prev) => prev.filter((entry) => !deletedSet.has(entry.id)));
-        setSelectedChatPairIds((prev) => prev.filter((id) => !deletedSet.has(id)));
-    };
-
     const handleDeleteSelectedChatHistory = async () => {
         if (selectedChatPairIds.length === 0) return;
-        if (!window.confirm(`선택한 ${selectedChatPairIds.length}개 질문(답변 포함)을 삭제할까요?`)) return;
+        if (!window.confirm('선택한 대화를 삭제하시겠습니까?')) return;
+
+        const idsToDelete = chatPairs
+            .filter((pair) => selectedChatPairIds.includes(pair.question.id))
+            .flatMap((pair) => (pair.answer ? [pair.question.id, pair.answer.id] : [pair.question.id]));
 
         setChatHistoryDeleting(true);
-        setChatHistoryError(null);
         try {
-            const idsToDelete = chatPairs
-                .filter((pair) => selectedChatPairIds.includes(pair.question.id))
-                .flatMap((pair) => (pair.answer ? [pair.question.id, pair.answer.id] : [pair.question.id]));
             await deleteHistories(idsToDelete);
-            removeChatHistoryEntries(idsToDelete);
+            setChatHistories((prev) => prev.filter((entry) => !idsToDelete.includes(entry.id)));
+            if (selectedChatPairIds.includes(selectedChatId)) {
+                setSelectedChatId(null);
+            }
+            setSelectedChatPairIds([]);
         } catch (err) {
-            setChatHistoryError(err.message);
+            alert(err.message);
         } finally {
             setChatHistoryDeleting(false);
         }
     };
 
     const handleDeleteAllChatHistory = async () => {
-        if (chatHistories.length === 0) return;
-        if (!window.confirm('전체 대화 기록을 삭제할까요? 되돌릴 수 없어요.')) return;
+        if (!window.confirm('전체 대화 기록을 삭제하시겠습니까? 되돌릴 수 없습니다.')) return;
 
         setChatHistoryDeleting(true);
-        setChatHistoryError(null);
         try {
             await deleteAllHistories();
             setChatHistories([]);
-            setChatHistoryPage(0);
-            setChatHistoryHasMore(false);
-            setSelectedChatPairIds([]);
             setSelectedChatId(null);
+            setSelectedChatPairIds([]);
+            setChatHistoryHasMore(false);
         } catch (err) {
-            setChatHistoryError(err.message);
+            alert(err.message);
         } finally {
             setChatHistoryDeleting(false);
         }
+    };
+
+    const handleLoadMoreChatHistory = () => {
+        setChatHistoryLoadingMore(true);
+        setChatHistoryError(null);
+
+        const nextPage = chatHistoryPage + 1;
+        getHistories({ size: CHAT_HISTORY_SIZE, page: nextPage })
+            .then((page) => {
+                setChatHistories((prev) => [...prev, ...(page?.content ?? [])]);
+                setChatHistoryPage(nextPage);
+                setChatHistoryHasMore(!(page?.last ?? true));
+            })
+            .catch((err) => {
+                setChatHistoryError(err.message);
+            })
+            .finally(() => {
+                setChatHistoryLoadingMore(false);
+            });
     };
 
     const isSocialAccount = profile?.oauthProvider && profile.oauthProvider !== 'NONE';
@@ -566,6 +521,31 @@ function MyPage() {
                         )}
                     </section>
 
+                    {/* 💡 추가: 내가 작성한 댓글 */}
+                    <section className="mypage__section">
+                        <h3>내가 작성한 댓글</h3>
+                        {myComments.length === 0 ? (
+                            <p>작성한 댓글이 없습니다.</p>
+                        ) : (
+                            <ul className="mypage__post-list">
+                                {myComments.map((comment) => (
+                                    <li key={comment.id} className="mypage__post-item">
+                                        <Link
+                                            to={comment.postId ? `/main/community/${comment.postId}` : `/main/lectures/${comment.lectureId}`}
+                                            className="mypage__post-link"
+                                        >
+                                            <span className="mypage__post-title">{comment.content}</span>
+                                            <span className="mypage__post-meta">
+                                                {comment.postId ? '커뮤니티' : '강의'}
+                                                {comment.createdAt && ` · ${comment.createdAt.replace('T', ' ').slice(0, 16)}`}
+                                            </span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </section>
+
                     <section className="mypage__section">
                         <h3>내가 작성한 노트</h3>
                         {myNotes.length === 0 ? (
@@ -707,4 +687,4 @@ function MyPage() {
     );
 }
 
-export default MyPage;``
+export default MyPage;
