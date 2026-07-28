@@ -33,4 +33,9 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     // 관리자 강의 관리 목록용: 강의별 댓글 개수를 한 번에 집계한다 (대댓글도 lectureId를 그대로 가지므로 함께 집계됨).
     @Query("SELECT c.lectureId, COUNT(c) FROM Comment c WHERE c.lectureId IN :lectureIds AND c.isDeleted = 0 GROUP BY c.lectureId")
     List<Object[]> countByLectureIdsGrouped(@Param("lectureIds") List<Long> lectureIds);
+
+
+
+    // 💡 추가: 마이페이지 - 내가 작성한 댓글 목록 (삭제되지 않은 것만, 최신순)
+    Page<Comment> findByUserIdAndIsDeletedOrderByCreatedAtDesc(Long userId, Integer isDeleted, Pageable pageable);
 }
