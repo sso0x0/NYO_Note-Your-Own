@@ -14,11 +14,10 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     List<Comment> findByPostIdAndIsDeletedOrderByCreatedAtAsc(Long postId, Integer isDeleted);
 
-    // 트리 조회용: 삭제된 댓글도 함께 가져와야 살아있는 대댓글이 부모 없이 유실되지 않는다.
-    List<Comment> findByPostIdOrderByCreatedAtAsc(Long postId);
+    // 게시글 삭제·복구 시 해당 게시글에 연결된 원댓글과 답글을 함께 상태 변경한다.
+    List<Comment> findByPostId(Long postId);
 
-    // 강의 댓글 트리 조회용 (postId 버전과 동일한 이유로 삭제된 댓글도 포함)
-    List<Comment> findByLectureIdOrderByCreatedAtAsc(Long lectureId);
+    List<Comment> findByLectureIdAndIsDeletedOrderByCreatedAtAsc(Long lectureId, Integer isDeleted);
 
     Optional<Comment> findByIdAndIsDeleted(Long id, Integer isDeleted);
 
@@ -30,7 +29,17 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     Page<Comment> findByIsDeletedAndLectureIdIsNotNullOrderByCreatedAtDesc(Integer isDeleted, Pageable pageable);
 
+    // 관리자 목록에서는 삭제 여부와 관계없이 게시글/강의 댓글을 최신순으로 조회한다.
+    Page<Comment> findByPostIdIsNotNullOrderByCreatedAtDesc(Pageable pageable);
+
+    Page<Comment> findByLectureIdIsNotNullOrderByCreatedAtDesc(Pageable pageable);
+
     // 관리자 강의 관리 목록용: 강의별 댓글 개수를 한 번에 집계한다 (대댓글도 lectureId를 그대로 가지므로 함께 집계됨).
     @Query("SELECT c.lectureId, COUNT(c) FROM Comment c WHERE c.lectureId IN :lectureIds AND c.isDeleted = 0 GROUP BY c.lectureId")
     List<Object[]> countByLectureIdsGrouped(@Param("lectureIds") List<Long> lectureIds);
+
+
+
+    // 💡 추가: 마이페이지 - 내가 작성한 댓글 목록 (삭제되지 않은 것만, 최신순)
+    Page<Comment> findByUserIdAndIsDeletedOrderByCreatedAtDesc(Long userId, Integer isDeleted, Pageable pageable);
 }

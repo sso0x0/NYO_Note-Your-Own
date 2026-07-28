@@ -1,11 +1,15 @@
 package com.nyo.domain.comment.controller;
 
+import com.nyo.domain.comment.dto.CommentMyResponse;
 import com.nyo.domain.comment.dto.CommentRequest;
 import com.nyo.domain.comment.dto.CommentResponse;
 import com.nyo.domain.comment.service.CommentService;
 import com.nyo.global.security.SecurityUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +36,12 @@ public class CommentController {
     @GetMapping("/lectures/{lectureId}")
     public List<CommentResponse> findByLecture(@PathVariable Long lectureId) {
         return commentService.findByLecture(lectureId);
+    }
+
+    // 💡 추가: 마이페이지 - 내가 작성한 댓글 목록 (JWT 인증 필요, SecurityConfig에서 별도 permitAll 없음)
+    @GetMapping("/me")
+    public Page<CommentMyResponse> getMyComments(@PageableDefault(size = 10) Pageable pageable) {
+        return commentService.getMyComments(SecurityUtil.getCurrentUserId(), pageable);
     }
 
     @PostMapping

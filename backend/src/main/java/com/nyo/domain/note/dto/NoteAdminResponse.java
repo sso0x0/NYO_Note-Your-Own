@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
@@ -71,6 +72,9 @@ public class NoteAdminResponse {
 
     @Schema(description = "캐시된 좋아요수", example = "15")
     private Long likeCount;
+
+    @Schema(description = "제목 또는 본문에서 감지된 금지어")
+    private List<String> prohibitedWords;
 
     @Schema(description = "작성자 삭제 여부", example = "false")
     private Boolean isDeleted;

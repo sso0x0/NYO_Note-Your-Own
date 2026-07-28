@@ -3,6 +3,7 @@ package com.nyo.domain.user.repository;
 import com.nyo.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 import java.util.Optional;
 
 /** 회원(User) 엔티티 조회/중복확인용 리포지토리. 회원가입/로그인/마이페이지/관리자 기능 전반에서 사용. */
@@ -21,6 +22,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByOauthProviderAndOauthId(String oauthProvider, String oauthId);
     // 💡 추가: 구글 로그인 시 동일 이메일의 로컬 가입 계정이 있으면 새로 만들지 않고 연동하기 위해 사용
     Optional<User> findByEmail(String email);
+
+    // 노트 검색에서 작성자 닉네임 일부가 일치하는 사용자 ID를 찾을 때 사용한다.
+    List<User> findByNicknameContainingIgnoreCase(String nickname);
     // 💡 추가: 마이페이지 정보수정 시, 닉네임을 안 바꾸고 그대로 재저장해도
 // 자기 자신과 중복 체크에 걸리면 안 되므로 "본인 ID 제외" 버전이 필요함
     boolean existsByNicknameAndIdNot(String nickname, Long id);

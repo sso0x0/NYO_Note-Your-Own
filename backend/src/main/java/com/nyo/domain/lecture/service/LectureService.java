@@ -57,7 +57,7 @@ public interface LectureService {
     void refreshPopularLectures();
 
     // 키워드로 강의 검색 (제목/강사명/설명 대상, Elasticsearch 기반)
-    Page<LectureResponse> searchLectures(String keyword, Pageable pageable);
+    Page<LectureResponse> searchLectures(String keyword, String searchType, Pageable pageable);
 
     // 전체 강의로 Elasticsearch 색인 재구축 (색인 유실 복구, 초기 데이터 반영 등에 사용, 관리자 전용)
     void reindexAllLectures();

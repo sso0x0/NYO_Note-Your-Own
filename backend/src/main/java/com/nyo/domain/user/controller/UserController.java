@@ -5,6 +5,7 @@ import com.nyo.domain.user.dto.LoginResponse;
 import com.nyo.domain.user.dto.UserProfileUpdateRequest;
 import com.nyo.domain.user.dto.UserRequest;
 import com.nyo.domain.user.dto.UserResponse;
+import com.nyo.domain.user.dto.UserSanctionResponse;
 import com.nyo.domain.user.service.UserService;
 import com.nyo.global.response.ApiResponse;
 import com.nyo.global.security.SecurityUtil;
@@ -66,6 +67,14 @@ public class UserController {
     public ApiResponse<UserResponse> getMyInfo() {
         Long userId = SecurityUtil.getCurrentUserId();
         return ApiResponse.ok(userService.getMyInfo(userId));
+    }
+
+    // 로그인 후 최초 한 번만 미확인 경고 사유를 반환하며, 반환과 동시에 확인 처리합니다.
+    @Operation(summary = "미확인 경고 조회 및 확인")
+    @PostMapping("/me/warnings/latest/acknowledge")
+    public ApiResponse<UserSanctionResponse> acknowledgeLatestWarning() {
+        Long userId = SecurityUtil.getCurrentUserId();
+        return ApiResponse.ok(userService.acknowledgeLatestWarning(userId));
     }
 
     // 💡 추가: 마이페이지 - 개인정보 수정 (이름/닉네임/전화번호, 선택적으로 비밀번호까지 같이 변경 가능)

@@ -206,6 +206,14 @@ public class UserService {
                 .collect(java.util.stream.Collectors.toMap(User::getId, this::toResponse));
     }
 
+    // 작성자 닉네임 검색을 사용자 조회와 노트 조회로 분리하기 위해 일치하는 사용자 ID만 반환한다.
+    @Transactional(readOnly = true)
+    public List<Long> findUserIdsByNickname(String keyword) {
+        return userRepository.findByNicknameContainingIgnoreCase(keyword).stream()
+                .map(User::getId)
+                .toList();
+    }
+
     // ================== 여기까지 관리자 기능 ==================
     // ================== 관리자 기능 ==================
 
@@ -281,6 +289,40 @@ public class UserService {
                 .stream()
                 .map(this::toSanctionResponse)
                 .toList();
+    }
+
+    // 로그인 후 아직 확인하지 않은 최신 경고를 한 번만 반환하고 즉시 확인 시각을 기록합니다.
+    @Transactional
+    public UserSanctionResponse acknowledgeLatestWarning(Long userId) {
+        List<UserSanction> warnings = userSanctionRepository
+                .findByUserIdAndTypeAndEndAtIsNullOrderByCreatedAtDesc(
+                        userId,
+                        SanctionType.WARNING
+                );
+        if (warnings.isEmpty()) return null;
+
+        // 여러 경고가 로그인 전에 누적돼도 다음 로그인에 오래된 경고가 다시 뜨지 않게 모두 확인 처리합니다.
+        warnings.forEach(UserSanction::acknowledge);
+        return toSanctionResponse(warnings.get(0));
+    }
+
+    // 현재 적용 중인 최신 정지를 즉시 해제하고, 실제 해제 시각을 해당 정지 이력의 종료일로 기록합니다.
+    @Transactional
+    public UserResponse adminReleaseSuspension(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
+        if (user.getStatus() != UserStatus.SUSPENDED) {
+            throw new BusinessException(ErrorCode.MEMBER_SUSPENSION_NOT_ACTIVE);
+        }
+
+        UserSanction suspension = userSanctionRepository
+                .findTopByUserIdAndTypeOrderByCreatedAtDesc(userId, SanctionType.SUSPENSION)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_SUSPENSION_NOT_ACTIVE));
+
+        suspension.release(LocalDateTime.now());
+        user.changeStatus(UserStatus.ACTIVE);
+        return toResponse(user);
     }
 
     // ================== 여기까지 관리자 기능 ==================

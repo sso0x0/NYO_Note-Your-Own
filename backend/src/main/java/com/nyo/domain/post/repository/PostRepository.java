@@ -26,6 +26,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // 검색 색인(Elasticsearch)이 반환한 id 목록으로 실제 게시글 데이터를 한 번에 조회한다.
     List<Post> findAllByIdInAndIsDeleted(List<Long> ids, Integer isDeleted);
 
+    // 작성자 닉네임과 일치한 사용자들의 일반 게시글을 조회한다.
+    Page<Post> findByUserIdInAndIsDeletedAndIsNotice(
+            List<Long> userIds, Integer isDeleted, Integer isNotice, Pageable pageable);
+
     // 조회수만 직접 증가시켜 BaseEntity.updatedAt이 바뀌지 않게 한다.
     @Modifying
     @Query("update Post p set p.viewCount = p.viewCount + 1 where p.id = :id and p.isDeleted = 0")

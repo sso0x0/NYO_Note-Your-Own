@@ -28,7 +28,9 @@ export function getYoutubeVideoId(url) {
 
 export function getYoutubeThumbnailUrl(url) {
   const videoId = getYoutubeVideoId(url);
-  return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+  // hqdefault(480x360, 4:3)는 유튜브가 위아래에 검은 여백을 넣어 4:3으로 패딩한 이미지라
+  // 카드 썸네일에서 여백이 비치는 경우가 있다. mqdefault(320x180)는 처음부터 16:9라 여백이 없다.
+  return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : null;
 }
 
 // 강의 썸네일 우선순위: 등록된 썸네일 > 유튜브 링크에서 뽑은 썸네일 > 없음(null.png는 호출부에서 처리)

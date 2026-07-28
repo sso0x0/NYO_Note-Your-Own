@@ -4,8 +4,8 @@ export function getPostList({ page = 0, size = 10, noticeOnly = false, sort } = 
   return apiGet('/api/posts', { page, size, noticeOnly, sort });
 }
 
-export function searchPosts({ keyword, page = 0, size = 10 } = {}) {
-  return apiGet('/api/posts/search', { keyword, page, size });
+export function searchPosts({ keyword, searchType = 'all', page = 0, size = 10 } = {}) {
+  return apiGet('/api/posts/search', { keyword, searchType, page, size });
 }
 
 export function canCreateNotice() {
@@ -42,4 +42,9 @@ export function likePost(postId) {
 
 export function unlikePost(postId) {
   return apiDelete(`/api/posts/${postId}/like`);
+}
+
+// 내 댓글 조회
+export function getMyComments({ page = 0, size = 10 } = {}) {
+  return apiGet('/api/comments/me', { page, size });
 }

@@ -7,6 +7,8 @@ import com.nyo.domain.common.entity.Image;
 import com.nyo.domain.common.repository.ImageRepository;
 import com.nyo.domain.common.service.LikeService;
 import com.nyo.domain.common.service.ViewService;
+import com.nyo.domain.comment.entity.Comment;
+import com.nyo.domain.comment.repository.CommentRepository;
 import com.nyo.domain.post.document.PostDocument;
 import com.nyo.domain.post.dto.PostAdminResponse;
 import com.nyo.domain.post.dto.PostRequest;
@@ -21,6 +23,7 @@ import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
 import com.nyo.global.storage.FileStorageService;
 import com.nyo.global.response.PageResponse;
+import com.nyo.global.moderation.ProhibitedWordFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -48,7 +51,10 @@ import org.springframework.data.domain.Page;
 @Transactional(readOnly = true)
 public class PostService {
 
+
     private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
+    private final ProhibitedWordFilter prohibitedWordFilter;
     private final PostSearchRepository postSearchRepository; // 커뮤니티 게시글 검색 색인 (Elasticsearch). 공지글은 색인하지 않는다.
     private final ImageRepository imageRepository;
     private final LikeService likeService;
@@ -87,7 +93,7 @@ public class PostService {
     }
 
     // 키워드로 게시글 검색 (Elasticsearch에서 관련도순 id를 찾은 뒤, DB에서 실제 데이터를 조회해 순서를 맞춘다). 공지글은 대상에서 제외.
-    public PageResponse<PostResponse> searchPosts(String keyword, Pageable pageable) {
+    public PageResponse<PostResponse> searchPosts(String keyword, String searchType, Pageable pageable) {
         if (!StringUtils.hasText(keyword)) {
             return PageResponse.of(Page.empty(pageable));
         }
@@ -95,8 +101,26 @@ public class PostService {
         // 검색 결과는 ES 관련도 점수순으로 정렬되므로 요청에 담긴 정렬 조건(sort)은 무시한다.
         Pageable searchPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
 
-        Page<PostDocument> searchResult = postSearchRepository.searchByKeyword(keyword, searchPageable);
-        List<Long> ids = searchResult.getContent().stream().map(PostDocument::getId).toList();
+        // 선택한 검색 종류에 따라 게시글 제목, 본문 또는 전체 필드를 검색한다.
+        Page<PostDocument> searchResult = switch (searchType) {
+            case "title" -> postSearchRepository.searchByTitle(keyword, searchPageable);
+            case "content" -> postSearchRepository.searchByContent(keyword, searchPageable);
+            case "author" -> Page.empty(searchPageable);
+            default -> postSearchRepository.searchByKeyword(keyword, searchPageable);
+        };
+        List<Long> indexedIds = searchResult.getContent().stream().map(PostDocument::getId).toList();
+
+        List<Long> nicknameUserIds = ("all".equals(searchType) || "author".equals(searchType))
+                ? userService.findUserIdsByNickname(keyword.trim())
+                : List.of();
+        Page<Post> authorResult = nicknameUserIds.isEmpty()
+                ? Page.empty(searchPageable)
+                : postRepository.findByUserIdInAndIsDeletedAndIsNotice(nicknameUserIds, 0, 0, searchPageable);
+        java.util.LinkedHashSet<Long> mergedIds = authorResult.getContent().stream()
+                .map(Post::getId)
+                .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+        mergedIds.addAll(indexedIds);
+        List<Long> ids = List.copyOf(mergedIds);
 
         if (ids.isEmpty()) {
             return PageResponse.of(Page.empty(searchPageable));
@@ -118,7 +142,10 @@ public class PostService {
 
         // 건너뛴 id 수만큼 totalElements를 보정해 실제 반환된 content 개수와 어긋나지 않게 한다.
         long missing = ids.size() - content.size();
-        long totalElements = searchResult.getTotalElements() - missing;
+        long totalElements = Math.max(
+                searchResult.getTotalElements() - missing,
+                authorResult.getTotalElements()
+        );
 
         return PageResponse.of(new PageImpl<>(content, searchPageable, totalElements));
     }
@@ -163,7 +190,9 @@ public class PostService {
 
     // 관리자 게시글 관리 목록: 공지 여부와 관계없이 최신순으로 페이징하고, 작성자 상세 정보(이메일/권한 등)를 함께 내려준다.
     public Page<PostAdminResponse> adminGetPostList(Pageable pageable) {
-        Page<Post> posts = postRepository.findByIsDeleted(0, pageable);
+        // 관리자 목록에는 삭제된 게시글도 포함해 isDeleted 상태를 확인할 수 있게 한다.
+        // 일반 사용자용 조회는 기존 findByIsDeleted(0, ...) 조건을 그대로 사용한다.
+        Page<Post> posts = postRepository.findAll(pageable);
         Map<Long, UserResponse> usersById = userService.adminGetUsersByIds(
                 posts.getContent().stream().map(Post::getUserId).distinct().toList()
         );
@@ -254,10 +283,24 @@ public class PostService {
             throw new BusinessException(ErrorCode.POST_ACCESS_DENIED);
         }
 
-        deletePostImages(postId, post.getThumbnailUrl());
         // isDeleted 기반 소프트 삭제: comments 등 자식 데이터가 참조하는 row를 물리 삭제하지 않는다.
+        // 관리자 복구를 위해 GCS 이미지는 삭제하지 않고 그대로 보존한다.
         post.delete();
+        // 게시글이 사용자 화면에서 사라질 때 연결된 원댓글과 답글도 모두 삭제 상태로 바꾼다.
+        commentRepository.findByPostId(postId).forEach(Comment::delete);
         deindexPost(postId); // 검색 결과에서도 제외 (공지가 아니었다면 원래 있던 것만 지워짐)
+    }
+
+    @Transactional
+    public void adminRestore(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
+        post.restore();
+        // 게시글 복구 시 연결 댓글도 함께 복구한다. 이후 댓글별 개별 삭제·복구도 가능하다.
+        commentRepository.findByPostId(postId).forEach(Comment::restore);
+        if (!post.isNotice()) {
+            indexPost(PostDocument.from(post));
+        }
     }
 
     // ES 색인 저장 실패가 게시글 생성/수정 트랜잭션 자체를 롤백시키지 않도록 격리한다.
@@ -333,6 +376,7 @@ public class PostService {
                 .thumbnailUrl(post.getThumbnailUrl())
                 .viewCount(post.getViewCount())
                 .likeCount(post.getLikeCount())
+                .prohibitedWords(prohibitedWordFilter.findMatchedWords(post.getTitle(), post.getContent()))
                 .isDeleted(post.isDeleted())
                 .notice(post.isNotice())
                 .createdAt(post.getCreatedAt())
