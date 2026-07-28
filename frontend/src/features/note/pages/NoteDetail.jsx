@@ -3,7 +3,7 @@ import { parseTextColors } from '../../../utils/textColor'
 import { useAuth } from '../../../context/AuthContext'
 import { parseMainImage } from '../../../utils/mainImage'
 import { generateAiTags, getNoteTags } from '../api/tag'
-import { sendMessage } from '../../chat/api/chat'
+import { getHistories, sendMessage } from '../../chat/api/chat'
 import ChatMessage from '../../chat/ChatMessage'
 import ChatInput from '../../chat/ChatInput'
 import '../../chat/chat.css'
@@ -18,6 +18,25 @@ function NoteDetailChat({ lectureId, noteId }) {
   const [chatSending, setChatSending] = useState(false)
   const [chatError, setChatError] = useState(null)
   const chatBottomRef = useRef(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setChatMessages([])
+    setChatError(null)
+
+    // 연결된 강의와 같은 대화 기록을 조회해 양쪽 화면에서 동일한 내용을 보여줍니다.
+    getHistories({ lectureId })
+        .then((response) => {
+          if (!cancelled) setChatMessages([...(response?.content ?? [])].reverse())
+        })
+        .catch((error) => {
+          if (!cancelled) setChatError(error.message)
+        })
+
+    return () => {
+      cancelled = true
+    }
+  }, [lectureId])
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -75,6 +94,29 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
   const [tagError, setTagError] = useState(null)
   const userId = auth?.userId
 
+  const loadTags = async () => {
+    try {
+      const response = await getNoteTags(noteId)
+      setTags(response ?? [])
+    } catch (error) {
+      setTagError(error.message)
+    }
+  }
+
+  const handleGenerateTags = async () => {
+    if (tagGenerating) return
+    setTagGenerating(true)
+    setTagError(null)
+    try {
+      await generateAiTags(noteId)
+      await loadTags()
+    } catch (error) {
+      setTagError(error.message)
+    } finally {
+      setTagGenerating(false)
+    }
+  }
+
   const loadNote = async () => {
     setLoading(true)
     try {
@@ -102,15 +144,6 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
       headers: { Authorization: `Bearer ${auth.accessToken}` },
     })
     if (response.ok) setLiked(await response.json())
-  }
-
-  const loadTags = async () => {
-    try {
-      setTags(await getNoteTags(noteId))
-    } catch (error) {
-      // 태그 조회는 부가 정보라 실패해도 노트 본문 표시를 막지 않는다.
-      setTagError(error.message)
-    }
   }
 
   useEffect(() => {
@@ -147,20 +180,6 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
       await loadNote()
     } finally {
       setLikeLoading(false)
-    }
-  }
-
-  const handleGenerateTags = async () => {
-    if (tagGenerating) return
-    setTagGenerating(true)
-    setTagError(null)
-    try {
-      await generateAiTags(noteId)
-      await loadTags()
-    } catch (error) {
-      setTagError(error.message)
-    } finally {
-      setTagGenerating(false)
     }
   }
 
@@ -398,15 +417,17 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
   const renderColoredText = (text, keyPrefix) => (
       // 글자색 기능: #RRGGBB 형식으로 검증된 값만 React style에 전달합니다.
       parseTextColors(text).map((part, index) => (
-          <span style={part.color ? { color: part.color } : undefined} key={`${keyPrefix}-${index}`}>
-        <span style={{
-          fontWeight: part.bold ? 700 : undefined,
-          fontStyle: part.italic ? 'italic' : undefined,
-          textDecoration: part.underline ? 'underline' : undefined,
-        }}>
-        {part.text}
-        </span>
-      </span>
+          <span
+              style={{
+                color: part.color || undefined,
+                fontWeight: part.bold ? 700 : undefined,
+                fontStyle: part.italic ? 'italic' : undefined,
+                textDecoration: part.underline ? 'underline' : undefined,
+              }}
+              key={`${keyPrefix}-${index}`}
+          >
+            {part.text}
+          </span>
       ))
   )
 
@@ -415,7 +436,6 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
         <header className="note-header">
           <div>
             <h1>노트 상세</h1>
-            <p>선택한 노트의 내용을 확인합니다.</p>
           </div>
           <div className="note-header-actions">
             {note && <button type="button" onClick={exportNotePdf}>PDF 저장</button>}

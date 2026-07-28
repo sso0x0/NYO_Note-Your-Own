@@ -33,8 +33,7 @@ function NoteDetailRoute() {
         <NoteDetail
             noteId={noteId}
             onBack={() => navigate({ pathname: '/main/notes', search: location.search })}
-            // 노트 수정은 연결된 강의의 영상 아래 작성기에서 계속 진행합니다.
-            onEdit={(note) => navigate(`/main/lectures/${note.lectureId}/watch`)}
+            onEdit={() => navigate({ pathname: 'edit', search: location.search })}
             // 태그 칩을 누르면 같은 태그가 붙은 다른 노트들을 목록에서 검색해 보여준다.
             onTagClick={(tagName) => navigate({ pathname: '/main/notes', search: `?keyword=${encodeURIComponent(tagName)}` })}
         />

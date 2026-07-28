@@ -46,10 +46,37 @@
   gap: 4px;
 }
 
-.note-card__lecture {
+.note-card__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   font-weight: 600;
+}
+
+.note-card__category {
   color: var(--accent);
+}
+
+.note-card__category::after {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
+  vertical-align: middle;
+}
+
+.note-card__category:last-child::after {
+  content: none;
+}
+
+.note-card__lecture {
+  color: var(--text);
+  font-weight: 500;
 }
 
 .note-card__title {
@@ -63,6 +90,24 @@
   margin: 0;
   font-size: 13px;
   color: var(--text);
+}
+
+.note-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.note-card__tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #eff6ff;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
 }
 
 .note-card__meta {

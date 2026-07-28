@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import './NoteCard.css';
 
 function NoteCard({ note }) {
-  const { id, title, authorNickname, lectureTitle, thumbnailUrl, viewCount, likeCount, createdAt } = note;
+  const { id, title, authorNickname, lectureTitle, categoryName, thumbnailUrl, viewCount, likeCount, createdAt, tags } = note;
 
   return (
     <article className="note-card">
@@ -16,9 +16,24 @@ function NoteCard({ note }) {
         </div>
 
         <div className="note-card__body">
-          {lectureTitle && <span className="note-card__lecture">{lectureTitle}</span>}
+          {(categoryName || lectureTitle) && (
+            <div className="note-card__eyebrow">
+              {categoryName && <span className="note-card__category">{categoryName}</span>}
+              {lectureTitle && <span className="note-card__lecture">{lectureTitle}</span>}
+            </div>
+          )}
           <h3 className="note-card__title">{title}</h3>
           {authorNickname && <p className="note-card__author">{authorNickname}</p>}
+
+          {tags?.length > 0 && (
+            <div className="note-card__tags">
+              {tags.map((tag) => (
+                <span key={tag.tagId} className="note-card__tag">
+                  #{tag.tagName}
+                </span>
+              ))}
+            </div>
+          )}
 
           <div className="note-card__meta">
             <span>조회 {viewCount ?? 0}</span>
