@@ -107,6 +107,9 @@ function LoginPage() {
                     {!error && location.state?.justSignedUp && (
                         <p className="auth-page__success">회원가입이 완료되었습니다. 로그인해주세요.</p>
                     )}
+                    {!error && location.state?.justResetPassword && (
+                        <p className="auth-page__success">비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.</p>
+                    )}
                     {error && <p className="auth-page__error" role="alert">{error}</p>}
 
                     <div className="auth-page__field">
@@ -160,6 +163,10 @@ function LoginPage() {
                     <button type="submit" className="auth-page__submit" disabled={submitting}>
                         {submitting ? '로그인 중...' : '로그인'}
                     </button>
+
+                    <p className="auth-page__find-account">
+                        <Link to="/find-account">아이디 · 비밀번호 찾기</Link>
+                    </p>
                 </form>
 
                 <div className="auth-page__divider">
