@@ -34,9 +34,10 @@ public class NoteController {
     @GetMapping
     public PageResponse<NoteResponse> findAll(
             // 노트 목록은 한 페이지에 12개씩 서버에서 조회하며 요청한 정렬 조건을 DB에 적용합니다.
-            @PageableDefault(size = 12, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(size = 12, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @RequestParam(required = false) Long categoryId
     ) {
-        return noteService.findAll(pageable);
+        return noteService.findAll(pageable, categoryId);
     }
 
     // 노트 작성
@@ -52,9 +53,10 @@ public class NoteController {
     @GetMapping("/search")
     public PageResponse<NoteResponse> searchNotes(
             @RequestParam String keyword,
+            @RequestParam(defaultValue = "all") String searchType,
             @PageableDefault(size = 12) Pageable pageable
     ) {
-        return noteService.searchNotes(keyword, pageable);
+        return noteService.searchNotes(keyword, searchType, pageable);
     }
 
     // 마이페이지 - 내가 작성한 노트 목록

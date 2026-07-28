@@ -87,7 +87,7 @@ public class PostService {
     }
 
     // 키워드로 게시글 검색 (Elasticsearch에서 관련도순 id를 찾은 뒤, DB에서 실제 데이터를 조회해 순서를 맞춘다). 공지글은 대상에서 제외.
-    public PageResponse<PostResponse> searchPosts(String keyword, Pageable pageable) {
+    public PageResponse<PostResponse> searchPosts(String keyword, String searchType, Pageable pageable) {
         if (!StringUtils.hasText(keyword)) {
             return PageResponse.of(Page.empty(pageable));
         }
@@ -95,8 +95,26 @@ public class PostService {
         // 검색 결과는 ES 관련도 점수순으로 정렬되므로 요청에 담긴 정렬 조건(sort)은 무시한다.
         Pageable searchPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
 
-        Page<PostDocument> searchResult = postSearchRepository.searchByKeyword(keyword, searchPageable);
-        List<Long> ids = searchResult.getContent().stream().map(PostDocument::getId).toList();
+        // 선택한 검색 종류에 따라 게시글 제목, 본문 또는 전체 필드를 검색한다.
+        Page<PostDocument> searchResult = switch (searchType) {
+            case "title" -> postSearchRepository.searchByTitle(keyword, searchPageable);
+            case "content" -> postSearchRepository.searchByContent(keyword, searchPageable);
+            case "author" -> Page.empty(searchPageable);
+            default -> postSearchRepository.searchByKeyword(keyword, searchPageable);
+        };
+        List<Long> indexedIds = searchResult.getContent().stream().map(PostDocument::getId).toList();
+
+        List<Long> nicknameUserIds = ("all".equals(searchType) || "author".equals(searchType))
+                ? userService.findUserIdsByNickname(keyword.trim())
+                : List.of();
+        Page<Post> authorResult = nicknameUserIds.isEmpty()
+                ? Page.empty(searchPageable)
+                : postRepository.findByUserIdInAndIsDeletedAndIsNotice(nicknameUserIds, 0, 0, searchPageable);
+        java.util.LinkedHashSet<Long> mergedIds = authorResult.getContent().stream()
+                .map(Post::getId)
+                .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+        mergedIds.addAll(indexedIds);
+        List<Long> ids = List.copyOf(mergedIds);
 
         if (ids.isEmpty()) {
             return PageResponse.of(Page.empty(searchPageable));
@@ -118,7 +136,10 @@ public class PostService {
 
         // 건너뛴 id 수만큼 totalElements를 보정해 실제 반환된 content 개수와 어긋나지 않게 한다.
         long missing = ids.size() - content.size();
-        long totalElements = searchResult.getTotalElements() - missing;
+        long totalElements = Math.max(
+                searchResult.getTotalElements() - missing,
+                authorResult.getTotalElements()
+        );
 
         return PageResponse.of(new PageImpl<>(content, searchPageable, totalElements));
     }

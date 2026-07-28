@@ -22,4 +22,19 @@ public interface LectureSearchRepository extends ElasticsearchRepository<Lecture
             }
             """)
     Page<LectureDocument> searchByKeyword(String keyword, Pageable pageable);
+
+    @Query(""" 
+            { "multi_match": { "query": "?0", "fields": ["title^3"], "type": "bool_prefix" } }
+            """)
+    Page<LectureDocument> searchByTitle(String keyword, Pageable pageable);
+
+    @Query("""
+            { "multi_match": { "query": "?0", "fields": ["description"], "type": "bool_prefix" } }
+            """)
+    Page<LectureDocument> searchByContent(String keyword, Pageable pageable);
+
+    @Query("""
+            { "multi_match": { "query": "?0", "fields": ["instructor^2"], "type": "bool_prefix" } }
+            """)
+    Page<LectureDocument> searchByAuthor(String keyword, Pageable pageable);
 }

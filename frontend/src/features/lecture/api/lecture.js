@@ -14,8 +14,8 @@ export function increaseLectureViewCount(id) {
   return apiPost(`/api/lectures/${id}/view`);
 }
 
-export function searchLectures({ keyword, page = 0, size = 20 } = {}) {
-  return apiGet('/api/lectures/search', { keyword, page, size });
+export function searchLectures({ keyword, searchType = 'all', page = 0, size = 20 } = {}) {
+  return apiGet('/api/lectures/search', { keyword, searchType, page, size });
 }
 
 // 현재 로그인 사용자가 이 강의에 수강신청했는지 여부.

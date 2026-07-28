@@ -49,9 +49,10 @@ public class PostController {
     @GetMapping("/search")
     public PageResponse<PostResponse> searchPosts(
             @RequestParam String keyword,
+            @RequestParam(defaultValue = "all") String searchType,
             @PageableDefault(size = 10) Pageable pageable
     ) {
-        return postService.searchPosts(keyword, pageable);
+        return postService.searchPosts(keyword, searchType, pageable);
     }
 
     @PostMapping

@@ -54,6 +54,8 @@ function CategoryIcon({ name = '' }) {
 function MainPage() {
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
+  const [searchType, setSearchType] = useState('all');
+  const [appliedSearchType, setAppliedSearchType] = useState('all');
   const [lectures, setLectures] = useState([]);
   const [notes, setNotes] = useState([]);
   const [posts, setPosts] = useState([]);
@@ -77,9 +79,9 @@ function MainPage() {
 
     const requests = appliedKeyword
       ? [
-          searchLectures({ keyword: appliedKeyword, size: HIGHLIGHT_SIZE }),
-          searchNotes({ keyword: appliedKeyword, size: HIGHLIGHT_SIZE }),
-          searchPosts({ keyword: appliedKeyword, size: HIGHLIGHT_SIZE }),
+          searchLectures({ keyword: appliedKeyword, searchType: appliedSearchType, size: HIGHLIGHT_SIZE }),
+          searchNotes({ keyword: appliedKeyword, searchType: appliedSearchType, size: HIGHLIGHT_SIZE }),
+          searchPosts({ keyword: appliedKeyword, searchType: appliedSearchType, size: HIGHLIGHT_SIZE }),
         ]
       : [
           getLectureList({ size: HIGHLIGHT_SIZE, sort: 'likeCount,desc' }),
@@ -104,16 +106,19 @@ function MainPage() {
     return () => {
       cancelled = true;
     };
-  }, [appliedKeyword]);
+  }, [appliedKeyword, appliedSearchType]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     setAppliedKeyword(keyword.trim());
+    setAppliedSearchType(searchType);
   };
 
   const handleReset = () => {
     setKeyword('');
     setAppliedKeyword('');
+    setSearchType('all');
+    setAppliedSearchType('all');
   };
 
   const scrollLectures = (direction) => {
@@ -129,6 +134,18 @@ function MainPage() {
         <div className="main-page__hero-inner">
           <h1>오늘은 무엇을 배워볼까요?</h1>
           <form className="main-page__search" onSubmit={handleSearchSubmit}>
+            {/* 검색창 왼쪽에서 통합·제목·내용·작성자 검색 범위를 선택한다. */}
+            <select
+              className="main-page__search-type"
+              aria-label="검색 종류"
+              value={searchType}
+              onChange={(e) => setSearchType(e.target.value)}
+            >
+              <option value="all">통합검색</option>
+              <option value="title">제목</option>
+              <option value="content">내용</option>
+              <option value="author">작성자</option>
+            </select>
             <div className="main-page__search-box">
               <svg className="main-page__search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <circle cx="11" cy="11" r="7" stroke="#999" strokeWidth="2" />
