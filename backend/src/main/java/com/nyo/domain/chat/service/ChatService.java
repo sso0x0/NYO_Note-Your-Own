@@ -38,10 +38,11 @@ public class ChatService {
             이 "###" 기호는 너에게 노트 구간을 구분해주기 위한 표시일 뿐이니, 답변에서 노트를 언급할 때는 "###"를 빼고 제목 텍스트만 자연스럽게 말해라.
             노트 안에 코드블럭(```)이 있으면 그 코드 내용도 빠짐없이 정확히 읽고 답변에 반영해라.
 
-            - 질문과 관련된 내용이 노트 안에 있으면 그 내용을 근거로 구체적으로 답변해라. 여러 노트 중 어떤 노트를 참고했는지 언급할 때는 제목을 따옴표(" ")가 아니라 【 】로 감싸서 표기해라 (예: "노트 【리액트 정리】에 따르면...").
+            - 질문과 관련된 내용이 노트 안에 있으면 그 내용을 근거로 구체적으로 답변해라. 여러 노트 중 어떤 노트를 참고했는지 언급할 때는 제목을 【 】로 감싸서 표기해라 (예: "노트 【리액트 정리】에 따르면...").
             - "노트에 없는 내용"이라는 말은 노트를 다 살펴봐도 정말 관련 내용이 없을 때만, 그것도 딱 한 번만 짧게 언급해라. 노트에 관련 내용이 조금이라도 있으면 이 표현을 쓰지 말고 그 내용부터 근거로 답변해라.
-            - 노트 발췌가 "(작성된 노트가 없습니다)"이면 노트가 아직 없다는 걸 알리고 일반 지식으로 답한 뒤, 관련 내용을 노트로 남겨보라고 자연스럽게 권해라.
-            - 굵게(**), 인라인 코드(`), 글머리 기호(-) 같은 마크다운 문법을 쓰지 말고 평범한 문장으로 간결하게 답변해라. 답변 화면이 마크다운을 그림으로 바꿔주지 않아서 기호가 글자 그대로 보인다.
+            - 노트 발췌가 (작성된 노트가 없습니다)이면 노트가 아직 없다는 걸 알리고 일반 지식으로 답한 뒤, 관련 내용을 노트로 남겨보라고 자연스럽게 권해라.
+            - 굵게(**), 글머리 기호(-) 같은 마크다운 문법을 쓰지 말고 평범한 문장으로 간결하게 답변해라. 답변 화면이 마크다운을 그림으로 바꿔주지 않아서 기호가 글자 그대로 보인다.
+            - 답변에서 인용부호가 필요한 모든 경우(변수명·메서드명 강조, 노트 원문 인용 등)에 큰따옴표(")나 백틱(`)은 절대 쓰지 말고 반드시 작은따옴표(')만 써라. 예를 들어 "getUsers"나 `getUsers`가 아니라 'getUsers'라고 써라.
             - 다만 여러 줄짜리 코드를 보여줄 때는 예외로 코드블럭(```)은 그대로 사용해라.
             - 불필요하게 길게 늘어놓지 마라.
 
@@ -75,6 +76,9 @@ public class ChatService {
         messages.add(Map.of("role", "user", "content", request.getMessage()));
 
         String answer = openAiClient.chat(messages);
+        // AI가 프롬프트 지시를 안 지키고 큰따옴표/백틱을 섞어 쓰는 경우가 있어, 화면에 보이기 전에
+        // 코드로 확실하게 전부 작은따옴표로 바꿔버린다 (프롬프트만으로는 100% 보장이 안 됨).
+        answer = answer.replace('"', '\'').replace('`', '\'');
 
         ChatHistory saved = chatHistoryRepository.save(ChatHistory.builder()
                 .userId(userId)
@@ -123,7 +127,7 @@ public class ChatService {
         List<NoteSnippet> notes = new ArrayList<>();
 
         if (noteId != null) {
-            findNoteById(userId, noteId).ifPresent(notes::add);
+            findNoteById(noteId).ifPresent(notes::add);
         }
 
         List<String> keywords = extractKeywords(question);
@@ -152,11 +156,14 @@ public class ChatService {
         return context.toString();
     }
 
-    private Optional<NoteSnippet> findNoteById(Long userId, Long noteId) {
+    // 노트는 어차피 전체 공개 게시물이라, 지금 화면에 띄워 놓고 보고 있는 노트(noteId)라면
+    // 작성자가 본인이 아니어도 그 내용을 그대로 참고하게 한다. (아래 searchNotes의 키워드/최근
+    // 노트 폴백 검색은 "내 노트 복습"용이라 계속 본인 노트로만 제한한다.)
+    private Optional<NoteSnippet> findNoteById(Long noteId) {
         List<NoteSnippet> result = jdbcTemplate.query(
-                "SELECT id, title, content FROM notes WHERE id = ? AND user_id = ? AND is_deleted = 0",
+                "SELECT id, title, content FROM notes WHERE id = ? AND is_deleted = 0",
                 (rs, rowNum) -> new NoteSnippet(rs.getLong("id"), rs.getString("title"), rs.getString("content")),
-                noteId, userId);
+                noteId);
         return result.stream().findFirst();
     }
 
