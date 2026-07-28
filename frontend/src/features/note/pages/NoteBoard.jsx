@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../context/AuthContext'
-import { getCategoryList } from '../../lecture/api/category'
 
 const sortOptions = [
     { value: 'createdAt', label: '최신순' },
@@ -17,9 +16,11 @@ const readListStateFromUrl = () => {
     const params = new URLSearchParams(window.location.search)
     const page = Number.parseInt(params.get('page') ?? '1', 10)
     const sort = params.get('sort') ?? 'createdAt'
+    const keyword = params.get('keyword') ?? ''
     return {
         page: Number.isInteger(page) && page > 0 ? page : 1,
         sort: NOTE_SORT_VALUES.has(sort) ? sort : 'createdAt',
+        keyword,
     }
 }
 
@@ -28,8 +29,8 @@ function NoteBoard({ onOpenNote }) {
     const [notes, setNotes] = useState([])
     const initialListState = readListStateFromUrl()
     const [sortBy, setSortBy] = useState(initialListState.sort)
-    const [categories, setCategories] = useState([])
-    const [categoryId, setCategoryId] = useState(new URLSearchParams(window.location.search).get('categoryId') ?? '')
+    // 노트 상세의 태그 칩을 눌러 들어오면 URL의 keyword로 해당 태그가 붙은 노트만 검색해 보여준다.
+    const [keyword, setKeyword] = useState(initialListState.keyword)
     const [message, setMessage] = useState('노트를 불러오는 중입니다.')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
@@ -37,7 +38,7 @@ function NoteBoard({ onOpenNote }) {
     const [totalPages, setTotalPages] = useState(0)
     const [totalElements, setTotalElements] = useState(0)
 
-    const loadNotes = useCallback(async (page, sort, category = categoryId) => {
+    const loadNotes = useCallback(async (page, sort, tagKeyword) => {
         setLoading(true)
         setError('')
         try {
@@ -45,11 +46,16 @@ function NoteBoard({ onOpenNote }) {
             const params = new URLSearchParams({
                 page: String(page - 1),
                 size: String(NOTES_PER_PAGE),
-                sort: `${sort},desc`,
             })
-            // 선택한 카테고리를 서버에 전달해 노트와 연결된 강의의 categoryId를 기준으로 필터링한다.
-            if (category) params.set('categoryId', category)
-            const response = await fetch(`/api/notes?${params}`, {
+            // 태그 검색은 제목/본문/태그를 함께 보는 Elasticsearch 검색 API를 그대로 재사용한다 (관련도순 정렬).
+            let path = '/api/notes'
+            if (tagKeyword) {
+                params.set('keyword', tagKeyword)
+                path = '/api/notes/search'
+            } else {
+                params.set('sort', `${sort},desc`)
+            }
+            const response = await fetch(`${path}?${params}`, {
                 headers: { Authorization: `Bearer ${auth?.accessToken}` },
             })
             const data = await response.json()
@@ -65,7 +71,13 @@ function NoteBoard({ onOpenNote }) {
             setNotes(data.content ?? [])
             setTotalPages(data.totalPages ?? 0)
             setTotalElements(data.totalElements ?? 0)
-            setMessage(data.totalElements > 0 ? `전체 ${data.totalElements}개의 노트` : '등록된 노트가 없습니다.')
+            if (tagKeyword) {
+                setMessage(data.totalElements > 0
+                    ? `'${tagKeyword}' 태그로 검색한 노트 ${data.totalElements}건`
+                    : `'${tagKeyword}' 태그가 붙은 노트가 없습니다.`)
+            } else {
+                setMessage(data.totalElements > 0 ? `전체 ${data.totalElements}개의 노트` : '등록된 노트가 없습니다.')
+            }
         } catch (error) {
             const errorMessage = `노트 목록 조회 실패: ${error.message}`
             setMessage(errorMessage)
@@ -73,28 +85,34 @@ function NoteBoard({ onOpenNote }) {
         } finally {
             setLoading(false)
         }
-    }, [auth?.accessToken, categoryId])
+    }, [auth])
 
-    const movePage = useCallback((page, sort = sortBy, category = categoryId) => {
+    const movePage = useCallback((page, sort = sortBy) => {
         const safePage = Math.max(1, page)
         // 목록 상태를 URL에 저장해 새로고침하거나 상세 화면에서 돌아와도 같은 위치를 복원합니다.
         const params = new URLSearchParams(window.location.search)
         params.set('page', String(safePage))
         params.set('sort', sort)
-        if (category) params.set('categoryId', category)
-        else params.delete('categoryId')
+        if (keyword) {
+            params.set('keyword', keyword)
+        } else {
+            params.delete('keyword')
+        }
         window.history.pushState(null, '', `${window.location.pathname}?${params}`)
         setCurrentPage(safePage)
         setSortBy(sort)
-        setCategoryId(category)
-    }, [sortBy, categoryId])
+    }, [sortBy, keyword])
 
-    useEffect(() => {
-        // 강의 게시판과 동일한 카테고리 목록을 가져와 노트 게시판 정렬 옆 선택 칸에 표시한다.
-        getCategoryList()
-            .then(setCategories)
-            .catch(() => setCategories([]))
-    }, [])
+    const clearTagFilter = useCallback(() => {
+        // 태그 검색 결과에서 전체 노트 목록으로 되돌아간다.
+        const params = new URLSearchParams(window.location.search)
+        params.delete('keyword')
+        params.set('page', '1')
+        params.set('sort', sortBy)
+        window.history.pushState(null, '', `${window.location.pathname}?${params}`)
+        setKeyword('')
+        setCurrentPage(1)
+    }, [sortBy])
 
     useEffect(() => {
         // 브라우저 뒤로가기/앞으로가기 시 주소의 페이지와 정렬 조건을 목록 상태에 다시 반영합니다.
@@ -102,7 +120,7 @@ function NoteBoard({ onOpenNote }) {
             const restored = readListStateFromUrl()
             setCurrentPage(restored.page)
             setSortBy(restored.sort)
-            setCategoryId(new URLSearchParams(window.location.search).get('categoryId') ?? '')
+            setKeyword(restored.keyword)
         }
         window.addEventListener('popstate', restoreListState)
         return () => window.removeEventListener('popstate', restoreListState)
@@ -113,7 +131,7 @@ function NoteBoard({ onOpenNote }) {
         const params = new URLSearchParams(window.location.search)
         params.set('page', String(currentPage))
         params.set('sort', sortBy)
-        if (categoryId) params.set('categoryId', categoryId)
+        if (keyword) params.set('keyword', keyword)
         window.history.replaceState(null, '', `${window.location.pathname}?${params}`)
         // URL 초기화는 컴포넌트가 처음 열릴 때 한 번만 수행합니다.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -121,10 +139,10 @@ function NoteBoard({ onOpenNote }) {
 
     useEffect(() => {
         // 초기 API 조회는 외부 서버 상태를 React 목록 상태와 동기화하기 위해 필요합니다.
-        // 페이지나 정렬 조건이 바뀔 때 해당하는 12개만 서버에서 다시 조회합니다.
+        // 페이지, 정렬 조건, 태그 검색어가 바뀔 때 해당하는 12개만 서버에서 다시 조회합니다.
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        loadNotes(currentPage, sortBy, categoryId)
-    }, [currentPage, sortBy, categoryId, loadNotes])
+        loadNotes(currentPage, sortBy, keyword)
+    }, [currentPage, sortBy, keyword, loadNotes])
     // 페이지 번호가 많아져도 한 번에 10개만 표시하고 이전/다음으로 묶음을 이동합니다.
     const pageGroupStart = Math.floor((currentPage - 1) / PAGES_PER_GROUP) * PAGES_PER_GROUP + 1
     const pageGroupEnd = Math.min(pageGroupStart + PAGES_PER_GROUP - 1, totalPages)
@@ -135,10 +153,6 @@ function NoteBoard({ onOpenNote }) {
 
     const changeSort = (event) => {
         movePage(1, event.target.value)
-    }
-
-    const changeCategory = (nextCategoryId) => {
-        movePage(1, sortBy, nextCategoryId)
     }
 
     return (
@@ -154,7 +168,12 @@ function NoteBoard({ onOpenNote }) {
                     <p>{message}</p>
                 </div>
 
-                <div className="note-list-controls">
+                {keyword ? (
+                    <div className="note-tag-filter-banner">
+                        <span>태그 <strong>{keyword}</strong> 검색 결과 (관련도순)</span>
+                        <button type="button" onClick={clearTagFilter}>전체 노트 보기</button>
+                    </div>
+                ) : (
                     <label className="sort-select-label">
                         정렬
                         <select value={sortBy} onChange={changeSort}>
@@ -165,30 +184,7 @@ function NoteBoard({ onOpenNote }) {
                             ))}
                         </select>
                     </label>
-                    {/* 강의 게시판처럼 전체와 각 강의 카테고리를 독립된 버튼으로 표시한다. */}
-                    <div className="note-category-buttons" role="group" aria-label="강의 카테고리 필터">
-                        <button
-                            type="button"
-                            className={categoryId === '' ? 'is-active' : ''}
-                            onClick={() => changeCategory('')}
-                        >
-                            전체
-                        </button>
-                        {categories.map((category) => {
-                            const value = String(category.id)
-                            return (
-                                <button
-                                    type="button"
-                                    key={category.id}
-                                    className={categoryId === value ? 'is-active' : ''}
-                                    onClick={() => changeCategory(value)}
-                                >
-                                    {category.name}
-                                </button>
-                            )
-                        })}
-                    </div>
-                </div>
+                )}
 
                 {/* 목록 상태를 로딩/오류/빈 목록/정상 목록으로 분리해 사용자가 현재 상태를 알 수 있게 합니다. */}
                 {loading && (
@@ -202,13 +198,13 @@ function NoteBoard({ onOpenNote }) {
                     <div className="board-state board-error" role="alert">
                         <strong>노트를 불러오지 못했습니다.</strong>
                         <p>{error}</p>
-                        <button type="button" onClick={() => loadNotes(currentPage, sortBy)}>다시 시도</button>
+                        <button type="button" onClick={() => loadNotes(currentPage, sortBy, keyword)}>다시 시도</button>
                     </div>
                 )}
 
                 {!loading && !error && totalElements === 0 && (
                     <div className="board-state board-empty">
-                        {/* 빈 목록 안내에서는 기본 이미지(nullimg)를 표시하지 않고 문구만 보여준다. */}
+                        <img src={DEFAULT_MAIN_IMAGE} alt="등록된 노트 없음" />
                         <strong>아직 등록된 노트가 없습니다.</strong>
                         <p>강의 시청 화면에서 노트를 작성할 수 있습니다.</p>
                     </div>

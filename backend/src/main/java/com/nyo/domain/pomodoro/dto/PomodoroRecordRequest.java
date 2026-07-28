@@ -23,8 +23,8 @@ public class PomodoroRecordRequest {
     @Schema(description = "노트 FK (선택)", example = "1")
     private Long noteId;
 
-    @Min(value = 1, message = "집중 시간은 1분 이상이어야 합니다.")
-    @Schema(description = "집중 시간(분)", example = "25", defaultValue = "25")
+    @Min(value = 0)
+    @Schema(description = "시간(분)", example = "30", defaultValue = "30")
     private Integer focusMinutes;
 
     @NotNull(message = "타이머 시작 시각은 필수입니다.")

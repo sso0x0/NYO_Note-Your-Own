@@ -18,10 +18,15 @@ function CommentIcon() {
   )
 }
 
+// 위젯을 맨 처음 열었을 때만 한 번 보여주는 환영 메시지. localStorage에 표시 여부를
+// 남겨서, 페이지 이동으로 messages가 초기화된 뒤에도 다시 뜨지 않게 한다.
+const WELCOME_SHOWN_KEY = 'nyo_chat_welcome_shown'
+const WELCOME_MESSAGE = '안녕하세요?'
+
 // 챗봇 아이콘 + 팝업창. WidgetDock을 통해 ProtectedLayout에 한 번만 마운트되어
 // 모든 /main/* 페이지에서 보인다. 대화 기록은 서버(chat_histories)에 계속 쌓이지만,
 // 페이지를 이동하면 화면에는 이전 대화가 다시 뜨지 않도록 로컬 상태만 비운다.
-export default function ChatWidget() {
+export default function ChatWidget({ stacked = false, onOpenChange } = {}) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [sending, setSending] = useState(false)
@@ -42,6 +47,21 @@ export default function ChatWidget() {
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, open])
 
+  // 뽀모도로 위젯이 이미 열려 있을 때 이 위젯을 열면(또는 그 반대) WidgetDock이 열린 순서를
+  // 알 수 있게 open 상태가 바뀔 때마다 알린다.
+  useEffect(() => {
+    onOpenChange?.(open)
+  }, [open, onOpenChange])
+
+  const handleToggle = () => {
+    const willOpen = !open
+    setOpen(willOpen)
+    if (willOpen && messages.length === 0 && !localStorage.getItem(WELCOME_SHOWN_KEY)) {
+      setMessages([{ id: 'welcome', senderRole: 'ASSISTANT', message: WELCOME_MESSAGE }])
+      localStorage.setItem(WELCOME_SHOWN_KEY, '1')
+    }
+  }
+
   const handleSend = async (message) => {
     setError(null)
     setSending(true)
@@ -58,17 +78,26 @@ export default function ChatWidget() {
   }
 
   return (
-      <div className="widget">
+      <div className="widget chat-widget">
         {open && (
-            <div className="widget__panel">
-              <div className="widget__header">
-                <span>학습 챗봇</span>
-                <button type="button" onClick={() => setOpen(false)} aria-label="챗봇 닫기">✕</button>
+            <div className={`widget__panel chat-panel${stacked ? ' widget__panel--stacked' : ''}`}>
+              <div className="widget__header chat-header">
+                <span className="chat-header__avatar" aria-hidden="true" />
+                <span className="chat-header__title">무엇을 도와드릴까요?</span>
+                <button type="button" className="chat-header__close" onClick={() => setOpen(false)} aria-label="챗봇 닫기">✕</button>
               </div>
               <div className="chat-messages">
                 {messages.map((m) => (
                     <ChatMessage key={m.id} senderRole={m.senderRole} message={m.message} />
                 ))}
+                {sending && (
+                    <div className="chat-row chat-row-assistant">
+                      <span className="chat-avatar" aria-hidden="true" />
+                      <div className="chat-bubble chat-bubble-assistant chat-typing">
+                        <span /><span /><span />
+                      </div>
+                    </div>
+                )}
                 <div ref={bottomRef} />
               </div>
               {error && <p className="chat-error">{error}</p>}
@@ -77,8 +106,8 @@ export default function ChatWidget() {
         )}
         <button
             type="button"
-            className="widget__toggle"
-            onClick={() => setOpen((v) => !v)}
+            className="widget__toggle chat-toggle"
+            onClick={handleToggle}
             aria-label={open ? '챗봇 닫기' : '챗봇 열기'}
         >
           {open ? '✕' : <CommentIcon />}

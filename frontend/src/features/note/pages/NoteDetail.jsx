@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { parseTextColors } from '../../../utils/textColor'
 import { useAuth } from '../../../context/AuthContext'
 import { parseMainImage } from '../../../utils/mainImage'
-import { getHistories, sendMessage } from '../../chat/api/chat'
+import { generateAiTags, getNoteTags } from '../api/tag'
+import { sendMessage } from '../../chat/api/chat'
 import ChatMessage from '../../chat/ChatMessage'
 import ChatInput from '../../chat/ChatInput'
 import '../../chat/chat.css'
@@ -10,30 +11,13 @@ import '../../chat/chat.css'
 const EMPTY_HEART_IMAGE = '/images/heart.png'
 const FILLED_HEART_IMAGE = '/images/hearts.png'
 
-function NoteDetailChat({ lectureId }) {
+// key={noteId}로 노트가 바뀔 때마다 이 컴포넌트를 통째로 새로 마운트해서
+// 대화 기록은 서버(chat_histories)에 계속 쌓이지만, 화면에는 다른 노트의 대화가 이어서 보이지 않는다.
+function NoteDetailChat({ lectureId, noteId }) {
   const [chatMessages, setChatMessages] = useState([])
   const [chatSending, setChatSending] = useState(false)
   const [chatError, setChatError] = useState(null)
   const chatBottomRef = useRef(null)
-
-  useEffect(() => {
-    let cancelled = false
-    setChatMessages([])
-    setChatError(null)
-
-    // 연결된 강의와 같은 대화 기록을 조회해 양쪽 화면에서 동일한 내용을 보여줍니다.
-    getHistories({ lectureId })
-        .then((response) => {
-          if (!cancelled) setChatMessages([...(response?.content ?? [])].reverse())
-        })
-        .catch((error) => {
-          if (!cancelled) setChatError(error.message)
-        })
-
-    return () => {
-      cancelled = true
-    }
-  }, [lectureId])
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -48,8 +32,9 @@ function NoteDetailChat({ lectureId }) {
     ])
 
     try {
-      // 연결된 강의 ID로 저장해 노트와 강의 화면에서 같은 대화를 이어갑니다.
-      const answer = await sendMessage({ lectureId, message })
+      // 연결된 강의 ID로 저장해 노트와 강의 화면에서 같은 대화를 이어가고,
+      // 지금 보고 있는 노트 ID도 같이 보내 "이 노트 설명해줘" 같은 질문도 이 노트를 근거로 답하게 한다.
+      const answer = await sendMessage({ lectureId, noteId, message })
       setChatMessages((previous) => [...previous, answer])
     } catch (error) {
       setChatError(error.message)
@@ -60,7 +45,7 @@ function NoteDetailChat({ lectureId }) {
 
   return (
       <aside className="note-detail-chat">
-        <div className="note-detail-chat__header">학습 챗봇</div>
+        <div className="note-detail-chat__header">학습용 챗봇</div>
         <div className="chat-messages">
           {chatMessages.map((chatMessage) => (
               <ChatMessage
@@ -77,7 +62,7 @@ function NoteDetailChat({ lectureId }) {
   )
 }
 
-function NoteDetail({ noteId, onBack, onEdit }) {
+function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
   const { auth } = useAuth()
   const notePrintRef = useRef(null)
   const [note, setNote] = useState(null)
@@ -85,6 +70,9 @@ function NoteDetail({ noteId, onBack, onEdit }) {
   const [loading, setLoading] = useState(false)
   const [liked, setLiked] = useState(false)
   const [likeLoading, setLikeLoading] = useState(false)
+  const [tags, setTags] = useState([])
+  const [tagGenerating, setTagGenerating] = useState(false)
+  const [tagError, setTagError] = useState(null)
   const userId = auth?.userId
 
   const loadNote = async () => {
@@ -116,6 +104,15 @@ function NoteDetail({ noteId, onBack, onEdit }) {
     if (response.ok) setLiked(await response.json())
   }
 
+  const loadTags = async () => {
+    try {
+      setTags(await getNoteTags(noteId))
+    } catch (error) {
+      // 태그 조회는 부가 정보라 실패해도 노트 본문 표시를 막지 않는다.
+      setTagError(error.message)
+    }
+  }
+
   useEffect(() => {
     const increaseViewCount = async () => {
       // 상세 페이지에 들어오면 common.view_logs로 하루 1회만 조회수를 올린다.
@@ -127,7 +124,7 @@ function NoteDetail({ noteId, onBack, onEdit }) {
 
     const load = async () => {
       // 조회수나 좋아요 상태 요청 하나가 실패해도 노트 본문 조회까지 중단되지 않게 독립 실행합니다.
-      await Promise.allSettled([increaseViewCount(), loadNote(), loadLikeStatus()])
+      await Promise.allSettled([increaseViewCount(), loadNote(), loadLikeStatus(), loadTags()])
     }
 
     load()
@@ -150,6 +147,20 @@ function NoteDetail({ noteId, onBack, onEdit }) {
       await loadNote()
     } finally {
       setLikeLoading(false)
+    }
+  }
+
+  const handleGenerateTags = async () => {
+    if (tagGenerating) return
+    setTagGenerating(true)
+    setTagError(null)
+    try {
+      await generateAiTags(noteId)
+      await loadTags()
+    } catch (error) {
+      setTagError(error.message)
+    } finally {
+      setTagGenerating(false)
     }
   }
 
@@ -387,17 +398,15 @@ function NoteDetail({ noteId, onBack, onEdit }) {
   const renderColoredText = (text, keyPrefix) => (
       // 글자색 기능: #RRGGBB 형식으로 검증된 값만 React style에 전달합니다.
       parseTextColors(text).map((part, index) => (
-          <span
-            style={{
-              color: part.color || undefined,
-              fontWeight: part.bold ? 700 : undefined,
-              fontStyle: part.italic ? 'italic' : undefined,
-              textDecoration: part.underline ? 'underline' : undefined,
-            }}
-            key={`${keyPrefix}-${index}`}
-          >
-            {part.text}
-          </span>
+          <span style={part.color ? { color: part.color } : undefined} key={`${keyPrefix}-${index}`}>
+        <span style={{
+          fontWeight: part.bold ? 700 : undefined,
+          fontStyle: part.italic ? 'italic' : undefined,
+          textDecoration: part.underline ? 'underline' : undefined,
+        }}>
+        {part.text}
+        </span>
+      </span>
       ))
   )
 
@@ -532,7 +541,7 @@ function NoteDetail({ noteId, onBack, onEdit }) {
                 <p>{loading ? '불러오는 중입니다.' : message}</p>
             )}
           </article>
-          {note?.lectureId && <NoteDetailChat key={noteId} lectureId={note.lectureId} />}
+          {note?.lectureId && <NoteDetailChat key={noteId} lectureId={note.lectureId} noteId={noteId} />}
         </div>
       </>
   )
