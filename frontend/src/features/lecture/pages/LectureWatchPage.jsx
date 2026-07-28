@@ -8,7 +8,6 @@ import {
   deleteLectureComment,
 } from '../api/lectureComment';
 import { getNotesByLecture, createNote, updateNote } from '../../note/api/note';
-import { getNoteTags, generateAiTags } from '../../note/api/tag';
 import { sendMessage } from '../../chat/api/chat';
 import { useAuth } from '../../../context/AuthContext';
 import { createPendingContentImage, uploadPendingContentImages } from '../../../utils/contentImages';
@@ -22,6 +21,20 @@ import '../../chat/chat.css';
 import './LectureWatchPage.css';
 
 const emptyForm = { title: '', content: '' };
+const QUESTION_LIST_PREVIEW_COUNT = 4;
+
+// 질문 목록 아이콘. 다른 위젯 아이콘들과 톤을 맞춘 단색 아웃라인 SVG.
+function QuestionListIcon() {
+  return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="4.5" cy="6" r="0.8" fill="currentColor" />
+        <circle cx="4.5" cy="12" r="0.8" fill="currentColor" />
+        <circle cx="4.5" cy="18" r="0.8" fill="currentColor" />
+        <path d="M8.5 6h11M8.5 12h11M8.5 18h11" />
+      </svg>
+  );
+}
 
 const findFirstContentImageUrl = (content) => {
   const match = String(content ?? '').match(/!\[[^\]]*]\((https?:\/\/[^)]+)\)/);
@@ -93,15 +106,12 @@ function LectureWatchPage() {
   const [textColor, setTextColor] = useState('#d32f2f');
   const contentRef = useRef(null);
 
-  const [tags, setTags] = useState([]);
-  const [tagGenerating, setTagGenerating] = useState(false);
-  const [tagError, setTagError] = useState(null);
-
-  const [chatDrawerOpen, setChatDrawerOpen] = useState(true);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatSending, setChatSending] = useState(false);
   const [chatError, setChatError] = useState(null);
   const chatBottomRef = useRef(null);
+  const [showQuestionList, setShowQuestionList] = useState(false);
+  const [questionListExpanded, setQuestionListExpanded] = useState(false);
 
   const [comments, setComments] = useState([]);
   const [commentForm, setCommentForm] = useState({ content: '', parentCommentId: null });
@@ -152,49 +162,29 @@ function LectureWatchPage() {
     loadNotes();
   }, [loadNotes]);
 
-  const loadTags = useCallback(async (noteId) => {
-    if (!noteId) {
-      setTags([]);
-      return;
-    }
-    try {
-      const response = await getNoteTags(noteId);
-      setTags(response ?? []);
-    } catch (err) {
-      setTagError(err.message);
-    }
-  }, []);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTagError(null);
-    loadTags(myNote?.id);
-  }, [myNote?.id, loadTags]);
-
-  const handleGenerateTags = async () => {
-    if (!myNote || tagGenerating) return;
-    setTagGenerating(true);
-    setTagError(null);
-    try {
-      await generateAiTags(myNote.id);
-      await loadTags(myNote.id);
-    } catch (err) {
-      setTagError(err.message);
-    } finally {
-      setTagGenerating(false);
-    }
-  };
-
   // 대화는 서버(chat_histories)에 계속 저장되지만, 페이지를 나갔다 들어오거나
   // 다른 강의로 이동하면 화면에는 이전 대화를 다시 불러오지 않고 빈 상태로 시작한다.
   useEffect(() => {
     setChatMessages([]);
     setChatError(null);
+    setShowQuestionList(false);
+    setQuestionListExpanded(false);
   }, [lectureId]);
+
+  // 서버(chat_histories)에서 지난 질문을 다시 불러오지 않고, 위 chatMessages와 똑같이
+  // "이번에 페이지를 들어온 뒤로 물어본 것"만 걸러서 보여준다 (마이페이지 챗봇 기록과는 별개).
+  const askedQuestions = chatMessages.filter((message) => message.senderRole === 'USER');
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
+
+  // 질문 목록에서 항목을 누르면 대화창에서 그 질문이 있는 위치로 스크롤해서 보여주고, 팝오버는 닫는다.
+  const scrollToQuestion = (questionId) => {
+    setShowQuestionList(false);
+    document.getElementById(`lecture-chat-message-${questionId}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   const loadComments = useCallback(async () => {
     try {
@@ -416,73 +406,71 @@ function LectureWatchPage() {
       {status === 'success' && lecture && (
         <div className="lecture-watch-page__layout">
           <div className="lecture-watch-page__main">
-            <div className="lecture-watch-page__top">
-              <div className="lecture-watch-page__pip">
-                {isPlaying && youtubeEmbedUrl ? (
-                  <iframe
-                    className="lecture-watch-page__player"
-                    src={`${youtubeEmbedUrl}?autoplay=1`}
-                    title={lecture.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
+            <div className="lecture-watch-page__hero">
+              {isPlaying && youtubeEmbedUrl ? (
+                <iframe
+                  className="lecture-watch-page__player"
+                  src={`${youtubeEmbedUrl}?autoplay=1`}
+                  title={lecture.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <>
+                  <img
+                    src={resolveLectureThumbnail(lecture) ?? fallbackThumbnail}
+                    alt={lecture.title}
+                    onError={(event) => {
+                      event.currentTarget.src = fallbackThumbnail;
+                    }}
                   />
-                ) : (
-                  <>
-                    <img
-                      src={resolveLectureThumbnail(lecture) ?? fallbackThumbnail}
-                      alt={lecture.title}
-                      onError={(event) => {
-                        event.currentTarget.src = fallbackThumbnail;
-                      }}
-                    />
 
-                    {youtubeEmbedUrl ? (
-                      <button
-                        type="button"
-                        className="lecture-watch-page__play"
-                        aria-label="강의 영상 재생"
-                        onClick={() => setIsPlaying(true)}
-                      >
-                        <span className="lecture-watch-page__play-icon" />
-                      </button>
-                    ) : (
-                      <a
-                        className="lecture-watch-page__play"
-                        href={lecture.lectureUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label="강의 영상 재생"
-                      >
-                        <span className="lecture-watch-page__play-icon" />
-                      </a>
-                    )}
-                  </>
-                )}
-              </div>
-
-              <div className="lecture-watch-page__top-info">
-                {lecture.categoryName && (
-                  <span className="lecture-watch-page__category">{lecture.categoryName}</span>
-                )}
-                <h1 className="lecture-watch-page__title">{lecture.title}</h1>
-                <div className="lecture-watch-page__top-meta">
-                  {lecture.lectureUrl && (
+                  {youtubeEmbedUrl ? (
+                    <button
+                      type="button"
+                      className="lecture-watch-page__play"
+                      aria-label="강의 영상 재생"
+                      onClick={() => setIsPlaying(true)}
+                    >
+                      <span className="lecture-watch-page__play-icon" />
+                    </button>
+                  ) : (
                     <a
-                      className="lecture-watch-page__link"
+                      className="lecture-watch-page__play"
                       href={lecture.lectureUrl}
                       target="_blank"
                       rel="noreferrer"
+                      aria-label="강의 영상 재생"
                     >
-                      인프런에서 수강하기 ↗
+                      <span className="lecture-watch-page__play-icon" />
                     </a>
                   )}
-                  <div className="lecture-watch-page__stats">
-                    <span>♡ 좋아요 {lecture.likeCount ?? 0}</span>
-                    <span>조회 {lecture.viewCount ?? 0}</span>
-                    <span>노트 {notes.length}개</span>
+
+                  <div className="lecture-watch-page__hero-overlay">
+                    <div>
+                      {lecture.categoryName && (
+                        <span className="lecture-watch-page__category">{lecture.categoryName}</span>
+                      )}
+                      <h1 className="lecture-watch-page__title">{lecture.title}</h1>
+                      {lecture.lectureUrl && (
+                        <a
+                          className="lecture-watch-page__link"
+                          href={lecture.lectureUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          인프런에서 수강하기 ↗
+                        </a>
+                      )}
+                    </div>
+                    <div className="lecture-watch-page__stats">
+                      <span>좋아요 {lecture.likeCount ?? 0}</span>
+                      <span>조회 {lecture.viewCount ?? 0}</span>
+                      <span>노트 {notes.length}개</span>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
 
             <div className="lecture-watch-page__tabs">
@@ -511,64 +499,35 @@ function LectureWatchPage() {
 
             {activeTab === 'write' && (
               <form className="lecture-watch-page__note-form" onSubmit={handleSaveNote}>
-                <div className="lecture-watch-page__note-titlebar">
-                  <input
-                    className="lecture-watch-page__note-title"
-                    value={form.title}
-                    onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
-                    placeholder="제목을 입력하세요"
-                  />
-                  <button type="submit" className="lecture-watch-page__note-submit" disabled={saving}>
-                    {saving ? '저장 중...' : '저장'}
-                  </button>
-                </div>
-                {saveMessage && <p className="lecture-watch-page__note-message">{saveMessage}</p>}
-
+                <input
+                  className="lecture-watch-page__note-title"
+                  value={form.title}
+                  onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
+                  placeholder="노트 제목을 입력하세요"
+                />
                 <div className="lecture-watch-page__note-toolbar">
                   <div className="lecture-watch-page__note-toolbar-group">
-                    <label className="lecture-watch-page__image-btn" title="이미지 삽입">
-                      이미지
+                    <label className="lecture-watch-page__image-btn">
+                      이미지 삽입
                       <input type="file" accept="image/*" onChange={handleContentImageChange} disabled={saving} hidden />
                     </label>
-                    <button type="button" onClick={insertCodeBlock} title="코드블럭 삽입">{'</>'}</button>
-                    <button type="button" onClick={() => applyTextStyle('bold')} title="볼드"><strong>B</strong></button>
-                    <button type="button" onClick={() => applyTextStyle('underline')} title="밑줄"><u>U</u></button>
+                    <button type="button" onClick={insertCodeBlock}>코드블럭 삽입</button>
+                    <button type="button" onClick={() => applyTextStyle('bold')}><strong>볼드</strong></button>
+                    <button type="button" onClick={() => applyTextStyle('underline')}><u>밑줄</u></button>
                     {/* 노트 상세 작성기와 같은 팔레트로 선택한 글자색을 적용합니다. */}
                     <TextColorPicker value={textColor} onChange={setTextColor} onApply={applyTextColor} />
                   </div>
                 </div>
-
-                <div className="lecture-watch-page__note-editor">
-                  <RichTextEditor
-                    ref={contentRef}
-                    value={form.content}
-                    onChange={(content) => setForm((prev) => ({ ...prev, content }))}
-                  />
-                </div>
-
-                <div className="lecture-watch-page__note-tags">
-                  <span className="lecture-watch-page__note-tags-label">AI 추천 태그</span>
-                  <div className="note-tags">
-                    {tags.map((tag) => (
-                      <span key={tag.tagId} className="note-tag-chip">
-                        {tag.isAiGenerated && <span className="note-tag-chip__ai">AI</span>}
-                        {tag.tagName}
-                      </span>
-                    ))}
-                    {myNote ? (
-                      <button
-                        type="button"
-                        className="note-tag-generate"
-                        onClick={handleGenerateTags}
-                        disabled={tagGenerating}
-                      >
-                        {tagGenerating ? 'AI 태그 생성 중...' : (tags.length > 0 ? 'AI 태그 다시 생성' : 'AI 태그 생성')}
-                      </button>
-                    ) : (
-                      <span className="lecture-watch-page__note-tags-hint">노트를 먼저 저장하면 AI가 태그를 추천해줘요.</span>
-                    )}
-                  </div>
-                  {tagError && <p className="note-tag-error">{tagError}</p>}
+                <RichTextEditor
+                  ref={contentRef}
+                  value={form.content}
+                  onChange={(content) => setForm((prev) => ({ ...prev, content }))}
+                />
+                <div className="lecture-watch-page__note-save-row">
+                  {saveMessage && <p className="lecture-watch-page__note-message">{saveMessage}</p>}
+                  <button type="submit" className="lecture-watch-page__note-submit" disabled={saving}>
+                    {saving ? '저장 중...' : myNote ? '저장' : '저장'}
+                  </button>
                 </div>
               </form>
             )}
@@ -628,38 +587,62 @@ function LectureWatchPage() {
             )}
           </div>
 
-          <aside className={`lecture-watch-page__chat${chatDrawerOpen ? '' : ' is-collapsed'}`}>
-            {chatDrawerOpen ? (
-              <>
-                <div className="lecture-watch-page__chat-header">
-                  <span className="lecture-watch-page__chat-badge">AI</span>
-                  <span className="lecture-watch-page__chat-title">학습용 챗봇</span>
-                  <button
-                    type="button"
-                    className="lecture-watch-page__chat-collapse"
-                    onClick={() => setChatDrawerOpen(false)}
-                  >
-                    접기 ›
-                  </button>
-                </div>
-                <div className="chat-messages">
-                  {chatMessages.map((message) => (
-                    <ChatMessage key={message.id} senderRole={message.senderRole} message={message.message} />
-                  ))}
-                  <div ref={chatBottomRef} />
-                </div>
-                {chatError && <p className="chat-error">{chatError}</p>}
-                <ChatInput sending={chatSending} onSend={handleChatSend} />
-              </>
-            ) : (
+          <aside className="lecture-watch-page__chat">
+            <div className="lecture-watch-page__chat-header">
+              <span>학습용 챗봇</span>
               <button
-                type="button"
-                className="lecture-watch-page__chat-expand"
-                onClick={() => setChatDrawerOpen(true)}
+                  type="button"
+                  className="lecture-watch-page__question-list-toggle"
+                  onClick={() => setShowQuestionList((v) => !v)}
+                  aria-label={showQuestionList ? '질문 목록 닫기' : '질문 목록 보기'}
               >
-                ‹ AI 챗봇
+                <QuestionListIcon />
               </button>
-            )}
+              {showQuestionList && (
+                  <div className="lecture-watch-page__question-list-popover">
+                    <ul className="lecture-watch-page__chat-history-list">
+                      {askedQuestions.length === 0 && (
+                          <li className="lecture-watch-page__chat-history-empty">아직 물어본 질문이 없습니다.</li>
+                      )}
+                      {(questionListExpanded ? askedQuestions : askedQuestions.slice(0, QUESTION_LIST_PREVIEW_COUNT)).map((question) => (
+                          <li key={question.id}>
+                            <button
+                                type="button"
+                                className="lecture-watch-page__chat-history-item"
+                                onClick={() => scrollToQuestion(question.id)}
+                            >
+                              {question.createdAt && (
+                                  <span className="lecture-watch-page__chat-history-date">
+                              {question.createdAt.replace('T', ' ').slice(0, 16)}
+                            </span>
+                              )}
+                              <span className="lecture-watch-page__chat-history-text">{question.message}</span>
+                            </button>
+                          </li>
+                      ))}
+                    </ul>
+                    {askedQuestions.length > QUESTION_LIST_PREVIEW_COUNT && (
+                        <button
+                            type="button"
+                            className="lecture-watch-page__chat-history-more"
+                            onClick={() => setQuestionListExpanded((v) => !v)}
+                        >
+                          {questionListExpanded ? '접기' : `더보기 (${askedQuestions.length - QUESTION_LIST_PREVIEW_COUNT})`}
+                        </button>
+                    )}
+                  </div>
+              )}
+            </div>
+            <div className="chat-messages">
+              {chatMessages.map((message) => (
+                <div key={message.id} id={`lecture-chat-message-${message.id}`}>
+                  <ChatMessage senderRole={message.senderRole} message={message.message} />
+                </div>
+              ))}
+              <div ref={chatBottomRef} />
+            </div>
+            {chatError && <p className="chat-error">{chatError}</p>}
+            <ChatInput sending={chatSending} onSend={handleChatSend} />
           </aside>
         </div>
       )}
