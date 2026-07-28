@@ -156,7 +156,8 @@
 .admin-page__scroll {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  /* 화면이 좁아지면 표의 열을 압축하지 않고 가로 스크롤로 확인한다. */
+  overflow: auto;
   /* 내용이 늘어나 스크롤바가 생기거나 사라질 때 폭이 바뀌지 않도록 자리를 항상 확보한다. */
   scrollbar-gutter: stable;
 }
@@ -177,6 +178,16 @@
   border-collapse: collapse;
   margin-top: 16px;
   font-size: 14px;
+}
+
+/* 삭제 상태를 표시하는 관리 표는 화면 폭과 관계없이 열과 글자 위치를 고정한다. */
+.admin-table--post,
+.admin-table--note,
+.admin-table--comment,
+.admin-table--lecture {
+  /* 넓은 화면은 오른쪽 끝까지 채우고, 좁은 화면에서만 최소 너비와 가로 스크롤을 유지한다. */
+  width: 100%;
+  min-width: 1180px;
 }
 
 .admin-table th,
@@ -204,7 +215,12 @@
 /* 관리자 목록에서는 소프트 삭제된 데이터를 남겨 두고 삭제 상태를 시각적으로 구분한다. */
 .admin-row--deleted {
   background: #f8f8f8;
-  opacity: 0.72;
+  color: #777;
+}
+
+/* 열 위치를 조정한 셀 주변까지 삭제 행 배경이 끊기지 않도록 모든 셀에 같은 색을 적용한다. */
+.admin-row--deleted > td {
+  background: #f8f8f8;
 }
 
 .admin-deleted-label {
@@ -251,9 +267,8 @@
 .admin-table--post td:nth-child(3) {
   width: 140px;
   text-align: left;
-  /* 관리자 게시물 관리 표의 작성자 칸을 기존 위치보다 왼쪽으로 30px 이동한다. */
-  position: relative;
-  left: -30px;
+  /* 셀 배경은 움직이지 않고 작성자 글자만 왼쪽으로 30px 이동한다. */
+  text-indent: -30px;
 }
 
 .admin-table--post th:nth-child(4),
@@ -286,18 +301,16 @@
 .admin-table--note td:nth-child(3) {
   min-width: 135px;
   white-space: nowrap;
-
-  position: relative;
-  left: 60px;
+  /* 셀 배경은 움직이지 않고 강의 글자만 오른쪽으로 60px 이동한다. */
+  text-indent: 60px;
 }
 
 .admin-table--note th:nth-child(4),
 .admin-table--note td:nth-child(4) {
   width: 150px;
   text-align: left;
-
-  position: relative;
-  left: -10px;
+  /* 셀 배경은 움직이지 않고 작성자 글자만 왼쪽으로 10px 이동한다. */
+  text-indent: -10px;
 }
 
 .admin-table--note th:nth-child(5),
@@ -325,6 +338,12 @@
    강의명만 남은 공간을 쓰게 두고 나머지 열 폭을 고정한다. */
 .admin-table--lecture {
   table-layout: fixed;
+}
+
+/* 화면이 좁아져도 강의 관리의 열 제목과 값이 서로 겹치지 않게 한 줄을 유지한다. */
+.admin-table--lecture th,
+.admin-table--lecture td {
+  white-space: nowrap;
 }
 
 .admin-table--lecture th:nth-child(2),

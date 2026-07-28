@@ -30,6 +30,7 @@ import com.nyo.global.exception.ErrorCode;
 import com.nyo.global.moderation.ProhibitedWordFilter;
 import com.nyo.global.storage.FileStorageService;
 import com.nyo.global.response.PageResponse;
+import com.nyo.global.moderation.ProhibitedWordFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -55,6 +56,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class NoteService {
+
 
     private final NoteRepository noteRepository;
     private final ProhibitedWordFilter prohibitedWordFilter;
