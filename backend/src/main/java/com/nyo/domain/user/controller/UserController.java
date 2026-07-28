@@ -1,7 +1,11 @@
 package com.nyo.domain.user.controller;
 
+import com.nyo.domain.user.dto.FindLoginIdRequest;
+import com.nyo.domain.user.dto.FindLoginIdResponse;
 import com.nyo.domain.user.dto.LoginRequest;
 import com.nyo.domain.user.dto.LoginResponse;
+import com.nyo.domain.user.dto.PasswordResetCodeRequest;
+import com.nyo.domain.user.dto.PasswordResetRequest;
 import com.nyo.domain.user.dto.UserProfileUpdateRequest;
 import com.nyo.domain.user.dto.UserRequest;
 import com.nyo.domain.user.dto.UserResponse;
@@ -59,6 +63,29 @@ public class UserController {
     @GetMapping("/check-nickname")
     public ApiResponse<Boolean> checkNickname(@RequestParam String nickname) {
         return ApiResponse.ok(userService.checkNicknameDuplicate(nickname));
+    }
+
+    // 💡 아이디 찾기: 이름+이메일 일치 확인 후 마스킹된 아이디 반환
+    @Operation(summary = "아이디 찾기")
+    @PostMapping("/find-id")
+    public ApiResponse<FindLoginIdResponse> findLoginId(@Valid @RequestBody FindLoginIdRequest request) {
+        return ApiResponse.ok(userService.findLoginId(request));
+    }
+
+    // 💡 비밀번호 찾기 1단계: 아이디+이메일 확인 후 이메일로 6자리 인증코드 발송
+    @Operation(summary = "비밀번호 재설정 인증코드 발송")
+    @PostMapping("/password/send-code")
+    public ApiResponse<Void> sendPasswordResetCode(@Valid @RequestBody PasswordResetCodeRequest request) {
+        userService.sendPasswordResetCode(request);
+        return ApiResponse.ok();
+    }
+
+    // 💡 비밀번호 찾기 2단계: 인증코드 검증 후 새 비밀번호로 교체
+    @Operation(summary = "비밀번호 재설정")
+    @PostMapping("/password/reset")
+    public ApiResponse<Void> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
+        userService.resetPassword(request);
+        return ApiResponse.ok();
     }
 
     // 💡 추가: 마이페이지 - 내 정보 조회 (JWT 없으면 SecurityConfig에서 401 처리됨)

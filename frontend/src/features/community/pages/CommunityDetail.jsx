@@ -13,6 +13,14 @@ function autoGrowTextarea(el) {
   el.style.height = `${el.scrollHeight}px`
 }
 
+// 댓글 개수는 최상위 댓글뿐 아니라 중첩된 대댓글까지 모두 포함해서 센다.
+function countComments(comments) {
+  return comments.reduce(
+    (total, comment) => total + 1 + (comment.replies?.length ? countComments(comment.replies) : 0),
+    0,
+  )
+}
+
 function CommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
   const [editing, setEditing] = useState(false)
   const [editContent, setEditContent] = useState(comment.content)
@@ -30,23 +38,25 @@ function CommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
           {(comment.authorNickname || '?').charAt(0)}
         </div>
         <div className="comment-body">
-          {/* 댓글 nickname 표시: 댓글과 재귀 렌더링되는 대댓글 모두 작성자 nickname을 사용합니다. */}
-          <div className="comment-body__header">
-            <span className="comment-body__author">{comment.authorNickname || '알 수 없는 사용자'}</span>
+          <div className="comment-body__main">
+            {/* 댓글 nickname 표시: 댓글과 재귀 렌더링되는 대댓글 모두 작성자 nickname을 사용합니다. */}
+            <div className="comment-body__header">
+              <span className="comment-body__author">{comment.authorNickname || '알 수 없는 사용자'}</span>
+            </div>
+            {editing ? (
+                <div className="comment-edit-form">
+              <textarea
+                  ref={autoGrowTextarea}
+                  value={editContent}
+                  onChange={(event) => setEditContent(event.target.value)}
+                  onInput={(event) => autoGrowTextarea(event.target)}
+                  rows="1"
+              />
+                  <button type="button" onClick={saveEdit}>저장</button>
+                  <button type="button" onClick={() => setEditing(false)}>취소</button>
+                </div>
+            ) : <p>{comment.content}</p>}
           </div>
-          {editing ? (
-              <div className="comment-edit-form">
-            <textarea
-                ref={autoGrowTextarea}
-                value={editContent}
-                onChange={(event) => setEditContent(event.target.value)}
-                onInput={(event) => autoGrowTextarea(event.target)}
-                rows="1"
-            />
-                <button type="button" onClick={saveEdit}>저장</button>
-                <button type="button" onClick={() => setEditing(false)}>취소</button>
-              </div>
-          ) : <p>{comment.content}</p>}
           <div className="comment-body__actions">
             {!comment.isDeleted && <button type="button" onClick={() => onReply(comment)}>답글</button>}
             {/* 수정은 작성자만, 삭제는 작성자 또는 DB ROLE이 ADMIN인 사용자에게만 표시합니다. */}
@@ -409,7 +419,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
         </article>
 
         <section className="post-detail-page__comments">
-          <h2>댓글 <span className="post-detail-page__comment-count">{comments.length}</span></h2>
+          <h2>댓글 <span className="post-detail-page__comment-count">{countComments(comments)}</span></h2>
           <form className="comment-form" onSubmit={createComment}>
             {commentForm.parentCommentId && (
                 <div className="reply-target">

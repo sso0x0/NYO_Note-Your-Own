@@ -1,416 +1,611 @@
 .lecture-watch-page {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px 20px 40px;
-  text-align: left;
-  box-sizing: border-box;
+    /* 강의/노트 목록 페이지와 동일한 팔레트로 톤을 통일한다. */
+    --lw-accent: #6065fb;
+    --lw-accent-bg: #eef0fe;
+    --lw-ink: #1c1c1a;
+    --lw-line: #eaeaea;
+    --lw-surface-alt: #f8f9fa;
+
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 20px 40px;
+    text-align: left;
+    box-sizing: border-box;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .lecture-watch-page__back {
-  display: inline-block;
-  margin-bottom: 16px;
-  color: var(--text);
-  text-decoration: none;
+    display: inline-block;
+    margin-bottom: 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    text-decoration: none;
 }
 
 .lecture-watch-page__back:hover {
-  color: var(--accent);
+    color: var(--lw-accent);
 }
 
 .lecture-watch-page__locked {
-  padding: 40px 20px;
-  text-align: center;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--code-bg);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: center;
+    padding: 40px 20px;
+    text-align: center;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--code-bg);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
 }
 
 .lecture-watch-page__layout {
-  display: flex;
-  gap: 24px;
-  align-items: flex-start;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
 }
 
 .lecture-watch-page__main {
-  flex: 1;
-  min-width: 0;
+    flex: 1;
+    min-width: 0;
 }
 
-.lecture-watch-page__hero {
-  position: relative;
-  aspect-ratio: 16 / 7;
-  border-radius: 14px;
-  overflow: hidden;
-  background: var(--code-bg);
+/* ===== 상단: PIP 영상 + 강의 정보 (2a안: 영상+노트 대형 병치 톤) ===== */
+.lecture-watch-page__top {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    padding-bottom: 22px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--lw-line);
 }
 
-.lecture-watch-page__hero img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+.lecture-watch-page__pip {
+    position: relative;
+    width: 260px;
+    flex: none;
+    aspect-ratio: 16 / 9;
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--code-bg);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
 }
 
+.lecture-watch-page__pip img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
 
 .lecture-watch-page__play {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: none;
-  padding: 0;
-  cursor: pointer;
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
 }
 
 .lecture-watch-page__player {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
 }
 
 .lecture-watch-page__play-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.92);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .lecture-watch-page__play-icon::after {
-  content: '';
-  width: 0;
-  height: 0;
-  border-top: 12px solid transparent;
-  border-bottom: 12px solid transparent;
-  border-left: 18px solid var(--text-h);
-  margin-left: 4px;
+    content: '';
+    width: 0;
+    height: 0;
+    border-top: 9px solid transparent;
+    border-bottom: 9px solid transparent;
+    border-left: 13px solid var(--lw-ink);
+    margin-left: 3px;
 }
 
-.lecture-watch-page__hero-overlay {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 16px 24px;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.72));
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  color: #fff;
+.lecture-watch-page__top-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 4px;
 }
 
 .lecture-watch-page__category {
-  display: inline-block;
-  font-size: 12px;
-  color: #f0e6ff;
-  margin-bottom: 4px;
+    display: inline-flex;
+    align-self: flex-start;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--lw-accent-bg);
+    color: var(--lw-accent);
+    font-size: 12px;
+    font-weight: 700;
 }
 
 .lecture-watch-page__title {
-  margin: 0 0 6px;
-  font-size: 20px;
-  color: #fff;
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.3;
+    color: var(--lw-ink);
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.lecture-watch-page__top-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
 }
 
 .lecture-watch-page__link {
-  font-size: 13px;
-  color: #f0e6ff;
-  font-weight: 600;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--lw-ink);
+    text-decoration: underline;
+    text-decoration-color: var(--lw-accent-bg);
+    text-decoration-thickness: 2px;
 }
 
 .lecture-watch-page__stats {
-  display: flex;
-  gap: 14px;
-  font-size: 12px;
-  color: #e6e6ea;
-  white-space: nowrap;
+    display: flex;
+    gap: 14px;
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
 }
 
+/* ===== 탭 (알약형) ===== */
 .lecture-watch-page__tabs {
-  display: flex;
-  gap: 8px;
-  margin-top: 20px;
-  border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
 }
 
 .lecture-watch-page__tabs button {
-  padding: 10px 16px;
-  border: none;
-  background: none;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
+    padding: 8px 18px;
+    border: 1px solid var(--lw-line);
+    border-radius: 999px;
+    background: var(--bg);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.lecture-watch-page__tabs button:hover {
+    border-color: var(--lw-accent);
+    color: var(--lw-accent);
 }
 
 .lecture-watch-page__tabs button.is-active {
-  color: var(--text-h);
-  border-bottom-color: var(--accent);
+    border-color: var(--lw-ink);
+    background: var(--lw-ink);
+    color: #fff;
 }
 
+/* ===== 노트 작성 캔버스 (2a안: 중앙 집중형 라이팅 카드) ===== */
 .lecture-watch-page__note-form {
-  margin-top: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 24px;
+    border: 1px solid var(--lw-line);
+    border-radius: 20px;
+    background: var(--bg);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
+    box-sizing: border-box;
+}
+
+.lecture-watch-page__note-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--lw-line);
 }
 
 .lecture-watch-page__note-title {
-  width: 100%;
+    flex: 1;
+    min-width: 0;
+    border: none;
+    padding: 4px 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--lw-ink);
+    background: transparent;
+}
+
+.lecture-watch-page__note-title:focus {
+    outline: none;
+    box-shadow: none;
 }
 
 .lecture-watch-page__note-toolbar {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
 }
 
 .lecture-watch-page__note-toolbar-group {
-  display: flex;
-  gap: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .lecture-watch-page__note-toolbar button,
 .lecture-watch-page__image-btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text-h);
-  cursor: pointer;
-  font-size: 15px;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: none;
+    background: var(--lw-surface-alt);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.lecture-watch-page__note-toolbar button:hover,
+.lecture-watch-page__image-btn:hover {
+    background: var(--lw-accent-bg);
+    color: var(--lw-accent);
+}
+
+.lecture-watch-page__note-editor {
+    border: 1px solid var(--lw-line);
+    border-radius: 14px;
+    padding: 4px 4px 4px 0;
+    background: var(--bg);
 }
 
 .lecture-watch-page__note-submit {
-  padding: 8px 20px;
-  border: 1px solid var(--accent);
-  border-radius: 6px;
-  background: var(--accent);
-  color: #fff;
-  cursor: pointer;
-  font-size: 15px;
+    flex: none;
+    padding: 10px 22px;
+    border: none;
+    border-radius: 10px;
+    background: var(--lw-ink);
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
 }
 
-.lecture-watch-page__note-save-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
+.lecture-watch-page__note-submit:hover:not(:disabled) {
+    background: var(--lw-accent);
 }
 
 .lecture-watch-page__note-toolbar button:disabled,
 .lecture-watch-page__image-btn:has(input:disabled),
 .lecture-watch-page__note-submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .lecture-watch-page__note-message {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text);
+    margin: 0;
+    font-size: 13px;
+    color: var(--text);
 }
 
+/* AI 추천 태그 영역 */
+.lecture-watch-page__note-tags {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 14px;
+    border-top: 1px solid var(--lw-line);
+}
+
+.lecture-watch-page__note-tags-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.lecture-watch-page__note-tags-hint {
+    font-size: 12px;
+    color: var(--text);
+}
+
+/* ===== 다른 학습자 노트 / 댓글 탭 ===== */
 .lecture-watch-page__others {
-  margin-top: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 24px;
+    border: 1px solid var(--lw-line);
+    border-radius: 20px;
+    background: var(--bg);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
+    box-sizing: border-box;
 }
 
 .lecture-watch-page__other-note {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px;
-  border-radius: 10px;
-  background: var(--code-bg);
-  text-decoration: none;
-  color: var(--text-h);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px;
+    border-radius: 14px;
+    background: var(--lw-surface-alt);
+    text-decoration: none;
+    color: var(--lw-ink);
 }
 
 .lecture-watch-page__other-note-author {
-  font-size: 12px;
-  color: var(--text);
+    font-size: 12px;
+    color: var(--text);
 }
 
 .lecture-watch-page__other-note-meta {
-  font-size: 12px;
-  color: var(--text);
+    font-size: 12px;
+    color: var(--text);
 }
 
+.comment-panel {
+    padding: 24px;
+    border: 1px solid var(--lw-line);
+    border-radius: 20px;
+    background: var(--bg);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
+    box-sizing: border-box;
+}
+
+/* ===== 오른쪽: 접이식 AI 챗봇 드로어 (2a안) ===== */
 .lecture-watch-page__chat {
-  width: 320px;
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
-  background: var(--bg);
-  height: 640px;
+    width: 320px;
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--lw-line);
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--bg);
+    height: 660px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
+    transition: width 0.2s ease;
+}
+
+.lecture-watch-page__chat.is-collapsed {
+    width: 48px;
 }
 
 .lecture-watch-page__chat-header {
-  position: relative;
-  padding: 14px 16px;
-  font-weight: 600;
-  color: var(--text-h);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--lw-line);
+}
+
+.lecture-watch-page__chat-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: var(--lw-accent-bg);
+    color: var(--lw-accent);
+}
+
+.lecture-watch-page__chat-title {
+    flex: 1;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--lw-ink);
+}
+
+.lecture-watch-page__chat-collapse {
+    border: none;
+    background: none;
+    padding: 0;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.lecture-watch-page__chat-collapse:hover {
+    color: var(--lw-accent);
+}
+
+.lecture-watch-page__chat-expand {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    writing-mode: vertical-rl;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 1px;
+}
+
+.lecture-watch-page__chat-expand:hover {
+    color: var(--lw-accent);
 }
 
 .lecture-watch-page__chat .chat-messages {
-  flex: 1;
+    flex: 1;
 }
 
 /* 이 강의에서 내가 챗봇에게 물어봤던 질문 목록. 헤더의 아이콘 버튼을 누르면
    작은 팝오버로 뜬다 (항상 떠 있는 사이드 칸이었던 걸 아이콘화). */
 .lecture-watch-page__question-list-toggle {
-  border: none;
-  background: none;
-  padding: 4px;
-  color: var(--text-h);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  opacity: 0.7;
+    border: none;
+    background: none;
+    padding: 4px;
+    color: var(--text-h);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    opacity: 0.7;
 }
 
 .lecture-watch-page__question-list-toggle:hover {
-  opacity: 1;
+    opacity: 1;
 }
 
 .lecture-watch-page__question-list-toggle svg {
-  width: 20px;
-  height: 20px;
+    width: 20px;
+    height: 20px;
 }
 
 .lecture-watch-page__question-list-popover {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 12px;
-  width: 260px;
-  max-height: 320px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg);
-  box-shadow: var(--card-shadow, 0 8px 24px rgba(0, 0, 0, 0.15));
-  z-index: 5;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 12px;
+    width: 260px;
+    max-height: 320px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg);
+    box-shadow: var(--card-shadow, 0 8px 24px rgba(0, 0, 0, 0.15));
+    z-index: 5;
 }
 
 .lecture-watch-page__chat-history-list {
-  list-style: none;
-  margin: 0;
-  padding: 8px;
-  overflow-y: auto;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 8px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 /* 스크롤은 유지하되, 스크롤바 자체는 투명하게 만들어 눈에 띄지 않게 한다
    (뽀모도로/챗봇 위젯 스크롤바와 동일한 방식). */
 .lecture-watch-page__chat-history-list {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
 }
 
 .lecture-watch-page__chat-history-list::-webkit-scrollbar {
-  width: 6px;
+    width: 6px;
 }
 
 .lecture-watch-page__chat-history-list::-webkit-scrollbar-track {
-  background: transparent;
+    background: transparent;
 }
 
 .lecture-watch-page__chat-history-list::-webkit-scrollbar-thumb {
-  background: transparent;
+    background: transparent;
 }
 
 .lecture-watch-page__chat-history-more {
-  margin: 0 8px 8px;
-  padding: 8px;
-  border: none;
-  border-radius: 8px;
-  background: none;
-  color: var(--text-h);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
+    margin: 0 8px 8px;
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: var(--text-h);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
 }
 
 .lecture-watch-page__chat-history-more:hover {
-  background: var(--code-bg);
+    background: var(--code-bg);
 }
 
 .lecture-watch-page__chat-history-item {
-  width: 100%;
-  padding: 10px;
-  border: none;
-  border-radius: 10px;
-  background: var(--code-bg);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    background: var(--code-bg);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
 }
 
 .lecture-watch-page__chat-history-item:hover {
-  background: var(--border);
+    background: var(--border);
 }
 
 .lecture-watch-page__chat-history-date {
-  font-size: 11px;
-  color: var(--text);
-  opacity: 0.7;
+    font-size: 11px;
+    color: var(--text);
+    opacity: 0.7;
 }
 
 .lecture-watch-page__chat-history-text {
-  font-size: 13px;
-  color: var(--text-h);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+    font-size: 13px;
+    color: var(--text-h);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .lecture-watch-page__chat-history-empty {
-  padding: 14px;
-  font-size: 13px;
-  color: var(--text);
-  text-align: center;
+    padding: 14px;
+    font-size: 13px;
+    color: var(--text);
+    text-align: center;
 }
 
 @media (max-width: 900px) {
-  .lecture-watch-page__layout {
-    flex-direction: column;
-  }
+    .lecture-watch-page__layout {
+        flex-direction: column;
+    }
 
-  .lecture-watch-page__chat {
-    width: 100%;
-    height: 420px;
-  }
+    .lecture-watch-page__top {
+        flex-direction: column;
+    }
+
+    .lecture-watch-page__pip {
+        width: 100%;
+    }
+
+    .lecture-watch-page__chat {
+        width: 100%;
+        height: 420px;
+    }
+
+    .lecture-watch-page__chat.is-collapsed {
+        width: 100%;
+        height: 48px;
+    }
+
+    .lecture-watch-page__chat-expand {
+        writing-mode: horizontal-tb;
+    }
 }

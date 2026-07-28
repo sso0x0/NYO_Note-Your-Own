@@ -94,6 +94,14 @@ function MyPage() {
         [chatPairs, selectedChatId]
     );
 
+    // 선택돼 있던 질문이 삭제 등으로 목록에서 사라지면(혹은 아직 아무것도 안 골랐으면)
+    // 자동으로 첫 번째 질문을 대신 선택해, 상세 영역이 빈 채로 남지 않게 한다.
+    useEffect(() => {
+        if (chatPairs.length === 0) return;
+        const stillExists = chatPairs.some((pair) => pair.question.id === selectedChatId);
+        if (!stillExists) setSelectedChatId(chatPairs[0].question.id);
+    }, [chatPairs, selectedChatId]);
+
     const pomodoroChartData = useMemo(() => {
         const grouped = {};
         pomodoroRecords.forEach((record) => {
@@ -250,63 +258,66 @@ function MyPage() {
         );
     };
 
+    // 현재 불러온 목록에서 삭제된 id를 걷어내고, 선택 목록에서도 같이 지운다.
+    const removeChatHistoryEntries = (deletedIds) => {
+        const deletedSet = new Set(deletedIds);
+        setChatHistories((prev) => prev.filter((entry) => !deletedSet.has(entry.id)));
+        setSelectedChatPairIds((prev) => prev.filter((id) => !deletedSet.has(id)));
+    };
+
     const handleDeleteSelectedChatHistory = async () => {
         if (selectedChatPairIds.length === 0) return;
-        if (!window.confirm('선택한 대화를 삭제하시겠습니까?')) return;
-
-        const idsToDelete = chatPairs
-            .filter((pair) => selectedChatPairIds.includes(pair.question.id))
-            .flatMap((pair) => (pair.answer ? [pair.question.id, pair.answer.id] : [pair.question.id]));
+        if (!window.confirm(`선택한 ${selectedChatPairIds.length}개 질문(답변 포함)을 삭제할까요?`)) return;
 
         setChatHistoryDeleting(true);
+        setChatHistoryError(null);
         try {
+            const idsToDelete = chatPairs
+                .filter((pair) => selectedChatPairIds.includes(pair.question.id))
+                .flatMap((pair) => (pair.answer ? [pair.question.id, pair.answer.id] : [pair.question.id]));
             await deleteHistories(idsToDelete);
-            setChatHistories((prev) => prev.filter((entry) => !idsToDelete.includes(entry.id)));
-            if (selectedChatPairIds.includes(selectedChatId)) {
-                setSelectedChatId(null);
-            }
-            setSelectedChatPairIds([]);
+            removeChatHistoryEntries(idsToDelete);
         } catch (err) {
-            alert(err.message);
+            setChatHistoryError(err.message);
         } finally {
             setChatHistoryDeleting(false);
         }
     };
 
     const handleDeleteAllChatHistory = async () => {
-        if (!window.confirm('전체 대화 기록을 삭제하시겠습니까? 되돌릴 수 없습니다.')) return;
+        if (chatHistories.length === 0) return;
+        if (!window.confirm('전체 대화 기록을 삭제할까요? 되돌릴 수 없어요.')) return;
 
         setChatHistoryDeleting(true);
+        setChatHistoryError(null);
         try {
             await deleteAllHistories();
             setChatHistories([]);
-            setSelectedChatId(null);
-            setSelectedChatPairIds([]);
+            setChatHistoryPage(0);
             setChatHistoryHasMore(false);
+            setSelectedChatPairIds([]);
+            setSelectedChatId(null);
         } catch (err) {
-            alert(err.message);
+            setChatHistoryError(err.message);
         } finally {
             setChatHistoryDeleting(false);
         }
     };
 
-    const handleLoadMoreChatHistory = () => {
+    const handleLoadMoreChatHistory = async () => {
         setChatHistoryLoadingMore(true);
         setChatHistoryError(null);
-
-        const nextPage = chatHistoryPage + 1;
-        getHistories({ size: CHAT_HISTORY_SIZE, page: nextPage })
-            .then((page) => {
-                setChatHistories((prev) => [...prev, ...(page?.content ?? [])]);
-                setChatHistoryPage(nextPage);
-                setChatHistoryHasMore(!(page?.last ?? true));
-            })
-            .catch((err) => {
-                setChatHistoryError(err.message);
-            })
-            .finally(() => {
-                setChatHistoryLoadingMore(false);
-            });
+        try {
+            const nextPage = chatHistoryPage + 1;
+            const res = await getHistories({ page: nextPage, size: CHAT_HISTORY_SIZE });
+            setChatHistories((prev) => [...prev, ...(res?.content ?? [])]);
+            setChatHistoryPage(nextPage);
+            setChatHistoryHasMore(!(res?.last ?? true));
+        } catch (err) {
+            setChatHistoryError(err.message);
+        } finally {
+            setChatHistoryLoadingMore(false);
+        }
     };
 
     const isSocialAccount = profile?.oauthProvider && profile.oauthProvider !== 'NONE';

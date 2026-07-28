@@ -178,6 +178,22 @@
 .auth-page__switch a:hover {
   text-decoration: underline;
 }
+
+.auth-page__find-account {
+  margin-top: 12px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.auth-page__find-account a {
+  color: var(--auth-text);
+  text-decoration: none;
+}
+
+.auth-page__find-account a:hover {
+  color: var(--auth-accent);
+  text-decoration: underline;
+}
 /* ===== 구분선 (Divider) 스타일 ===== */
 .auth-page__divider {
   display: flex;
@@ -299,4 +315,68 @@
 .auth-page__field input.is-invalid:focus,
 .auth-page__password-wrap input.is-invalid:focus {
   border-color: #D32F2F;
+}
+
+/* ===== 아이디/비밀번호 찾기 탭 ===== */
+.auth-page__tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  background: var(--auth-input-bg);
+  border-radius: 50px;
+  padding: 4px;
+}
+
+.auth-page__tab {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 50px;
+  background: transparent;
+  color: var(--auth-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.auth-page__tab.is-active {
+  background: #fff;
+  color: var(--auth-heading);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* 이메일 입력 + 인증코드 발송 버튼을 한 줄에 배치 */
+.auth-page__code-row {
+  display: flex;
+  gap: 8px;
+}
+
+.auth-page__code-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.auth-page__code-btn {
+  flex-shrink: 0;
+  padding: 0 14px;
+  border: 1px solid var(--auth-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--auth-heading);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.auth-page__code-btn:hover:not(:disabled) {
+  border-color: var(--auth-accent);
+  color: var(--auth-accent);
+}
+
+.auth-page__code-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
