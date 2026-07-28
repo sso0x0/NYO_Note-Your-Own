@@ -21,6 +21,20 @@ import '../../chat/chat.css';
 import './LectureWatchPage.css';
 
 const emptyForm = { title: '', content: '' };
+const QUESTION_LIST_PREVIEW_COUNT = 4;
+
+// 질문 목록 아이콘. 다른 위젯 아이콘들과 톤을 맞춘 단색 아웃라인 SVG.
+function QuestionListIcon() {
+  return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="4.5" cy="6" r="0.8" fill="currentColor" />
+        <circle cx="4.5" cy="12" r="0.8" fill="currentColor" />
+        <circle cx="4.5" cy="18" r="0.8" fill="currentColor" />
+        <path d="M8.5 6h11M8.5 12h11M8.5 18h11" />
+      </svg>
+  );
+}
 
 const findFirstContentImageUrl = (content) => {
   const match = String(content ?? '').match(/!\[[^\]]*]\((https?:\/\/[^)]+)\)/);
@@ -96,6 +110,8 @@ function LectureWatchPage() {
   const [chatSending, setChatSending] = useState(false);
   const [chatError, setChatError] = useState(null);
   const chatBottomRef = useRef(null);
+  const [showQuestionList, setShowQuestionList] = useState(false);
+  const [questionListExpanded, setQuestionListExpanded] = useState(false);
 
   const [comments, setComments] = useState([]);
   const [commentForm, setCommentForm] = useState({ content: '', parentCommentId: null });
@@ -151,11 +167,24 @@ function LectureWatchPage() {
   useEffect(() => {
     setChatMessages([]);
     setChatError(null);
+    setShowQuestionList(false);
+    setQuestionListExpanded(false);
   }, [lectureId]);
+
+  // 서버(chat_histories)에서 지난 질문을 다시 불러오지 않고, 위 chatMessages와 똑같이
+  // "이번에 페이지를 들어온 뒤로 물어본 것"만 걸러서 보여준다 (마이페이지 챗봇 기록과는 별개).
+  const askedQuestions = chatMessages.filter((message) => message.senderRole === 'USER');
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
+
+  // 질문 목록에서 항목을 누르면 대화창에서 그 질문이 있는 위치로 스크롤해서 보여주고, 팝오버는 닫는다.
+  const scrollToQuestion = (questionId) => {
+    setShowQuestionList(false);
+    document.getElementById(`lecture-chat-message-${questionId}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   const loadComments = useCallback(async () => {
     try {
@@ -559,10 +588,56 @@ function LectureWatchPage() {
           </div>
 
           <aside className="lecture-watch-page__chat">
-            <div className="lecture-watch-page__chat-header">학습용 챗봇</div>
+            <div className="lecture-watch-page__chat-header">
+              <span>학습용 챗봇</span>
+              <button
+                  type="button"
+                  className="lecture-watch-page__question-list-toggle"
+                  onClick={() => setShowQuestionList((v) => !v)}
+                  aria-label={showQuestionList ? '질문 목록 닫기' : '질문 목록 보기'}
+              >
+                <QuestionListIcon />
+              </button>
+              {showQuestionList && (
+                  <div className="lecture-watch-page__question-list-popover">
+                    <ul className="lecture-watch-page__chat-history-list">
+                      {askedQuestions.length === 0 && (
+                          <li className="lecture-watch-page__chat-history-empty">아직 물어본 질문이 없습니다.</li>
+                      )}
+                      {(questionListExpanded ? askedQuestions : askedQuestions.slice(0, QUESTION_LIST_PREVIEW_COUNT)).map((question) => (
+                          <li key={question.id}>
+                            <button
+                                type="button"
+                                className="lecture-watch-page__chat-history-item"
+                                onClick={() => scrollToQuestion(question.id)}
+                            >
+                              {question.createdAt && (
+                                  <span className="lecture-watch-page__chat-history-date">
+                              {question.createdAt.replace('T', ' ').slice(0, 16)}
+                            </span>
+                              )}
+                              <span className="lecture-watch-page__chat-history-text">{question.message}</span>
+                            </button>
+                          </li>
+                      ))}
+                    </ul>
+                    {askedQuestions.length > QUESTION_LIST_PREVIEW_COUNT && (
+                        <button
+                            type="button"
+                            className="lecture-watch-page__chat-history-more"
+                            onClick={() => setQuestionListExpanded((v) => !v)}
+                        >
+                          {questionListExpanded ? '접기' : `더보기 (${askedQuestions.length - QUESTION_LIST_PREVIEW_COUNT})`}
+                        </button>
+                    )}
+                  </div>
+              )}
+            </div>
             <div className="chat-messages">
               {chatMessages.map((message) => (
-                <ChatMessage key={message.id} senderRole={message.senderRole} message={message.message} />
+                <div key={message.id} id={`lecture-chat-message-${message.id}`}>
+                  <ChatMessage senderRole={message.senderRole} message={message.message} />
+                </div>
               ))}
               <div ref={chatBottomRef} />
             </div>
