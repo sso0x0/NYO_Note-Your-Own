@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { apiPost } from '../api/client';
 
 const AuthContext = createContext(null);
 const STORAGE_KEY = 'nyo_auth';
@@ -14,6 +15,7 @@ function loadStoredAuth() {
 
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(loadStoredAuth);
+  const warningCheckedTokenRef = useRef(null);
 
   useEffect(() => {
     if (auth) {
@@ -22,6 +24,23 @@ export function AuthProvider({ children }) {
       localStorage.removeItem(STORAGE_KEY);
     }
   }, [auth]);
+
+  useEffect(() => {
+    if (!auth?.accessToken || warningCheckedTokenRef.current === auth.accessToken) return;
+    warningCheckedTokenRef.current = auth.accessToken;
+
+    // 일반/구글 로그인 직후 미확인 경고를 확인 처리하고 제재 사유를 최초 한 번만 알립니다.
+    apiPost('/api/users/me/warnings/latest/acknowledge', {}, { token: auth.accessToken })
+      .then((warning) => {
+        if (warning) {
+          window.alert(`경고 제재 사유\n${warning.reason}`);
+        }
+      })
+      .catch(() => {
+        // 부가 알림 조회 실패가 정상 로그인과 화면 진입을 막지 않게 합니다.
+        warningCheckedTokenRef.current = null;
+      });
+  }, [auth?.accessToken]);
 
   const value = useMemo(
     () => ({

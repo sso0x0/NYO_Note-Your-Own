@@ -65,4 +65,11 @@ public class AdminUserController {
     public ApiResponse<List<UserSanctionResponse>> getSanctionHistory(@PathVariable Long userId) {
         return ApiResponse.ok(userService.adminGetSanctionHistory(userId));
     }
+
+    // 정지 이력의 종료일 옆에 있는 버튼에서 호출하며, 현재 적용 중인 정지를 즉시 해제합니다.
+    @Operation(summary = "회원 정지 즉시 해제")
+    @PatchMapping("/{userId}/suspension/release")
+    public ApiResponse<UserResponse> releaseSuspension(@PathVariable Long userId) {
+        return ApiResponse.ok(userService.adminReleaseSuspension(userId));
+    }
 }

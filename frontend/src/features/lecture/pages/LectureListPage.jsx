@@ -140,6 +140,15 @@ function LectureListPage() {
           </div>
         )}
 
+        <p className="lecture-list-page__summary">
+          {status === 'loading' && '강의를 불러오는 중입니다.'}
+          {status === 'success' && (
+            pageData?.totalElements > 0
+              ? `전체 ${pageData.totalElements}개의 강의`
+              : '등록된 강의가 없습니다.'
+          )}
+        </p>
+
         <div className="lecture-list-page__sort" ref={sortRef}>
           <button
             type="button"

@@ -264,14 +264,144 @@
 }
 
 .lecture-watch-page__chat-header {
+  position: relative;
   padding: 14px 16px;
   font-weight: 600;
   color: var(--text-h);
   border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .lecture-watch-page__chat .chat-messages {
   flex: 1;
+}
+
+/* 이 강의에서 내가 챗봇에게 물어봤던 질문 목록. 헤더의 아이콘 버튼을 누르면
+   작은 팝오버로 뜬다 (항상 떠 있는 사이드 칸이었던 걸 아이콘화). */
+.lecture-watch-page__question-list-toggle {
+  border: none;
+  background: none;
+  padding: 4px;
+  color: var(--text-h);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  opacity: 0.7;
+}
+
+.lecture-watch-page__question-list-toggle:hover {
+  opacity: 1;
+}
+
+.lecture-watch-page__question-list-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.lecture-watch-page__question-list-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 12px;
+  width: 260px;
+  max-height: 320px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: var(--card-shadow, 0 8px 24px rgba(0, 0, 0, 0.15));
+  z-index: 5;
+}
+
+.lecture-watch-page__chat-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 스크롤은 유지하되, 스크롤바 자체는 투명하게 만들어 눈에 띄지 않게 한다
+   (뽀모도로/챗봇 위젯 스크롤바와 동일한 방식). */
+.lecture-watch-page__chat-history-list {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.lecture-watch-page__chat-history-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lecture-watch-page__chat-history-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lecture-watch-page__chat-history-list::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.lecture-watch-page__chat-history-more {
+  margin: 0 8px 8px;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-h);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lecture-watch-page__chat-history-more:hover {
+  background: var(--code-bg);
+}
+
+.lecture-watch-page__chat-history-item {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background: var(--code-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.lecture-watch-page__chat-history-item:hover {
+  background: var(--border);
+}
+
+.lecture-watch-page__chat-history-date {
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.7;
+}
+
+.lecture-watch-page__chat-history-text {
+  font-size: 13px;
+  color: var(--text-h);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lecture-watch-page__chat-history-empty {
+  padding: 14px;
+  font-size: 13px;
+  color: var(--text);
+  text-align: center;
 }
 
 @media (max-width: 900px) {

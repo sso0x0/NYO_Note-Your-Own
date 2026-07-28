@@ -47,4 +47,14 @@ public class UserSanction {
         this.endAt = endAt;
         this.createdAt = LocalDateTime.now();
     }
+
+    // 관리자가 정지를 즉시 해제한 시간을 기존 정지 이력의 종료일로 남깁니다.
+    public void release(LocalDateTime releasedAt) {
+        this.endAt = releasedAt;
+    }
+
+    // WARNING에서는 사용하지 않는 endAt을 경고 팝업 확인 시각으로 재사용해 별도 DB 변경 없이 기록합니다.
+    public void acknowledge() {
+        this.endAt = LocalDateTime.now();
+    }
 }

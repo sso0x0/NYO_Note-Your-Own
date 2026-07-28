@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { getCommentList, deleteComment } from '../api/comment';
+import { getCommentList, deleteComment, restoreComment } from '../api/comment';
 import { usePagedList } from '../hooks/usePagedList';
 import './AdminCommentsPage.css';
 
@@ -36,6 +36,16 @@ function AdminCommentsPage() {
     if (!window.confirm('이 댓글을 삭제할까요?')) return;
     try {
       await deleteComment(comment.id);
+      comments.reload();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleRestoreComment = async (comment) => {
+    if (!window.confirm('복구하시겠습니까?')) return;
+    try {
+      await restoreComment(comment.id);
       comments.reload();
     } catch (err) {
       alert(err.message);
@@ -80,20 +90,32 @@ function AdminCommentsPage() {
             <tbody>
               {commentItems.map((comment, index) => (
                 <Fragment key={comment.id}>
-                  <tr>
+                  <tr className={comment.isDeleted ? 'admin-row--deleted' : undefined}>
                     <td>{comments.pageData.number * PAGE_SIZE + index + 1}</td>
                     <td>{TARGET_TYPE_LABEL[comment.targetType] ?? comment.targetType}</td>
                     <td>{comment.parentCommentId ? '답글' : '댓글'}</td>
                     <td>
                       <button type="button" className="admin-table__title-btn" onClick={() => handleToggle(comment.id)}>
-                        {comment.targetTitle ?? '(삭제된 대상)'}
+                        {comment.targetTitle ?? '(삭제된 대상)'} {comment.isDeleted && <span className="admin-deleted-label">(삭제됨)</span>}
                       </button>
                     </td>
                     <td>{comment.authorNickname}</td>
                     <td>{comment.authorEmail ?? '-'}</td>
                     <td>{comment.createdAt?.slice(0, 10)}</td>
                     <td className="admin-actions">
-                      <button type="button" className="admin-btn admin-btn--sm admin-btn--danger" onClick={() => handleDeleteComment(comment)}>삭제</button>
+                      {comment.isDeleted ? (
+                        <button
+                          type="button"
+                          className="admin-deleted-button"
+                          onClick={() => handleRestoreComment(comment)}
+                          disabled={comment.targetType === 'POST' && comment.targetDeleted}
+                          title={comment.targetType === 'POST' && comment.targetDeleted ? '게시글을 먼저 복구해 주세요.' : '댓글 복구'}
+                        >
+                          삭제됨
+                        </button>
+                      ) : (
+                        <button type="button" className="admin-btn admin-btn--sm admin-btn--danger" onClick={() => handleDeleteComment(comment)}>삭제</button>
+                      )}
                     </td>
                   </tr>
                   {expandedCommentId === comment.id && (

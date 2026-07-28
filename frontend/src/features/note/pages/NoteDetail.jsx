@@ -436,7 +436,6 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
         <header className="note-header">
           <div>
             <h1>노트 상세</h1>
-            <p>선택한 노트의 내용을 확인합니다.</p>
           </div>
           <div className="note-header-actions">
             {note && <button type="button" onClick={exportNotePdf}>PDF 저장</button>}

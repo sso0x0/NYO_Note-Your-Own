@@ -108,7 +108,7 @@ function NoteBoard({ onOpenNote }) {
         } finally {
             setLoading(false)
         }
-    }, [auth?.accessToken])
+    }, [auth])
 
     const movePage = useCallback((page, sort = sortBy, category = categoryId) => {
         const safePage = Math.max(1, page)
@@ -248,6 +248,8 @@ function NoteBoard({ onOpenNote }) {
                     )
                 )}
 
+                <p className="note-board-page__summary">{message}</p>
+
                 {!keyword && (
                     <div className="note-board-page__sort" ref={sortRef}>
                         <button
@@ -292,12 +294,8 @@ function NoteBoard({ onOpenNote }) {
                 )}
             </div>
 
-            <p className="note-board-page__summary">{message}</p>
-
             {loading && <p>불러오는 중...</p>}
             {!loading && error && <p role="alert">{error}</p>}
-            {!loading && !error && totalElements === 0 && <p>등록된 노트가 없습니다.</p>}
-
             {!loading && !error && totalElements > 0 && (
                 <>
                     <div className="note-board-page__list">

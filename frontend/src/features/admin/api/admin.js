@@ -36,6 +36,10 @@ export function getSanctionHistory(userId) {
   return apiGet(`/api/admin/users/${userId}/sanctions`);
 }
 
+export function releaseUserSuspension(userId) {
+  return apiPatch(`/api/admin/users/${userId}/suspension/release`);
+}
+
 export function createLecture(request) {
   return apiPost('/api/admin/lectures', request);
 }

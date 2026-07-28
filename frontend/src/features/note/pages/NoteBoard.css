@@ -18,24 +18,6 @@
   box-sizing: border-box;
 }
 
-/* 강의 목록의 상단 스포트라이트와 달리, 노트 필기장 느낌의 도트 그리드 위에 은은한 톤트를 얹는다.
-   도트 그리드는 노트 종이처럼 콘텐츠와 함께 자연스럽게 스크롤되도록 그대로 둔다. */
-.note-board-page::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 100vw;
-  transform: translateX(-50%);
-  z-index: -1;
-  background-image:
-    radial-gradient(circle at 1px 1px, rgba(var(--nb-bg-dot), 0.08) 1px, transparent 0),
-    linear-gradient(180deg, #fff 0%, #f7f7f7 320px, #f7f7f7 100%);
-  background-size: 22px 22px, auto;
-  background-repeat: repeat, no-repeat;
-}
-
 .note-board-page__crumbs {
   display: flex;
   align-items: center;
@@ -59,12 +41,15 @@
   font-weight: 600;
 }
 
+/* 강의/커뮤니티 목록 제목과 같은 Pretendard 계열로 통일한다.
+   index.css의 전역 h1,h2,h3 규칙이 system-ui로 되돌려놓기 때문에 명시적으로 다시 지정해야 한다. */
 .note-board-page h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 800;
   letter-spacing: -0.5px;
   color: var(--text-h);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .note-board-page__toolbar {
@@ -78,19 +63,13 @@
   border-bottom: 1px solid var(--nb-line);
 }
 
-/* 카테고리 필터 밑 실선 바로 아래부터 톤트가 시작되도록, 툴바 하단 경계선을 기준점으로 삼는다. */
-.note-board-page__toolbar::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  width: 100vw;
-  height: 420px;
-  transform: translateX(-50%);
-  z-index: -1;
-  pointer-events: none;
-  background-image: radial-gradient(65% 55% at 50% 0%, rgba(var(--nb-bg-tint), 0.1) 0%, rgba(var(--nb-bg-tint), 0) 70%);
-  background-repeat: no-repeat;
+/* 정렬 박스 바로 왼쪽에 붙도록, 오른쪽으로 미는 여백을 정렬 박스 대신 이 요소가 가진다. */
+.note-board-page__summary {
+  flex-shrink: 0;
+  margin: 0 0 0 auto;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
 }
 
 .note-board-page__filters {
@@ -127,7 +106,6 @@
 .note-board-page__sort {
   position: relative;
   flex-shrink: 0;
-  margin-left: auto;
 }
 
 .note-board-page__sort-btn {
@@ -289,6 +267,20 @@
 .note-board-page__page-btn--nav {
   padding: 0 14px;
   font-weight: 600;
+}
+
+/* 이전/다음 버튼은 클릭 가능한 상태일 때 검은색 텍스트로, 마우스를 올리거나 누르면
+   카테고리 필터의 활성 스타일처럼 배경까지 검게 채운다. */
+.note-board-page__page-btn--nav:not(:disabled) {
+  border-color: var(--nb-ink);
+  color: var(--nb-ink);
+}
+
+.note-board-page__page-btn--nav:hover:not(:disabled),
+.note-board-page__page-btn--nav:active:not(:disabled) {
+  border-color: var(--nb-ink);
+  background: var(--nb-ink);
+  color: #fff;
 }
 
 .note-board-page__page-btn:disabled {

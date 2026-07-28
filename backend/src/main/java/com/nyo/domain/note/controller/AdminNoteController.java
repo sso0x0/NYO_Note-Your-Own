@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,7 +29,10 @@ public class AdminNoteController {
     // 관리자 노트 관리 목록 (작성자 이메일/권한 등 상세 정보 포함)
     @Operation(summary = "노트 목록 조회 (작성자 상세 정보 포함)")
     @GetMapping
-    public ApiResponse<Page<NoteAdminResponse>> getNoteList(@PageableDefault(size = 10) Pageable pageable) {
+    public ApiResponse<Page<NoteAdminResponse>> getNoteList(
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable
+    ) {
         return ApiResponse.ok(noteService.adminGetNoteList(pageable));
     }
 

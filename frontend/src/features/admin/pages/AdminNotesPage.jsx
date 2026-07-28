@@ -45,30 +45,42 @@ function AdminNotesPage() {
                 <th>작성자</th>
                 <th>조회</th>
                 <th>좋아요</th>
+                <th>금지어 검사</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {noteItems.map((note, index) => (
                 <Fragment key={note.id}>
-                  <tr>
+                  <tr className={note.isDeleted ? 'admin-row--deleted' : undefined}>
                     <td>{notes.pageData.number * PAGE_SIZE + index + 1}</td>
                     <td>
                       <button type="button" className="admin-table__title-btn" onClick={() => handleToggle(note.id)}>
-                        {note.title}
+                        {note.title} {note.isDeleted && <span className="admin-deleted-label">(삭제됨)</span>}
                       </button>
                     </td>
                     <td>{note.lectureTitle ?? '(연결 안 됨)'}</td>
                     <td>{note.authorNickname}</td>
                     <td>{note.viewCount ?? 0}</td>
                     <td>{note.likeCount ?? 0}</td>
+                    <td>
+                      {note.prohibitedWords?.length > 0 ? (
+                        <span className="admin-moderation-warning">
+                          검토 필요
+                        </span>
+                      ) : '정상'}
+                    </td>
                     <td className="admin-actions">
-                      <button type="button" className="admin-btn admin-btn--sm admin-btn--danger" onClick={() => handleDeleteNote(note)}>삭제</button>
+                      {note.isDeleted ? (
+                        <span className="admin-deleted-label">삭제됨</span>
+                      ) : (
+                        <button type="button" className="admin-btn admin-btn--sm admin-btn--danger" onClick={() => handleDeleteNote(note)}>삭제</button>
+                      )}
                     </td>
                   </tr>
                   {expandedNoteId === note.id && (
                     <tr>
-                      <td colSpan={7}>
+                      <td colSpan={8}>
                         <div className="admin-detail-wrap">
                           <div className="admin-detail">{note.content}</div>
 

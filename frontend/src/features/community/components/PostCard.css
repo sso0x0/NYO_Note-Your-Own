@@ -60,11 +60,14 @@
   background: #e57391;
 }
 
+/* 노트/강의 카드 제목과 같은 Pretendard 계열로 통일한다.
+   index.css의 전역 h1,h2,h3 규칙이 system-ui로 되돌려놓기 때문에 명시적으로 다시 지정해야 한다. */
 .post-card__title {
   margin: 0;
   font-size: 16px;
   font-weight: 700;
   color: var(--text-h);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .post-card__author {

@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -66,15 +67,16 @@ public class CommentService {
     public List<CommentResponse> findByPost(Long postId) {
         validatePost(postId);
 
-        // 삭제된 댓글도 함께 조회해야 그 밑에 달린(아직 삭제되지 않은) 대댓글이 트리에서 유실되지 않는다.
-        List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
+        // 일반 사용자에게는 is_deleted=1인 댓글을 노출하지 않는다.
+        List<Comment> comments = commentRepository.findByPostIdAndIsDeletedOrderByCreatedAtAsc(postId, 0);
         return buildTree(comments);
     }
 
     public List<CommentResponse> findByLecture(Long lectureId) {
         validateLecture(lectureId);
 
-        List<Comment> comments = commentRepository.findByLectureIdOrderByCreatedAtAsc(lectureId);
+        // 일반 사용자에게는 is_deleted=1인 댓글을 노출하지 않는다.
+        List<Comment> comments = commentRepository.findByLectureIdAndIsDeletedOrderByCreatedAtAsc(lectureId, 0);
         return buildTree(comments);
     }
 
@@ -84,25 +86,47 @@ public class CommentService {
     public Page<CommentAdminResponse> adminGetCommentList(CommentAdminResponse.CommentTargetType targetType, Pageable pageable) {
         Page<Comment> comments;
         if (targetType == CommentAdminResponse.CommentTargetType.POST) {
-            comments = commentRepository.findByIsDeletedAndPostIdIsNotNullOrderByCreatedAtDesc(0, pageable);
+            comments = commentRepository.findByPostIdIsNotNullOrderByCreatedAtDesc(pageable);
         } else if (targetType == CommentAdminResponse.CommentTargetType.LECTURE) {
-            comments = commentRepository.findByIsDeletedAndLectureIdIsNotNullOrderByCreatedAtDesc(0, pageable);
+            comments = commentRepository.findByLectureIdIsNotNullOrderByCreatedAtDesc(pageable);
         } else {
-            comments = commentRepository.findByIsDeletedOrderByCreatedAtDesc(0, pageable);
+            // 관리자에게는 삭제된 댓글도 포함하고, 삭제 상태는 응답의 isDeleted로 전달한다.
+            comments = commentRepository.findAll(
+                    org.springframework.data.domain.PageRequest.of(
+                            pageable.getPageNumber(),
+                            pageable.getPageSize(),
+                            org.springframework.data.domain.Sort.by(
+                                    org.springframework.data.domain.Sort.Direction.DESC,
+                                    "createdAt"
+                            )
+                    )
+            );
         }
 
         List<Comment> content = comments.getContent();
         Map<Long, UserResponse> usersById = userService.adminGetUsersByIds(
                 content.stream().map(Comment::getUserId).distinct().toList()
         );
-        Map<Long, String> postTitlesById = postRepository.findAllById(
+        Map<Long, Post> postsById = postRepository.findAllById(
                 content.stream().map(Comment::getPostId).filter(Objects::nonNull).distinct().toList()
-        ).stream().collect(Collectors.toMap(Post::getId, Post::getTitle));
+        ).stream().collect(Collectors.toMap(Post::getId, post -> post));
         Map<Long, String> lectureTitlesById = lectureRepository.findAllById(
                 content.stream().map(Comment::getLectureId).filter(Objects::nonNull).distinct().toList()
         ).stream().collect(Collectors.toMap(Lecture::getId, Lecture::getTitle));
 
-        return comments.map(comment -> toAdminResponse(comment, usersById, postTitlesById, lectureTitlesById));
+        return comments.map(comment -> toAdminResponse(comment, usersById, postsById, lectureTitlesById));
+    }
+
+    // 💡 추가: 마이페이지 - 내가 작성한 댓글 목록 (삭제되지 않은 것만, 최신순)
+    public Page<CommentMyResponse> getMyComments(Long userId, Pageable pageable) {
+        return commentRepository.findByUserIdAndIsDeletedOrderByCreatedAtDesc(userId, 0, pageable)
+                .map(comment -> CommentMyResponse.builder()
+                        .id(comment.getId())
+                        .postId(comment.getPostId())
+                        .lectureId(comment.getLectureId())
+                        .content(comment.getContent())
+                        .createdAt(comment.getCreatedAt())
+                        .build());
     }
 
     // 💡 추가: 마이페이지 - 내가 작성한 댓글 목록 (삭제되지 않은 것만, 최신순)
@@ -120,17 +144,20 @@ public class CommentService {
     private CommentAdminResponse toAdminResponse(
             Comment comment,
             Map<Long, UserResponse> usersById,
-            Map<Long, String> postTitlesById,
+            Map<Long, Post> postsById,
             Map<Long, String> lectureTitlesById
     ) {
         boolean isPostComment = comment.getPostId() != null;
         UserResponse author = usersById.get(comment.getUserId());
+        Post targetPost = isPostComment ? postsById.get(comment.getPostId()) : null;
 
         return CommentAdminResponse.builder()
                 .id(comment.getId())
                 .targetType(isPostComment ? CommentAdminResponse.CommentTargetType.POST : CommentAdminResponse.CommentTargetType.LECTURE)
                 .targetId(isPostComment ? comment.getPostId() : comment.getLectureId())
-                .targetTitle(isPostComment ? postTitlesById.get(comment.getPostId()) : lectureTitlesById.get(comment.getLectureId()))
+                .targetTitle(isPostComment ? (targetPost != null ? targetPost.getTitle() : null) : lectureTitlesById.get(comment.getLectureId()))
+                // 게시글이 없거나 삭제된 상태면 댓글만 먼저 복구하지 못하게 프론트에 상태를 전달한다.
+                .targetDeleted(isPostComment && (targetPost == null || targetPost.isDeleted()))
                 .parentCommentId(comment.getParentCommentId())
                 .content(comment.getContent())
                 .isDeleted(comment.isDeleted())
@@ -146,6 +173,9 @@ public class CommentService {
     }
 
     private List<CommentResponse> buildTree(List<Comment> comments) {
+        Set<Long> visibleCommentIds = comments.stream()
+                .map(Comment::getId)
+                .collect(Collectors.toSet());
         Map<Long, List<Comment>> childrenByParentId = comments.stream()
                 .filter(comment -> comment.getParentCommentId() != null)
                 .collect(Collectors.groupingBy(Comment::getParentCommentId));
@@ -155,7 +185,9 @@ public class CommentService {
         );
 
         return comments.stream()
-                .filter(comment -> comment.getParentCommentId() == null)
+                // 삭제된 부모 댓글은 숨기되, 남아 있는 답글은 최상위 댓글처럼 계속 보여준다.
+                .filter(comment -> comment.getParentCommentId() == null
+                        || !visibleCommentIds.contains(comment.getParentCommentId()))
                 .map(comment -> toTreeResponse(comment, childrenByParentId, nicknames))
                 .toList();
     }
@@ -181,6 +213,21 @@ public class CommentService {
         }
 
         comment.delete();
+    }
+
+    @Transactional
+    public void adminRestore(Long commentId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.COMMENT_NOT_FOUND));
+        if (comment.getPostId() != null) {
+            Post post = postRepository.findById(comment.getPostId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
+            // 삭제된 게시글의 댓글은 게시글 복구 과정에서 함께 복구해야 한다.
+            if (post.isDeleted()) {
+                throw new BusinessException(ErrorCode.COMMENT_ACCESS_DENIED);
+            }
+        }
+        comment.restore();
     }
 
     private boolean isAdmin(Long userId) {
