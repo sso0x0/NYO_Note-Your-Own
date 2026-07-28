@@ -25,7 +25,7 @@ public class OpenAiClient {
     private final String model;
 
     public OpenAiClient(@Value("${openai.api-key:}") String apiKey,
-                        @Value("${openai.model:gpt-4o-mini}") String model) {
+                        @Value("${openai.model:gpt-4o}") String model) {
         this.restClient = RestClient.builder()
                 .baseUrl("https://api.openai.com/v1")
                 .defaultHeader("Authorization", "Bearer " + apiKey)

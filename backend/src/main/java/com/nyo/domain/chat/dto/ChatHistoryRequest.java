@@ -17,6 +17,9 @@ public class ChatHistoryRequest {
     @Schema(description = "질문의 맥락이 된 관련 강의 FK (선택)", example = "1")
     private Long lectureId;
 
+    @Schema(description = "지금 보고 있는 노트 FK (선택). 있으면 검색 결과와 무관하게 이 노트를 항상 컨텍스트에 포함한다.", example = "1")
+    private Long noteId;
+
     @NotBlank(message = "메시지 내용은 필수입니다.")
     @Schema(description = "질문 내용 (텍스트/마크다운)", example = "리액트의 useEffect는 언제 사용하나요?")
     private String message;

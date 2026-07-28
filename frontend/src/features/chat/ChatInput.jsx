@@ -1,5 +1,16 @@
 import { useState } from 'react'
 
+// 종이비행기 전송 아이콘. 다른 위젯 아이콘들과 톤을 맞춘 단색 아웃라인 SVG.
+function SendIcon() {
+  return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M22 2 11 13" />
+        <path d="M22 2 15 22l-4-9-9-4Z" />
+      </svg>
+  )
+}
+
 // 입력창 + 전송 폼. 실제 전송/응답 처리는 부모(ChatPage)의 onSend가 맡고,
 // 여기서는 입력값 관리와 "전송 중"일 때 중복 제출 막는 것만 담당한다.
 export default function ChatInput({ sending, onSend }) {
@@ -21,7 +32,9 @@ export default function ChatInput({ sending, onSend }) {
             placeholder="질문을 입력하세요"
             disabled={sending}
         />
-        <button type="submit" disabled={sending}>{sending ? '전송 중...' : '전송'}</button>
+        <button type="submit" className="chat-send" disabled={sending} aria-label="전송">
+          <SendIcon />
+        </button>
       </form>
   )
 }

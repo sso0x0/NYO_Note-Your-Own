@@ -559,7 +559,7 @@ function LectureWatchPage() {
           </div>
 
           <aside className="lecture-watch-page__chat">
-            <div className="lecture-watch-page__chat-header">학습 챗봇</div>
+            <div className="lecture-watch-page__chat-header">학습용 챗봇</div>
             <div className="chat-messages">
               {chatMessages.map((message) => (
                 <ChatMessage key={message.id} senderRole={message.senderRole} message={message.message} />

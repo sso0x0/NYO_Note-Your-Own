@@ -1,3 +1,15 @@
+/* 뽀모도로 위젯 전용 색 — 챗봇 위젯처럼 흰 배경 + 파스텔톤 포인트로 맞추되,
+   챗봇(블루-핑크)과 구분되게 라벤더 계열 파스텔을 쓴다. */
+.pomodoro-widget .pomodoro-toggle {
+  background: #fff;
+  color: #9b7fd4;
+}
+
+.pomodoro-header {
+  background: linear-gradient(135deg, #e2d4fb 0%, #ffd9ec 100%);
+  border-bottom: none;
+}
+
 /* 위젯 패널(widget.css의 .widget__panel) 내부 스크롤 영역 */
 .pomodoro-panel__body {
   flex: 1;
@@ -6,6 +18,29 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+/* 스크롤은 유지하되, 스크롤바 자체는 패널 배경색과 같게 만들어 최대한 눈에 띄지 않게 한다. */
+.pomodoro-panel__body,
+.pomodoro-history {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg, #fff) var(--bg, #fff);
+}
+
+.pomodoro-panel__body::-webkit-scrollbar,
+.pomodoro-history::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pomodoro-panel__body::-webkit-scrollbar-track,
+.pomodoro-history::-webkit-scrollbar-track {
+  background: var(--bg, #fff);
+}
+
+.pomodoro-panel__body::-webkit-scrollbar-thumb,
+.pomodoro-history::-webkit-scrollbar-thumb {
+  background: var(--bg, #fff);
+  border-radius: 4px;
 }
 
 .pomodoro-timer {
@@ -18,10 +53,62 @@
 }
 
 .pomodoro-clock {
-  font-size: 2.5rem;
+  font-size: 2.2rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--text-h, #08060d);
+}
+
+/* 원형 진행 링. 남은 시간만큼 채워진(사실은 "덜어낸") 원이 안쪽 시계 숫자를 감싼다. */
+.pomodoro-ring {
+  position: relative;
+  width: 200px;
+  height: 200px;
+}
+
+.pomodoro-ring svg {
+  width: 100%;
+  height: 100%;
+}
+
+.pomodoro-ring__track {
+  stroke: var(--border, #e5e4e7);
+}
+
+.pomodoro-ring__progress {
+  stroke: #b79aec;
+  /* 1초마다 바뀌는 값을 부드럽게 이어 보이게 하는 게 핵심 애니메이션 효과 */
+  transition: stroke-dashoffset 1s linear;
+}
+
+/* 진행 중일 때만 은은하게 숨쉬듯 빛나는 효과를 줘서 "돌아가고 있다"는 느낌을 살린다.
+   진행 아크(stroke-dasharray) 자체에 filter를 걸면 호 모양을 따라 glow가 일그러져 보여서,
+   대신 원형 컨테이너 전체에 box-shadow로 균일한 링 형태의 glow를 준다. */
+.pomodoro-ring--running {
+  border-radius: 50%;
+  animation: pomodoro-ring-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes pomodoro-ring-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(183, 154, 236, 0);
+  }
+  50% {
+    box-shadow: 0 0 16px 2px rgba(183, 154, 236, 0.35);
+  }
+}
+
+.pomodoro-ring--paused .pomodoro-ring__progress {
+  transition: none;
+  opacity: 0.5;
+}
+
+.pomodoro-ring__label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .pomodoro-settings {
@@ -33,32 +120,57 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.4rem;
   font-size: 0.85rem;
   color: var(--text, #6b6375);
 }
 
+.pomodoro-settings__time {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .pomodoro-settings input {
-  width: 4rem;
-  padding: 0.35rem;
+  width: 3.4rem;
+  padding: 0.35rem 0.5rem;
   text-align: center;
   font-size: 1rem;
   border: 1px solid var(--border, #e5e4e7);
-  border-radius: 6px;
+  border-radius: 999px;
+}
+
+/* 숫자 입력창의 스피너 화살표를 없애 깔끔한 알약 모양만 남긴다. */
+.pomodoro-settings input::-webkit-inner-spin-button,
+.pomodoro-settings input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pomodoro-settings input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
 }
 
 .pomodoro-timer button {
   padding: 0.6rem 1.4rem;
   border: none;
   border-radius: 999px;
-  background: var(--nyo-accent, var(--accent));
+  background: linear-gradient(135deg, #cbb6f2 0%, #f2c9e0 100%);
   color: #fff;
   font-weight: 600;
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
 .pomodoro-timer button:hover {
-  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: var(--card-shadow, 0 4px 12px rgba(0, 0, 0, 0.15));
+}
+
+.pomodoro-timer button:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: none;
 }
 
 /* 진행 중/일시정지 상태에서 "일시정지 또는 재실행" + "종료" 버튼을 나란히 배치 */
@@ -74,24 +186,17 @@
 }
 
 .pomodoro-stats-row {
-  display: flex;
-  justify-content: space-around;
   text-align: center;
-}
-
-.pomodoro-stats-row div {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.pomodoro-stats-row span {
-  font-size: 0.8rem;
+  margin: 0 0 5mm;
+  font-size: 0.76rem;
   color: var(--text, #6b6375);
+  opacity: 0.8;
 }
 
 .pomodoro-stats-row strong {
-  font-size: 1.25rem;
+  margin-left: 0.3rem;
+  font-size: 1.4rem;
+  font-weight: 700;
   color: var(--text-h, #08060d);
 }
 
@@ -100,38 +205,57 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border, #e5e4e7);
 }
 
 .pomodoro-select-all {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text, #6b6375);
   white-space: nowrap;
 }
 
 .pomodoro-history-actions {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.35rem;
+}
+
+/* 체크박스는 브라우저 기본값이 너무 작고 각져 보여서, 크기를 키우고 accent-color로
+   사이트 포인트색을 입혀 동글동글한 느낌을 살렸다. */
+.pomodoro-select-all input[type='checkbox'],
+.pomodoro-history__item input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  accent-color: var(--nyo-accent, var(--accent));
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .pomodoro-btn {
-  padding: 0.3rem 0.7rem;
-  font-size: 0.78rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.7rem;
   border-radius: 999px;
   border: 1px solid var(--border, #e5e4e7);
   background: transparent;
   color: var(--text, #6b6375);
   cursor: pointer;
   white-space: nowrap;
+  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .pomodoro-btn:hover:not(:disabled) {
   background: var(--accent-bg, rgba(170, 59, 255, 0.1));
   border-color: var(--nyo-accent, var(--accent));
   color: var(--nyo-accent, var(--accent));
+  transform: translateY(-1px);
+}
+
+.pomodoro-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.96);
 }
 
 .pomodoro-btn--danger {
@@ -156,48 +280,78 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
   max-height: 240px;
   overflow-y: auto;
+  border-top: 1px solid var(--border, #e5e4e7);
 }
 
 .pomodoro-history__item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 0.5rem;
-  border-radius: 8px;
-  background: var(--social-bg, rgba(244, 243, 236, 0.5));
+  gap: 0.7rem;
+  padding: 0.65rem 0.2rem;
+  border-bottom: 1px solid var(--border, #e5e4e7);
+  transition: background-color 0.15s ease;
 }
 
-.pomodoro-history__text {
+.pomodoro-history__item:hover {
+  background-color: var(--social-bg, rgba(244, 243, 236, 0.5));
+}
+
+.pomodoro-history__info {
   flex: 1;
-  font-size: 0.82rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.pomodoro-history__date {
+  font-size: 0.72rem;
   color: var(--text, #6b6375);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  opacity: 0.7;
   white-space: nowrap;
 }
 
-.pomodoro-history__delete {
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: var(--text, #6b6375);
+.pomodoro-history__time {
   font-size: 0.85rem;
-  line-height: 1;
-  padding: 0.2rem 0.3rem;
-  border-radius: 4px;
+  font-weight: 500;
+  color: var(--text-h, #08060d);
+  white-space: nowrap;
 }
 
-.pomodoro-history__delete:hover:not(:disabled) {
-  color: #d33;
-  background: rgba(221, 51, 51, 0.08);
+.pomodoro-history__duration {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: var(--accent-bg, rgba(170, 59, 255, 0.1));
+  color: var(--nyo-accent, var(--accent));
+  white-space: nowrap;
 }
 
-.pomodoro-history__delete:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.pomodoro-history__duration--active {
+  background: rgba(230, 158, 15, 0.12);
+  color: #b8860b;
+}
+
+.pomodoro-history__toggle {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text, #6b6375);
+  cursor: pointer;
+}
+
+.pomodoro-history__toggle:hover {
+  background: var(--social-bg, rgba(244, 243, 236, 0.5));
+  color: var(--nyo-accent, var(--accent));
 }
 
 .pomodoro-empty {

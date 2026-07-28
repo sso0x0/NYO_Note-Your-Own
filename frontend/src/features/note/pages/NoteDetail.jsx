@@ -13,7 +13,7 @@ const FILLED_HEART_IMAGE = '/images/hearts.png'
 
 // key={noteId}로 노트가 바뀔 때마다 이 컴포넌트를 통째로 새로 마운트해서
 // 대화 기록은 서버(chat_histories)에 계속 쌓이지만, 화면에는 다른 노트의 대화가 이어서 보이지 않는다.
-function NoteDetailChat({ lectureId }) {
+function NoteDetailChat({ lectureId, noteId }) {
   const [chatMessages, setChatMessages] = useState([])
   const [chatSending, setChatSending] = useState(false)
   const [chatError, setChatError] = useState(null)
@@ -32,8 +32,9 @@ function NoteDetailChat({ lectureId }) {
     ])
 
     try {
-      // 연결된 강의 ID로 저장해 노트와 강의 화면에서 같은 대화를 이어갑니다.
-      const answer = await sendMessage({ lectureId, message })
+      // 연결된 강의 ID로 저장해 노트와 강의 화면에서 같은 대화를 이어가고,
+      // 지금 보고 있는 노트 ID도 같이 보내 "이 노트 설명해줘" 같은 질문도 이 노트를 근거로 답하게 한다.
+      const answer = await sendMessage({ lectureId, noteId, message })
       setChatMessages((previous) => [...previous, answer])
     } catch (error) {
       setChatError(error.message)
@@ -44,7 +45,7 @@ function NoteDetailChat({ lectureId }) {
 
   return (
       <aside className="note-detail-chat">
-        <div className="note-detail-chat__header">학습 챗봇</div>
+        <div className="note-detail-chat__header">학습용 챗봇</div>
         <div className="chat-messages">
           {chatMessages.map((chatMessage) => (
               <ChatMessage
@@ -540,7 +541,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
                 <p>{loading ? '불러오는 중입니다.' : message}</p>
             )}
           </article>
-          {note?.lectureId && <NoteDetailChat key={noteId} lectureId={note.lectureId} />}
+          {note?.lectureId && <NoteDetailChat key={noteId} lectureId={note.lectureId} noteId={noteId} />}
         </div>
       </>
   )

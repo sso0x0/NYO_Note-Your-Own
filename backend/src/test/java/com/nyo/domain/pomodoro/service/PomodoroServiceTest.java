@@ -53,7 +53,6 @@ class PomodoroServiceTest {
         PomodoroRecord record = PomodoroRecord.builder()
                 .userId(userId)
                 .focusMinutes(25)
-                .breakMinutes(5)
                 .startedAt(startedAt)
                 .endedAt(endedAt)
                 .build();
