@@ -22,4 +22,14 @@ public interface PostSearchRepository extends ElasticsearchRepository<PostDocume
             }
             """)
     Page<PostDocument> searchByKeyword(String keyword, Pageable pageable);
+
+    @Query(""" 
+            { "multi_match": { "query": "?0", "fields": ["title^3"], "type": "bool_prefix" } }
+            """)
+    Page<PostDocument> searchByTitle(String keyword, Pageable pageable);
+
+    @Query("""
+            { "multi_match": { "query": "?0", "fields": ["content"], "type": "bool_prefix" } }
+            """)
+    Page<PostDocument> searchByContent(String keyword, Pageable pageable);
 }

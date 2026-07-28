@@ -21,6 +21,11 @@ public interface NoteTagRepository extends JpaRepository<NoteTag, NoteTagId> {
             + "from NoteTag nt, Tag t where nt.id.noteId = :noteId and nt.id.tagId = t.id order by nt.createdAt asc")
     List<NoteTagResponse> findResponsesByNoteId(@Param("noteId") Long noteId);
 
+    // 노트 카드 목록(메인/노트 목록/마이페이지)용: 여러 노트의 태그를 한 번에 조회해 카드마다 태그를 따로 조회하는 N+1을 피한다.
+    @Query("select new com.nyo.domain.note.dto.NoteTagResponse(nt.id.noteId, t.id, t.name, nt.isAiGenerated, nt.createdAt) "
+            + "from NoteTag nt, Tag t where nt.id.noteId in :noteIds and nt.id.tagId = t.id order by nt.createdAt asc")
+    List<NoteTagResponse> findResponsesByNoteIdIn(@Param("noteIds") List<Long> noteIds);
+
     // 전체 재색인 시 노트마다 태그를 따로 조회하는 N+1을 피하기 위한 배치 조회.
     @Query("select nt.id.noteId as noteId, t.name as tagName " +
             "from NoteTag nt, Tag t where nt.id.noteId in :noteIds and nt.id.tagId = t.id")

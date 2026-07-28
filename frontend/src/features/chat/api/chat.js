@@ -2,8 +2,8 @@
 import { apiDelete, apiGet, apiPost } from '../../../api/client'
 
 // 질문을 보내면 서버가 질문+답변을 모두 저장하고, 답변 메시지를 응답으로 돌려준다 (RAG).
-export function sendMessage({ lectureId, message }) {
-  return apiPost('/api/chats', { lectureId, message })
+export function sendMessage({ lectureId, noteId, message }) {
+  return apiPost('/api/chats', { lectureId, noteId, message })
 }
 
 // 대화 내역 조회 (최신순). lectureId를 주면 그 강의 관련 대화만 필터링된다.

@@ -16,6 +16,7 @@ import com.nyo.domain.lecture.repository.LectureRepository;
 import com.nyo.domain.note.dto.NoteAdminResponse;
 import com.nyo.domain.note.dto.NoteRequest;
 import com.nyo.domain.note.dto.NoteResponse;
+import com.nyo.domain.note.dto.NoteTagResponse;
 import com.nyo.domain.note.entity.Note;
 import com.nyo.domain.note.entity.NoteHistory;
 import com.nyo.domain.note.repository.NoteHistoryRepository;
@@ -88,13 +89,13 @@ public class NoteService {
         saveNoteImage(savedNote.getId(), request.getThumbnailUrl(), request.getImageOriginalName(), request.getImageFileSize());
         saveNoteContentImages(savedNote.getId(), request.getContentImages());
         // 신규 노트는 아직 AI 태그가 없으므로 빈 태그 목록으로 색인한다.
-        indexNote(NoteDocument.from(savedNote, List.of()));
+        indexNote(NoteDocument.from(savedNote, List.of(), userService.getDisplayNickname(savedNote.getUserId())));
 
         return toResponse(savedNote);
     }
 
     // 키워드로 노트 검색 (Elasticsearch에서 관련도순 id를 찾은 뒤, DB에서 실제 데이터를 조회해 순서를 맞춘다)
-    public PageResponse<NoteResponse> searchNotes(String keyword, Pageable pageable) {
+    public PageResponse<NoteResponse> searchNotes(String keyword, String searchType, Pageable pageable) {
         if (!StringUtils.hasText(keyword)) {
             return PageResponse.of(Page.empty(pageable));
         }
@@ -102,8 +103,33 @@ public class NoteService {
         // 검색 결과는 ES 관련도 점수순으로 정렬되므로 요청에 담긴 정렬 조건(sort)은 무시한다.
         Pageable searchPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
 
-        Page<NoteDocument> searchResult = noteSearchRepository.searchByKeyword(keyword, searchPageable);
-        List<Long> ids = searchResult.getContent().stream().map(NoteDocument::getId).toList();
+        // 선택한 검색 종류에 따라 노트 제목, 본문, 작성자 또는 전체 필드를 검색한다.
+        Page<NoteDocument> searchResult = switch (searchType) {
+            case "title" -> noteSearchRepository.searchByTitle(keyword, searchPageable);
+            case "content" -> noteSearchRepository.searchByContent(keyword, searchPageable);
+            case "author" -> noteSearchRepository.searchByAuthor(keyword, searchPageable);
+            default -> noteSearchRepository.searchByKeyword(keyword, searchPageable);
+        };
+        List<Long> indexedIds = searchResult.getContent().stream().map(NoteDocument::getId).toList();
+
+        // ES 색인이 누락되어도 검색 결과에서 빠지지 않도록 DB 제목 검색 결과를 합친다.
+        Page<Note> databaseResult = ("all".equals(searchType) || "title".equals(searchType))
+                ? noteRepository.searchActiveByKeyword(keyword.trim(), searchPageable)
+                : Page.empty(searchPageable);
+        List<Long> nicknameUserIds = ("all".equals(searchType) || "author".equals(searchType))
+                ? userService.findUserIdsByNickname(keyword.trim())
+                : List.of();
+        Page<Note> authorResult = nicknameUserIds.isEmpty()
+                ? Page.empty(searchPageable)
+                : noteRepository.findByUserIdInAndIsDeleted(nicknameUserIds, 0, searchPageable);
+
+        // 작성자 닉네임 직접 일치 결과를 가장 먼저 배치해 다른 ES 결과에 밀려 잘리지 않게 한다.
+        LinkedHashSet<Long> mergedIds = authorResult.getContent().stream()
+                .map(Note::getId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        databaseResult.getContent().stream().map(Note::getId).forEach(mergedIds::add);
+        mergedIds.addAll(indexedIds);
+        List<Long> ids = List.copyOf(mergedIds);
 
         if (ids.isEmpty()) {
             return PageResponse.of(Page.empty(searchPageable));
@@ -112,20 +138,46 @@ public class NoteService {
         Map<Long, Note> notesById = noteRepository.findAllByIdInAndIsDeleted(ids, 0).stream()
                 .collect(Collectors.toMap(Note::getId, Function.identity()));
 
+        // DB에는 있지만 ES에 없던 노트는 검색 과정에서 다시 색인해 이후 검색 결과도 복구한다.
+        Set<Long> indexedIdSet = Set.copyOf(indexedIds);
+        List<Note> databaseMatches = java.util.stream.Stream.concat(
+                        authorResult.getContent().stream(),
+                        databaseResult.getContent().stream()
+                )
+                .distinct()
+                .toList();
+        databaseMatches.stream()
+                .filter(note -> !indexedIdSet.contains(note.getId()))
+                .forEach(note -> indexNote(NoteDocument.from(
+                        note,
+                        noteTagRepository.findTagNamesByNoteId(note.getId()),
+                        userService.getDisplayNickname(note.getUserId())
+                )));
+
         Map<Long, String> nicknames = userService.getDisplayNicknames(
                 notesById.values().stream().map(Note::getUserId).distinct().toList()
+        );
+        Map<Long, List<NoteTagResponse>> tagsByNoteId = getTagsByNoteIds(List.copyOf(notesById.keySet()));
+        Map<Long, Lecture> lecturesById = getLecturesByIds(
+                notesById.values().stream().map(Note::getLectureId).toList()
         );
 
         // ES가 매긴 관련도 순서를 유지하기 위해 id 순서대로 재조립 (DB와 색인이 일시적으로 어긋난 id는 건너뜀)
         List<NoteResponse> content = ids.stream()
                 .map(notesById::get)
                 .filter(Objects::nonNull)
-                .map(note -> toResponse(note, nicknames.getOrDefault(note.getUserId(), "알 수 없는 사용자")))
+                .map(note -> toResponse(
+                        note,
+                        nicknames.getOrDefault(note.getUserId(), "알 수 없는 사용자"),
+                        lecturesById.get(note.getLectureId()),
+                        tagsByNoteId.getOrDefault(note.getId(), List.of())
+                ))
+                .limit(searchPageable.getPageSize())
                 .toList();
 
-        // 건너뛴 id 수만큼 totalElements를 보정해 실제 반환된 content 개수와 어긋나지 않게 한다.
-        long missing = ids.size() - content.size();
-        long totalElements = searchResult.getTotalElements() - missing;
+        // ES와 DB 중 더 많은 결과 수를 사용해 색인 누락 중에도 페이지 정보가 지나치게 작아지지 않게 한다.
+        long databaseTotal = authorResult.getTotalElements() + databaseResult.getTotalElements();
+        long totalElements = Math.max(searchResult.getTotalElements(), databaseTotal);
 
         return PageResponse.of(new PageImpl<>(content, searchPageable, totalElements));
     }
@@ -137,6 +189,9 @@ public class NoteService {
 
         // 노트마다 태그를 따로 조회하면 N+1이 되므로, 전체 노트 id로 한 번에 조회해 노트별로 묶는다.
         List<Long> noteIds = notes.stream().map(Note::getId).toList();
+        Map<Long, String> authorNicknames = userService.getDisplayNicknames(
+                notes.stream().map(Note::getUserId).distinct().toList()
+        );
         Map<Long, List<String>> tagNamesByNoteId = noteIds.isEmpty()
                 ? Map.of()
                 : noteTagRepository.findTagNamesByNoteIdIn(noteIds).stream()
@@ -146,7 +201,11 @@ public class NoteService {
                 ));
 
         List<NoteDocument> documents = notes.stream()
-                .map(note -> NoteDocument.from(note, tagNamesByNoteId.getOrDefault(note.getId(), List.of())))
+                .map(note -> NoteDocument.from(
+                        note,
+                        tagNamesByNoteId.getOrDefault(note.getId(), List.of()),
+                        authorNicknames.getOrDefault(note.getUserId(), "알 수 없는 사용자")
+                ))
                 .toList();
 
         noteSearchRepository.deleteAll();
@@ -157,21 +216,34 @@ public class NoteService {
     @Transactional
     public void reindexNote(Long noteId) {
         noteRepository.findByIdAndIsDeleted(noteId, 0).ifPresent(note ->
-                indexNote(NoteDocument.from(note, noteTagRepository.findTagNamesByNoteId(noteId))));
+                indexNote(NoteDocument.from(
+                        note,
+                        noteTagRepository.findTagNamesByNoteId(noteId),
+                        userService.getDisplayNickname(note.getUserId())
+                )));
     }
 
-    public PageResponse<NoteResponse> findAll(Pageable pageable) {
+    public PageResponse<NoteResponse> findAll(Pageable pageable, Long categoryId) {
         // 전체 목록을 메모리에 올리지 않고 요청받은 페이지의 노트만 DB에서 조회합니다.
-        Page<Note> notePage = noteRepository.findByIsDeleted(0, pageable);
+        // categoryId가 있으면 노트가 연결된 강의의 카테고리를 기준으로 서버에서 필터링한다.
+        Page<Note> notePage = categoryId == null
+                ? noteRepository.findByIsDeleted(0, pageable)
+                : noteRepository.findByLectureCategoryId(categoryId, pageable);
         List<Note> notes = notePage.getContent();
         // 카드형 게시판 nickname 표시: 목록 작성자를 한 번에 조회해 N+1 쿼리를 방지한다.
         Map<Long, String> nicknames = userService.getDisplayNicknames(
                 notes.stream().map(Note::getUserId).distinct().toList()
         );
+        Map<Long, List<NoteTagResponse>> tagsByNoteId = getTagsByNoteIds(notes.stream().map(Note::getId).toList());
+        // 노트 카드에 강의명/카테고리를 함께 보여주기 위해 강의도 한 번에 배치 조회한다.
+        Map<Long, Lecture> lecturesById = getLecturesByIds(notes.stream().map(Note::getLectureId).toList());
 
-        Page<NoteResponse> responsePage = notePage.map(
-                note -> toResponse(note, nicknames.getOrDefault(note.getUserId(), "알 수 없는 사용자"))
-        );
+        Page<NoteResponse> responsePage = notePage.map(note -> toResponse(
+                note,
+                nicknames.getOrDefault(note.getUserId(), "알 수 없는 사용자"),
+                lecturesById.get(note.getLectureId()),
+                tagsByNoteId.getOrDefault(note.getId(), List.of())
+        ));
         return PageResponse.of(responsePage);
     }
 
@@ -196,7 +268,15 @@ public class NoteService {
     public PageResponse<NoteResponse> findMine(Long userId, Pageable pageable) {
         Page<Note> notePage = noteRepository.findByUserIdAndIsDeleted(userId, 0, pageable);
         String nickname = userService.getDisplayNickname(userId);
-        return PageResponse.of(notePage.map(note -> toResponse(note, nickname)));
+        Map<Long, List<NoteTagResponse>> tagsByNoteId = getTagsByNoteIds(
+                notePage.getContent().stream().map(Note::getId).toList()
+        );
+        Map<Long, Lecture> lecturesById = getLecturesByIds(
+                notePage.getContent().stream().map(Note::getLectureId).toList()
+        );
+        return PageResponse.of(notePage.map(
+                note -> toResponse(note, nickname, lecturesById.get(note.getLectureId()), tagsByNoteId.getOrDefault(note.getId(), List.of()))
+        ));
     }
 
     // 마이페이지 - 내가 좋아요한 노트 목록. Like 기록의 좋아요 시각 순서를 유지하기 위해
@@ -213,12 +293,21 @@ public class NoteService {
         Map<Long, String> nicknames = userService.getDisplayNicknames(
                 notesById.values().stream().map(Note::getUserId).distinct().toList()
         );
+        Map<Long, List<NoteTagResponse>> tagsByNoteId = getTagsByNoteIds(List.copyOf(notesById.keySet()));
+        Map<Long, Lecture> lecturesById = getLecturesByIds(
+                notesById.values().stream().map(Note::getLectureId).toList()
+        );
 
         // 삭제된 노트는 조용히 건너뛴다 (좋아요 기록은 남아있어도 이미 사라진 노트일 수 있음).
         List<NoteResponse> content = ids.stream()
                 .map(notesById::get)
                 .filter(Objects::nonNull)
-                .map(note -> toResponse(note, nicknames.getOrDefault(note.getUserId(), "알 수 없는 사용자")))
+                .map(note -> toResponse(
+                        note,
+                        nicknames.getOrDefault(note.getUserId(), "알 수 없는 사용자"),
+                        lecturesById.get(note.getLectureId()),
+                        tagsByNoteId.getOrDefault(note.getId(), List.of())
+                ))
                 .toList();
 
         return PageResponse.of(new PageImpl<>(content, pageable, likePage.getTotalElements()));
@@ -300,7 +389,11 @@ public class NoteService {
         saveChangedNoteImage(noteId, previousThumbnailUrl, request);
         saveNoteContentImages(noteId, request.getContentImages());
         // 제목/본문 수정 사항을 색인에 반영하되, 기존에 붙은 태그명은 유지한다.
-        indexNote(NoteDocument.from(note, noteTagRepository.findTagNamesByNoteId(noteId)));
+        indexNote(NoteDocument.from(
+                note,
+                noteTagRepository.findTagNamesByNoteId(noteId),
+                userService.getDisplayNickname(note.getUserId())
+        ));
 
         return toResponse(note);
     }
@@ -393,6 +486,10 @@ public class NoteService {
     }
 
     private NoteResponse toResponse(Note note, String authorNickname, String lectureTitle) {
+        return toResponse(note, authorNickname, lectureTitle, List.of());
+    }
+
+    private NoteResponse toResponse(Note note, String authorNickname, String lectureTitle, List<NoteTagResponse> tags) {
         return NoteResponse.builder()
                 .id(note.getId())
                 .lectureId(note.getLectureId())
@@ -407,7 +504,48 @@ public class NoteService {
                 .isDeleted(note.isDeleted())
                 .createdAt(note.getCreatedAt())
                 .updatedAt(note.getUpdatedAt())
+                .tags(tags)
                 .build();
+    }
+
+    // 목록형 응답(카드)에서 강의명과 함께 카테고리명도 채워주기 위한 오버로드.
+    private NoteResponse toResponse(Note note, String authorNickname, Lecture lecture, List<NoteTagResponse> tags) {
+        return NoteResponse.builder()
+                .id(note.getId())
+                .lectureId(note.getLectureId())
+                .lectureTitle(lecture != null ? lecture.getTitle() : null)
+                .categoryName(lecture != null && lecture.getCategory() != null ? lecture.getCategory().getName() : null)
+                .userId(note.getUserId())
+                .authorNickname(authorNickname)
+                .title(note.getTitle())
+                .content(note.getContent())
+                .thumbnailUrl(note.getThumbnailUrl())
+                .viewCount(note.getViewCount())
+                .likeCount(note.getLikeCount())
+                .isDeleted(note.isDeleted())
+                .createdAt(note.getCreatedAt())
+                .updatedAt(note.getUpdatedAt())
+                .tags(tags)
+                .build();
+    }
+
+    // 노트 카드 목록에서 노트마다 태그를 따로 조회하는 N+1을 피하기 위한 배치 조회 (AI 자동 태그 카드 표시용)
+    private Map<Long, List<NoteTagResponse>> getTagsByNoteIds(List<Long> noteIds) {
+        if (noteIds.isEmpty()) {
+            return Map.of();
+        }
+        return noteTagRepository.findResponsesByNoteIdIn(noteIds).stream()
+                .collect(Collectors.groupingBy(NoteTagResponse::getNoteId));
+    }
+
+    // 노트 카드 목록에서 노트마다 강의를 따로 조회하는 N+1을 피하기 위한 배치 조회 (강의명/카테고리명 표시용)
+    private Map<Long, Lecture> getLecturesByIds(List<Long> lectureIds) {
+        List<Long> distinctIds = lectureIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (distinctIds.isEmpty()) {
+            return Map.of();
+        }
+        return lectureRepository.findAllByIdInAndIsDeletedFalse(distinctIds).stream()
+                .collect(Collectors.toMap(Lecture::getId, Function.identity()));
     }
 
     private void saveNoteImage(Long noteId, String imageUrl, String originalName, Long fileSize) {

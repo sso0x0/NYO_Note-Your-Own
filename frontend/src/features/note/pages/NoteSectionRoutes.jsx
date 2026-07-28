@@ -10,7 +10,6 @@ function NoteBoardRoute() {
 
     return (
         <NoteBoard
-            onCreate={() => navigate({ pathname: 'new', search: location.search })}
             // 상세 화면에도 목록 쿼리를 전달해 돌아올 때 페이지와 정렬 조건을 복원합니다.
             onOpenNote={(noteId) => navigate({ pathname: String(noteId), search: location.search })}
         />

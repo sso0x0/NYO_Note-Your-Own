@@ -69,7 +69,6 @@ class PomodoroControllerTest {
                 .id(10L)
                 .userId(USER_ID)
                 .focusMinutes(25)
-                .breakMinutes(5)
                 .startedAt(LocalDateTime.now())
                 .recordDate(LocalDate.now())
                 .build();
@@ -107,7 +106,7 @@ class PomodoroControllerTest {
     void 기간별조회는_id경로와충돌하지않고_period로라우팅된다() throws Exception {
         var pageable = PageRequest.of(0, 20);
         PomodoroRecordResponse item = PomodoroRecordResponse.builder()
-                .id(1L).userId(USER_ID).focusMinutes(25).breakMinutes(5)
+                .id(1L).userId(USER_ID).focusMinutes(25)
                 .startedAt(LocalDateTime.of(2026, 7, 10, 9, 0))
                 .recordDate(LocalDate.of(2026, 7, 10))
                 .build();

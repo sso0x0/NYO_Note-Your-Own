@@ -56,9 +56,10 @@ public class LectureController {
     @GetMapping("/search")
     public ApiResponse<Page<LectureResponse>> searchLectures(
             @Parameter(description = "검색 키워드") @RequestParam String keyword,
+            @RequestParam(defaultValue = "all") String searchType,
             @PageableDefault(size = 20) Pageable pageable) {
         warnIfPageSizeExceeded(pageable);
-        return ApiResponse.ok(lectureService.searchLectures(keyword, pageable));
+        return ApiResponse.ok(lectureService.searchLectures(keyword, searchType, pageable));
     }
 
     // 하나의 강의만 조회 (id 기준, 삭제된 강의는 404)

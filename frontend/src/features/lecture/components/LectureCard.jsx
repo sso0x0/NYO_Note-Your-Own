@@ -14,6 +14,9 @@ function LectureCard({ lecture }) {
     currentEnrolled,
     capacity,
     isPopular,
+    // 강의는 아직 AI 해시태그 저장 테이블이 없어 항상 비어있다. 백엔드에 lecture_tags가 추가되면
+    // NoteCard와 동일한 형태({ tagId, tagName, isAiGenerated })로 내려주면 바로 렌더링된다.
+    tags,
   } = lecture;
 
   const thumbnailSrc = resolveLectureThumbnail(lecture) ?? fallbackThumbnail;
@@ -36,15 +39,27 @@ function LectureCard({ lecture }) {
         <div className="lecture-card__body">
           {categoryName && <span className="lecture-card__category">{categoryName}</span>}
           <h3 className="lecture-card__title">{title}</h3>
-          {instructor && <p className="lecture-card__instructor">{instructor}</p>}
 
-          <div className="lecture-card__meta">
-            <span>조회 {viewCount ?? 0}</span>
-            <span>좋아요 {likeCount ?? 0}</span>
-            <span>
-              수강 {currentEnrolled ?? 0}
-              {capacity != null ? ` / ${capacity}` : ''}
-            </span>
+          {tags?.length > 0 && (
+            <div className="lecture-card__tags">
+              {tags.map((tag) => (
+                <span key={tag.tagId} className="lecture-card__tag">
+                  #{tag.tagName}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="lecture-card__footer">
+            {instructor && <p className="lecture-card__instructor">{instructor}</p>}
+            <div className="lecture-card__meta">
+              <span>조회 {viewCount ?? 0}</span>
+              <span>좋아요 {likeCount ?? 0}</span>
+              <span>
+                수강 {currentEnrolled ?? 0}
+                {capacity != null ? ` / ${capacity}` : ''}
+              </span>
+            </div>
           </div>
         </div>
       </Link>
