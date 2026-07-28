@@ -1,44 +1,332 @@
 .lecture-list-page {
+  /* 메인 페이지와 동일한 팔레트를 사용해 카드/포인트 색을 통일한다. */
+  --ll-accent: #6065fb;
+  --ll-accent-bg: #eef0fe;
+  --ll-badge: #ff4f4f;
+  --ll-ink: #1c1c1a;
+  --ll-line: #eaeaea;
+
+  position: relative;
+  z-index: 0;
   width: 100%;
-  padding: 24px 20px 40px;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 24px 32px 56px;
   text-align: left;
   box-sizing: border-box;
+}
+
+/* 메인 페이지의 코너 라디얼과 달리, 은은하게 퍼지는 스포트라이트 한 줄기만 깔아준다. */
+.lecture-list-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  z-index: -1;
+  background-image: linear-gradient(180deg, #fff 0%, #f7f7f7 320px, #f7f7f7 100%);
+  background-repeat: no-repeat;
+}
+
+.lecture-list-page__crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.lecture-list-page__crumbs a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.lecture-list-page__crumbs a:hover {
+  color: var(--ll-accent);
+}
+
+.lecture-list-page__crumbs .is-current {
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.lecture-list-page h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text-h);
+}
+
+.lecture-list-page__toolbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ll-line);
+}
+
+/* 카테고리 필터 밑 실선 바로 아래부터 스포트라이트가 시작되도록, 툴바 하단 경계선을 기준점으로 삼는다. */
+.lecture-list-page__toolbar::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 100vw;
+  height: 420px;
+  transform: translateX(-50%);
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(65% 55% at 50% 0%, rgba(96, 101, 251, 0.08) 0%, rgba(96, 101, 251, 0) 70%);
+  background-repeat: no-repeat;
 }
 
 .lecture-list-page__filters {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 16px;
 }
 
 .lecture-list-page__filters button {
-  padding: 6px 14px;
+  padding: 7px 16px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text);
-  font-size: 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.lecture-list-page__filters button:hover {
+  border-color: var(--ll-accent);
+  color: var(--ll-accent);
 }
 
 .lecture-list-page__filters button.is-active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-bg);
+  border-color: var(--ll-ink);
+  color: #fff;
+  background: var(--ll-ink);
+}
+
+/* 메인 페이지 검색창의 "통합검색 ▾" 드롭다운과 동일한 형태(버튼 + 리스트박스)로 맞춘다. */
+.lecture-list-page__sort {
+  position: relative;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.lecture-list-page__sort-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 118px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.lecture-list-page__sort-btn:hover {
+  border-color: var(--ll-accent);
+}
+
+.lecture-list-page__sort-caret {
+  flex-shrink: 0;
+  color: #999;
+  transition: transform 0.2s ease;
+}
+
+.lecture-list-page__sort-btn[aria-expanded='true'] .lecture-list-page__sort-caret {
+  transform: rotate(180deg);
+}
+
+.lecture-list-page__sort-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 20;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--ll-line);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(31, 41, 79, 0.16);
+}
+
+.lecture-list-page__sort-option {
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-h);
+  font-size: 13px;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.lecture-list-page__sort-option:hover {
+  background: var(--ll-accent-bg);
+  color: var(--ll-accent);
+}
+
+.lecture-list-page__sort-option.is-selected {
+  background: var(--ll-accent);
+  color: #fff;
+  font-weight: 600;
 }
 
 .lecture-list-page__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 20px;
+}
+
+/* 카드 자체는 공용 LectureCard를 그대로 쓰되, 메인 페이지와 같은 톤(둥근 모서리 + 그림자 + 호버)으로 덮어쓴다.
+   6열로 좁아진 카드 폭에 맞춰 여백/글자 크기도 함께 줄인다. */
+.lecture-list-page__grid .lecture-card {
+  height: 100%;
+  border-radius: 10px;
+  border-color: var(--ll-line);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.lecture-list-page__grid .lecture-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+}
+
+.lecture-list-page__grid .lecture-card__badge {
+  background: var(--ll-badge);
+  box-shadow: 0 4px 5px rgba(255, 79, 79, 0.35);
+  font-size: 11px;
+}
+
+.lecture-list-page__grid .lecture-card__body {
+  padding: 10px 12px 14px;
+  gap: 3px;
+}
+
+.lecture-list-page__grid .lecture-card__category {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ll-accent);
+}
+
+.lecture-list-page__grid .lecture-card__title {
+  font-size: 14px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lecture-list-page__grid .lecture-card__instructor {
+  font-size: 12px;
+}
+
+.lecture-list-page__grid .lecture-card__meta {
+  gap: 6px;
+  font-size: 11px;
+  flex-wrap: wrap;
 }
 
 .lecture-list-page__pagination {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-top: 24px;
+  gap: 6px;
+  margin-top: 32px;
+}
+
+.lecture-list-page__page-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--ll-line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.lecture-list-page__page-btn:hover:not(:disabled) {
+  border-color: var(--ll-accent);
+  color: var(--ll-accent);
+}
+
+.lecture-list-page__page-btn.is-active {
+  border-color: var(--ll-ink);
+  background: var(--ll-ink);
+  color: #fff;
+}
+
+.lecture-list-page__page-btn--nav {
+  padding: 0 14px;
+  font-weight: 600;
+}
+
+.lecture-list-page__page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1320px) {
+  .lecture-list-page__grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1080px) {
+  .lecture-list-page__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .lecture-list-page__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .lecture-list-page__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .lecture-list-page__grid {
+    grid-template-columns: 1fr;
+  }
 }

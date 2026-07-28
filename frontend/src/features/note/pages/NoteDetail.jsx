@@ -94,6 +94,29 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
   const [tagError, setTagError] = useState(null)
   const userId = auth?.userId
 
+  const loadTags = async () => {
+    try {
+      const response = await getNoteTags(noteId)
+      setTags(response ?? [])
+    } catch (error) {
+      setTagError(error.message)
+    }
+  }
+
+  const handleGenerateTags = async () => {
+    if (tagGenerating) return
+    setTagGenerating(true)
+    setTagError(null)
+    try {
+      await generateAiTags(noteId)
+      await loadTags()
+    } catch (error) {
+      setTagError(error.message)
+    } finally {
+      setTagGenerating(false)
+    }
+  }
+
   const loadNote = async () => {
     setLoading(true)
     try {
@@ -121,15 +144,6 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
       headers: { Authorization: `Bearer ${auth.accessToken}` },
     })
     if (response.ok) setLiked(await response.json())
-  }
-
-  const loadTags = async () => {
-    try {
-      setTags(await getNoteTags(noteId))
-    } catch (error) {
-      // 태그 조회는 부가 정보라 실패해도 노트 본문 표시를 막지 않는다.
-      setTagError(error.message)
-    }
   }
 
   useEffect(() => {
@@ -166,20 +180,6 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
       await loadNote()
     } finally {
       setLikeLoading(false)
-    }
-  }
-
-  const handleGenerateTags = async () => {
-    if (tagGenerating) return
-    setTagGenerating(true)
-    setTagError(null)
-    try {
-      await generateAiTags(noteId)
-      await loadTags()
-    } catch (error) {
-      setTagError(error.message)
-    } finally {
-      setTagGenerating(false)
     }
   }
 

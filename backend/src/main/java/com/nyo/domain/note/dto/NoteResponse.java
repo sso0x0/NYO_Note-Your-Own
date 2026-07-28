@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
@@ -24,6 +25,9 @@ public class NoteResponse {
 
     @Schema(description = "소속 강의명", example = "스프링 부트 마스터 클래스")
     private String lectureTitle;
+
+    @Schema(description = "소속 강의의 카테고리명", example = "백엔드")
+    private String categoryName;
 
     @Schema(description = "작성자 FK", example = "10")
     private Long userId;
@@ -54,4 +58,8 @@ public class NoteResponse {
 
     @Schema(description = "최종 수정일")
     private LocalDateTime updatedAt;
+
+    @Schema(description = "AI가 자동 생성했거나 이후 수동으로 추가된 해시태그 목록")
+    @Builder.Default
+    private List<NoteTagResponse> tags = List.of();
 }

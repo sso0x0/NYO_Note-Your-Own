@@ -4,6 +4,10 @@ export function getNoteList({ page = 0, size = 12, sort, categoryId } = {}) {
   return apiGet('/api/notes', { page, size, sort, categoryId });
 }
 
+export function getNoteListByCategory({ categoryId, page = 0, size = 6, sort } = {}) {
+  return apiGet('/api/notes', { categoryId, page, size, sort });
+}
+
 export function searchNotes({ keyword, searchType = 'all', page = 0, size = 12 } = {}) {
   return apiGet('/api/notes/search', { keyword, searchType, page, size });
 }
