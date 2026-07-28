@@ -16,20 +16,6 @@
   box-sizing: border-box;
 }
 
-/* 메인 페이지의 코너 라디얼과 달리, 은은하게 퍼지는 스포트라이트 한 줄기만 깔아준다. */
-.lecture-list-page::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 100vw;
-  transform: translateX(-50%);
-  z-index: -1;
-  background-image: linear-gradient(180deg, #fff 0%, #f7f7f7 320px, #f7f7f7 100%);
-  background-repeat: no-repeat;
-}
-
 .lecture-list-page__crumbs {
   display: flex;
   align-items: center;
@@ -53,12 +39,15 @@
   font-weight: 600;
 }
 
+/* 노트/커뮤니티 목록 제목과 같은 Pretendard 계열로 통일한다.
+   index.css의 전역 h1,h2,h3 규칙이 system-ui로 되돌려놓기 때문에 명시적으로 다시 지정해야 한다. */
 .lecture-list-page h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 800;
   letter-spacing: -0.5px;
   color: var(--text-h);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .lecture-list-page__toolbar {
@@ -72,19 +61,13 @@
   border-bottom: 1px solid var(--ll-line);
 }
 
-/* 카테고리 필터 밑 실선 바로 아래부터 스포트라이트가 시작되도록, 툴바 하단 경계선을 기준점으로 삼는다. */
-.lecture-list-page__toolbar::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  width: 100vw;
-  height: 420px;
-  transform: translateX(-50%);
-  z-index: -1;
-  pointer-events: none;
-  background-image: radial-gradient(65% 55% at 50% 0%, rgba(96, 101, 251, 0.08) 0%, rgba(96, 101, 251, 0) 70%);
-  background-repeat: no-repeat;
+/* 정렬 박스 바로 왼쪽에 붙도록, 오른쪽으로 미는 여백을 정렬 박스 대신 이 요소가 가진다. */
+.lecture-list-page__summary {
+  flex-shrink: 0;
+  margin: 0 0 0 auto;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
 }
 
 .lecture-list-page__filters {
@@ -121,7 +104,6 @@
 .lecture-list-page__sort {
   position: relative;
   flex-shrink: 0;
-  margin-left: auto;
 }
 
 .lecture-list-page__sort-btn {
@@ -294,6 +276,20 @@
 .lecture-list-page__page-btn--nav {
   padding: 0 14px;
   font-weight: 600;
+}
+
+/* 이전/다음 버튼은 클릭 가능한 상태일 때 검은색 텍스트로, 마우스를 올리거나 누르면
+   카테고리 필터의 활성 스타일처럼 배경까지 검게 채운다. */
+.lecture-list-page__page-btn--nav:not(:disabled) {
+  border-color: var(--ll-ink);
+  color: var(--ll-ink);
+}
+
+.lecture-list-page__page-btn--nav:hover:not(:disabled),
+.lecture-list-page__page-btn--nav:active:not(:disabled) {
+  border-color: var(--ll-ink);
+  background: var(--ll-ink);
+  color: #fff;
 }
 
 .lecture-list-page__page-btn:disabled {

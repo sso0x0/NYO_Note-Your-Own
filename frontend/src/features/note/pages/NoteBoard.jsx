@@ -248,6 +248,8 @@ function NoteBoard({ onOpenNote }) {
                     )
                 )}
 
+                <p className="note-board-page__summary">{message}</p>
+
                 {!keyword && (
                     <div className="note-board-page__sort" ref={sortRef}>
                         <button
@@ -291,8 +293,6 @@ function NoteBoard({ onOpenNote }) {
                     </div>
                 )}
             </div>
-
-            <p className="note-board-page__summary">{message}</p>
 
             {loading && <p>불러오는 중...</p>}
             {!loading && error && <p role="alert">{error}</p>}

@@ -54,10 +54,13 @@
   color: var(--accent);
 }
 
+/* 목록 제목과 같은 Pretendard 계열로 통일한다.
+   index.css의 전역 h1,h2,h3 규칙이 system-ui로 되돌려놓기 때문에 명시적으로 다시 지정해야 한다. */
 .lecture-card__title {
   margin: 0;
   font-size: 17px;
   color: var(--text-h);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .lecture-card__tags {

@@ -1,9 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../../context/AuthContext'
 import { parseMainImage } from '../../../utils/mainImage'
+import './CommunityDetail.css'
 
 const EMPTY_HEART_IMAGE = '/images/heart.png'
 const FILLED_HEART_IMAGE = '/images/hearts.png'
+
+// 댓글 입력창은 드래그로 늘리지 못하게 하고, 입력 중에만 내용에 맞춰 높이를 키운다.
+function autoGrowTextarea(el) {
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = `${el.scrollHeight}px`
+}
 
 function CommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
   const [editing, setEditing] = useState(false)
@@ -17,31 +25,44 @@ function CommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
   }
 
   return (
-    <li className="comment-item">
-      <div className="comment-body">
-        {editing ? (
-          <div className="comment-edit-form">
-            <textarea value={editContent} onChange={(event) => setEditContent(event.target.value)} rows="3" />
-            <button type="button" onClick={saveEdit}>저장</button>
-            <button type="button" onClick={() => setEditing(false)}>취소</button>
+      <li className="comment-item">
+        <div className="comment-item__avatar" aria-hidden="true">
+          {(comment.authorNickname || '?').charAt(0)}
+        </div>
+        <div className="comment-body">
+          {/* 댓글 nickname 표시: 댓글과 재귀 렌더링되는 대댓글 모두 작성자 nickname을 사용합니다. */}
+          <div className="comment-body__header">
+            <span className="comment-body__author">{comment.authorNickname || '알 수 없는 사용자'}</span>
           </div>
-        ) : <p>{comment.content}</p>}
-        {/* 댓글 nickname 표시: 댓글과 재귀 렌더링되는 대댓글 모두 작성자 nickname을 사용합니다. */}
-        <span>작성자 {comment.authorNickname || '알 수 없는 사용자'}</span>
-        {!comment.isDeleted && <button type="button" onClick={() => onReply(comment)}>답글</button>}
-        {/* 수정은 작성자만, 삭제는 작성자 또는 DB ROLE이 ADMIN인 사용자에게만 표시합니다. */}
-        {!comment.isDeleted && isOwner && !editing && <button type="button" onClick={() => setEditing(true)}>수정</button>}
-        {canDelete && <button type="button" className="danger-button" onClick={() => onDelete(comment)}>삭제</button>}
-      </div>
+          {editing ? (
+              <div className="comment-edit-form">
+            <textarea
+                ref={autoGrowTextarea}
+                value={editContent}
+                onChange={(event) => setEditContent(event.target.value)}
+                onInput={(event) => autoGrowTextarea(event.target)}
+                rows="1"
+            />
+                <button type="button" onClick={saveEdit}>저장</button>
+                <button type="button" onClick={() => setEditing(false)}>취소</button>
+              </div>
+          ) : <p>{comment.content}</p>}
+          <div className="comment-body__actions">
+            {!comment.isDeleted && <button type="button" onClick={() => onReply(comment)}>답글</button>}
+            {/* 수정은 작성자만, 삭제는 작성자 또는 DB ROLE이 ADMIN인 사용자에게만 표시합니다. */}
+            {!comment.isDeleted && isOwner && !editing && <button type="button" onClick={() => setEditing(true)}>수정</button>}
+            {canDelete && <button type="button" className="danger-button" onClick={() => onDelete(comment)}>삭제</button>}
+          </div>
+        </div>
 
-      {comment.replies?.length > 0 && (
-        <ul className="comment-replies">
-          {comment.replies.map((reply) => (
-            <CommentItem key={reply.id} comment={reply} auth={auth} onReply={onReply} onUpdate={onUpdate} onDelete={onDelete} />
-          ))}
-        </ul>
-      )}
-    </li>
+        {comment.replies?.length > 0 && (
+            <ul className="comment-replies">
+              {comment.replies.map((reply) => (
+                  <CommentItem key={reply.id} comment={reply} auth={auth} onReply={onReply} onUpdate={onUpdate} onDelete={onDelete} />
+              ))}
+            </ul>
+        )}
+      </li>
   )
 }
 
@@ -52,8 +73,8 @@ function CommunityDetail({ postId, onBack, onEdit }) {
   const [commentForm, setCommentForm] = useState({
     content: '',
     parentCommentId: null,
-    parentAuthorNickname: '',
   })
+  const commentTextareaRef = useRef(null)
   const [message, setMessage] = useState('게시글을 불러오는 중입니다.')
   const [loading, setLoading] = useState(false)
   const [liked, setLiked] = useState(false)
@@ -188,7 +209,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
 
   // 삭제 버튼은 작성자 본인 또는 로그인 정보의 DB 역할이 ADMIN인 경우에만 표시합니다.
   const canDelete = post && auth && (
-    String(post.userId) === String(auth.userId) || auth.role === 'ADMIN'
+      String(post.userId) === String(auth.userId) || auth.role === 'ADMIN'
   )
   // 수정은 관리자 권한과 관계없이 게시글을 작성한 로그인 사용자 본인에게만 허용합니다.
   const canEdit = post && auth && String(post.userId) === String(auth.userId)
@@ -198,17 +219,13 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     setCommentForm((prev) => ({
       ...prev,
       parentCommentId: comment.id,
-      parentAuthorNickname: comment.authorNickname || '알 수 없는 사용자',
       content: '',
     }))
+    if (commentTextareaRef.current) commentTextareaRef.current.style.height = 'auto'
   }
 
   const cancelReply = () => {
-    setCommentForm((prev) => ({
-      ...prev,
-      parentCommentId: null,
-      parentAuthorNickname: '',
-    }))
+    setCommentForm((prev) => ({ ...prev, parentCommentId: null }))
   }
 
   const createComment = async (event) => {
@@ -235,12 +252,8 @@ function CommunityDetail({ postId, onBack, onEdit }) {
         return
       }
 
-      setCommentForm((prev) => ({
-        ...prev,
-        content: '',
-        parentCommentId: null,
-        parentAuthorNickname: '',
-      }))
+      setCommentForm((prev) => ({ ...prev, content: '', parentCommentId: null }))
+      if (commentTextareaRef.current) commentTextareaRef.current.style.height = 'auto'
       await loadComments()
     } catch (error) {
       setMessage(`댓글 저장 실패: ${error.message}`)
@@ -297,7 +310,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     return content.split('```').map((part, index) => {
       if (index % 2 === 1) {
         return (
-          <pre className="note-code-block" key={index}>
+            <pre className="note-code-block" key={index}>
             <code>{part.trim()}</code>
           </pre>
         )
@@ -320,13 +333,13 @@ function CommunityDetail({ postId, onBack, onEdit }) {
       }
 
       blocks.push(
-        <img
-          className="content-inline-image"
-          src={match[1]}
-          style={match[2] ? { width: `${match[2]}px` } : undefined}
-          alt="본문 이미지"
-          key={`${keyPrefix}-image-${blocks.length}`}
-        />
+          <img
+              className="content-inline-image"
+              src={match[1]}
+              style={match[2] ? { width: `${match[2]}px` } : undefined}
+              alt="본문 이미지"
+              key={`${keyPrefix}-image-${blocks.length}`}
+          />
       )
       lastIndex = match.index + match[0].length
     }
@@ -340,86 +353,97 @@ function CommunityDetail({ postId, onBack, onEdit }) {
   }
 
   return (
-    <>
-      <article className="note-detail-panel">
-        <div className="note-header-actions post-detail-actions">
-          {canEdit && <button type="button" onClick={() => onEdit(post.id)}>수정</button>}
-          {canDelete && <button type="button" className="danger-button" onClick={deletePost} disabled={loading}>삭제</button>}
-          <button type="button" onClick={onBack}>목록</button>
+      <div className="post-detail-page">
+        <div className="post-detail-page__toolbar">
+          <button type="button" className="post-detail-page__back" onClick={onBack}>← 목록</button>
+          <div className="post-detail-page__actions">
+            {canEdit && <button type="button" onClick={() => onEdit(post.id)}>수정</button>}
+            {canDelete && <button type="button" className="danger-button" onClick={deletePost} disabled={loading}>삭제</button>}
+          </div>
         </div>
 
-        {post ? (
-          <>
-            {/* 실제 게시글 제목을 상세 화면의 주제목으로 표시하고 작성자·최종수정일만 바로 아래에 둡니다. */}
-            <h1 className="post-detail-title">{post.title}</h1>
-            <p className="post-detail-byline">
-              <strong>{post.authorNickname || '알 수 없는 사용자'}</strong>
-              <span aria-hidden="true"> | </span>
-              <time dateTime={post.updatedAt}>최종수정일 {formatDate(post.updatedAt)}</time>
-              <span aria-hidden="true"> | </span>
-              <span>조회수 {post.viewCount ?? 0}</span>
-            </p>
+        <article className="post-detail-page__article">
+          {post ? (
+              <>
+                {/* 실제 게시글 제목을 상세 화면의 주제목으로 표시하고 작성자·최종수정일만 바로 아래에 둡니다. */}
+                <h1 className="post-detail-page__title">{post.title}</h1>
+                <p className="post-detail-page__meta">
+                  <span className="post-detail-page__author">{post.authorNickname || '알 수 없는 사용자'}</span>
+                  <span className="post-detail-page__dot" aria-hidden="true">·</span>
+                  <time dateTime={post.updatedAt}>최종수정일 {formatDate(post.updatedAt)}</time>
+                  <span className="post-detail-page__dot" aria-hidden="true">·</span>
+                  <span>조회수 {post.viewCount ?? 0}</span>
+                </p>
 
-            {mainImage.url && (
-              <img
-                className="note-thumbnail"
-                src={mainImage.url}
-                style={{ width: `${mainImage.width}px` }}
-                alt="게시글 이미지"
-                draggable={false}
-              />
-            )}
+                {mainImage.url && (
+                    <div className="post-detail-page__thumb">
+                      <img
+                          src={mainImage.url}
+                          style={{ width: `${mainImage.width}px` }}
+                          alt="게시글 이미지"
+                          draggable={false}
+                      />
+                    </div>
+                )}
 
-            <div className="note-content">{renderPostContent(post.content)}</div>
+                <div className="post-detail-page__content">{renderPostContent(post.content)}</div>
 
-            {/* 하트 아이콘 옆에 서버의 현재 총 좋아요 수를 함께 표시합니다. */}
-            <div className="note-header-actions post-like-summary">
-              <button
-                type="button"
-                className="like-icon-button"
-                onClick={toggleLike}
-                disabled={likeLoading}
-                aria-label={liked ? '좋아요 취소' : '좋아요'}
-                aria-pressed={liked}
-              >
-                <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" />
-              </button>
-              <span>{post.likeCount ?? 0}</span>
-            </div>
-          </>
-        ) : (
-          <p>{loading ? '불러오는 중입니다.' : message}</p>
-        )}
-      </article>
-
-      <section className="comment-panel">
-        <h2>댓글</h2>
-        <form className="comment-form" onSubmit={createComment}>
-          {commentForm.parentCommentId && (
-            <div className="reply-target">
-              {/* 답글을 작성할 대상이 명확하도록 부모 댓글 작성자의 닉네임을 표시합니다. */}
-              {commentForm.parentAuthorNickname}님에 댓글의 답글 작성 중
-              <button type="button" onClick={cancelReply}>취소</button>
-            </div>
+                {/* 하트 아이콘과 서버의 현재 총 좋아요 수를 하나의 버튼으로 묶어 보여줍니다. */}
+                <div className="post-detail-page__like-row">
+                  <button
+                      type="button"
+                      className={`post-detail-page__like-btn${liked ? ' is-liked' : ''}`}
+                      onClick={toggleLike}
+                      disabled={likeLoading}
+                      aria-label={liked ? '좋아요 취소' : '좋아요'}
+                      aria-pressed={liked}
+                  >
+                    <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" />
+                    <span>{post.likeCount ?? 0}</span>
+                  </button>
+                </div>
+              </>
+          ) : (
+              <p className="post-detail-page__status">{loading ? '불러오는 중입니다.' : message}</p>
           )}
-          <textarea name="content" rows="4" value={commentForm.content} onChange={handleCommentChange} placeholder="댓글 내용" />
-          <button type="submit" disabled={loading}>댓글 등록</button>
-        </form>
+        </article>
 
-        <ul className="comment-list">
-          {comments.map((comment) => (
-            <CommentItem
-              key={comment.id}
-              comment={comment}
-              auth={auth}
-              onReply={selectReplyTarget}
-              onUpdate={updateComment}
-              onDelete={deleteComment}
+        <section className="post-detail-page__comments">
+          <h2>댓글 <span className="post-detail-page__comment-count">{comments.length}</span></h2>
+          <form className="comment-form" onSubmit={createComment}>
+            {commentForm.parentCommentId && (
+                <div className="reply-target">
+                  {/* 부모 댓글 번호는 노출하지 않고 답글 작성 상태만 간단히 안내합니다. */}
+                  답글 작성 중
+                  <button type="button" onClick={cancelReply}>취소</button>
+                </div>
+            )}
+            <textarea
+                ref={commentTextareaRef}
+                name="content"
+                rows="1"
+                value={commentForm.content}
+                onChange={handleCommentChange}
+                onInput={(event) => autoGrowTextarea(event.target)}
+                placeholder="댓글 내용"
             />
-          ))}
-        </ul>
-      </section>
-    </>
+            <button type="submit" disabled={loading}>댓글 등록</button>
+          </form>
+
+          <ul className="comment-list">
+            {comments.map((comment) => (
+                <CommentItem
+                    key={comment.id}
+                    comment={comment}
+                    auth={auth}
+                    onReply={selectReplyTarget}
+                    onUpdate={updateComment}
+                    onDelete={deleteComment}
+                />
+            ))}
+          </ul>
+        </section>
+      </div>
   )
 }
 
