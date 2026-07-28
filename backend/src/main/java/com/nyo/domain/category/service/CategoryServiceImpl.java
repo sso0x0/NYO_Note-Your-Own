@@ -21,7 +21,7 @@ public class CategoryServiceImpl implements CategoryService {
     // 카테고리 전체 목록 조회
     @Override
     public List<CategoryResponse> getCategoryList() {
-        return categoryRepository.findAll().stream()
+        return categoryRepository.findAllByOrderByIdAsc().stream()
                 .map(CategoryResponse::from) // 각 엔티티를 DTO로 매핑
                 .toList();
     }
