@@ -3,44 +3,64 @@ import { parseTextColors } from '../../../utils/textColor'
 import { useAuth } from '../../../context/AuthContext'
 import { parseMainImage } from '../../../utils/mainImage'
 import { generateAiTags, getNoteTags } from '../api/tag'
-import { getHistories, sendMessage } from '../../chat/api/chat'
+import { sendMessage } from '../../chat/api/chat'
 import ChatMessage from '../../chat/ChatMessage'
 import ChatInput from '../../chat/ChatInput'
 import '../../chat/chat.css'
 
 const EMPTY_HEART_IMAGE = '/images/heart.png'
 const FILLED_HEART_IMAGE = '/images/hearts.png'
+const QUESTION_LIST_PREVIEW_COUNT = 4
+
+// 질문 목록 아이콘. 강의 시청 페이지의 학습용 챗봇과 톤을 맞춘 단색 아웃라인 SVG.
+function QuestionListIcon() {
+  return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="4.5" cy="6" r="0.8" fill="currentColor" />
+        <circle cx="4.5" cy="12" r="0.8" fill="currentColor" />
+        <circle cx="4.5" cy="18" r="0.8" fill="currentColor" />
+        <path d="M8.5 6h11M8.5 12h11M8.5 18h11" />
+      </svg>
+  )
+}
 
 // key={noteId}로 노트가 바뀔 때마다 이 컴포넌트를 통째로 새로 마운트해서
 // 대화 기록은 서버(chat_histories)에 계속 쌓이지만, 화면에는 다른 노트의 대화가 이어서 보이지 않는다.
+// 강의 시청 페이지의 학습용 챗봇과 동일하게 접기/펼치기 + 질문 목록 팝오버를 제공한다.
 function NoteDetailChat({ lectureId, noteId }) {
   const [chatMessages, setChatMessages] = useState([])
   const [chatSending, setChatSending] = useState(false)
   const [chatError, setChatError] = useState(null)
   const chatBottomRef = useRef(null)
 
+  const [chatDrawerOpen, setChatDrawerOpen] = useState(true)
+  const [showQuestionList, setShowQuestionList] = useState(false)
+  const [questionListExpanded, setQuestionListExpanded] = useState(false)
+
+  // 대화는 서버(chat_histories)에 계속 저장되지만, 노트를 나갔다 들어오거나 다른 강의로
+  // 이동하면 화면에는 이전 대화를 다시 불러오지 않고 빈 상태로 시작한다.
   useEffect(() => {
-    let cancelled = false
     setChatMessages([])
     setChatError(null)
-
-    // 연결된 강의와 같은 대화 기록을 조회해 양쪽 화면에서 동일한 내용을 보여줍니다.
-    getHistories({ lectureId })
-        .then((response) => {
-          if (!cancelled) setChatMessages([...(response?.content ?? [])].reverse())
-        })
-        .catch((error) => {
-          if (!cancelled) setChatError(error.message)
-        })
-
-    return () => {
-      cancelled = true
-    }
+    setShowQuestionList(false)
+    setQuestionListExpanded(false)
   }, [lectureId])
+
+  // 서버에서 지난 질문을 다시 불러오지 않고, 위 chatMessages에서 사용자 질문만 걸러서 보여준다
+  // (마이페이지 챗봇 기록과는 별개).
+  const askedQuestions = chatMessages.filter((message) => message.senderRole === 'USER')
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatMessages])
+
+  // 질문 목록에서 항목을 누르면 대화창에서 그 질문이 있는 위치로 스크롤해서 보여주고, 팝오버는 닫는다.
+  const scrollToQuestion = (questionId) => {
+    setShowQuestionList(false)
+    document.getElementById(`note-chat-message-${questionId}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
 
   const handleChatSend = async (message) => {
     setChatError(null)
@@ -63,20 +83,85 @@ function NoteDetailChat({ lectureId, noteId }) {
   }
 
   return (
-      <aside className="note-detail-chat">
-        <div className="note-detail-chat__header">학습용 챗봇</div>
-        <div className="chat-messages">
-          {chatMessages.map((chatMessage) => (
-              <ChatMessage
-                  key={chatMessage.id}
-                  senderRole={chatMessage.senderRole}
-                  message={chatMessage.message}
-              />
-          ))}
-          <div ref={chatBottomRef} />
-        </div>
-        {chatError && <p className="chat-error">{chatError}</p>}
-        <ChatInput sending={chatSending} onSend={handleChatSend} />
+      <aside className={`note-detail-chat${chatDrawerOpen ? '' : ' is-collapsed'}`}>
+        {chatDrawerOpen ? (
+            <>
+              <div className="note-detail-chat__header">
+                <span className="note-detail-chat__badge">AI</span>
+                <span className="note-detail-chat__title">학습용 챗봇</span>
+                <button
+                    type="button"
+                    className="note-detail-chat__question-list-toggle"
+                    onClick={() => setShowQuestionList((v) => !v)}
+                    aria-label={showQuestionList ? '질문 목록 닫기' : '질문 목록 보기'}
+                >
+                  <QuestionListIcon />
+                </button>
+                <button
+                    type="button"
+                    className="note-detail-chat__collapse"
+                    onClick={() => setChatDrawerOpen(false)}
+                >
+                  접기 ›
+                </button>
+                {showQuestionList && (
+                    <div className="note-detail-chat__question-list-popover">
+                      <ul className="note-detail-chat__history-list">
+                        {askedQuestions.length === 0 && (
+                            <li className="note-detail-chat__history-empty">아직 물어본 질문이 없습니다.</li>
+                        )}
+                        {(questionListExpanded ? askedQuestions : askedQuestions.slice(0, QUESTION_LIST_PREVIEW_COUNT)).map((question) => (
+                            <li key={question.id}>
+                              <button
+                                  type="button"
+                                  className="note-detail-chat__history-item"
+                                  onClick={() => scrollToQuestion(question.id)}
+                              >
+                                {question.createdAt && (
+                                    <span className="note-detail-chat__history-date">
+                                {question.createdAt.replace('T', ' ').slice(0, 16)}
+                              </span>
+                                )}
+                                <span className="note-detail-chat__history-text">{question.message}</span>
+                              </button>
+                            </li>
+                        ))}
+                      </ul>
+                      {askedQuestions.length > QUESTION_LIST_PREVIEW_COUNT && (
+                          <button
+                              type="button"
+                              className="note-detail-chat__history-more"
+                              onClick={() => setQuestionListExpanded((v) => !v)}
+                          >
+                            {questionListExpanded ? '접기' : `더보기 (${askedQuestions.length - QUESTION_LIST_PREVIEW_COUNT})`}
+                          </button>
+                      )}
+                    </div>
+                )}
+              </div>
+              <div className="chat-messages">
+                {chatMessages.map((chatMessage) => (
+                    <div key={chatMessage.id} id={`note-chat-message-${chatMessage.id}`}>
+                      <ChatMessage
+                          senderRole={chatMessage.senderRole}
+                          message={chatMessage.message}
+                      />
+                    </div>
+                ))}
+                <div ref={chatBottomRef} />
+              </div>
+              {chatError && <p className="chat-error">{chatError}</p>}
+              <ChatInput sending={chatSending} onSend={handleChatSend} />
+            </>
+        ) : (
+            <button
+                type="button"
+                className="note-detail-chat__expand"
+                onClick={() => setChatDrawerOpen(true)}
+            >
+              ‹ AI 챗봇
+            </button>
+        )}
       </aside>
   )
 }

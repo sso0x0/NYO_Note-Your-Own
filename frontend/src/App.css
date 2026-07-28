@@ -201,13 +201,189 @@ body {
     border: 1px solid var(--border, #ddd);
     border-radius: 14px;
     background: var(--bg, #fff);
+    transition: width 0.2s ease;
+}
+
+.note-detail-chat.is-collapsed {
+    width: 48px;
 }
 
 .note-detail-chat__header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     padding: 14px 16px;
     border-bottom: 1px solid var(--border, #ddd);
     color: var(--text-h, #222);
     font-weight: 600;
+}
+
+.note-detail-chat__badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: var(--accent-bg, rgba(170, 59, 255, 0.1));
+    color: var(--accent, #aa3bff);
+}
+
+.note-detail-chat__title {
+    flex: 1;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text-h, #222);
+}
+
+.note-detail-chat__collapse {
+    border: none;
+    background: none;
+    padding: 0;
+    font-size: 12px;
+    color: var(--text, #6b6375);
+    cursor: pointer;
+}
+
+.note-detail-chat__collapse:hover {
+    color: var(--accent, #aa3bff);
+}
+
+.note-detail-chat__expand {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    writing-mode: vertical-rl;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text, #6b6375);
+    letter-spacing: 1px;
+}
+
+.note-detail-chat__expand:hover {
+    color: var(--accent, #aa3bff);
+}
+
+.note-detail-chat__question-list-toggle {
+    border: none;
+    background: none;
+    padding: 4px;
+    color: var(--text-h, #222);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    opacity: 0.7;
+}
+
+.note-detail-chat__question-list-toggle:hover {
+    opacity: 1;
+}
+
+.note-detail-chat__question-list-toggle svg {
+    width: 20px;
+    height: 20px;
+}
+
+.note-detail-chat__question-list-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 12px;
+    width: 260px;
+    max-height: 320px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border, #ddd);
+    border-radius: 12px;
+    background: var(--bg, #fff);
+    box-shadow: var(--card-shadow, 0 8px 24px rgba(0, 0, 0, 0.15));
+    z-index: 5;
+}
+
+.note-detail-chat__history-list {
+    list-style: none;
+    margin: 0;
+    padding: 8px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+
+.note-detail-chat__history-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.note-detail-chat__history-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.note-detail-chat__history-list::-webkit-scrollbar-thumb {
+    background: transparent;
+}
+
+.note-detail-chat__history-more {
+    margin: 0 8px 8px;
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: var(--text-h, #222);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.note-detail-chat__history-more:hover {
+    background: var(--code-bg, #f4f3ec);
+}
+
+.note-detail-chat__history-item {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    background: var(--code-bg, #f4f3ec);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.note-detail-chat__history-item:hover {
+    background: var(--border, #e5e4e7);
+}
+
+.note-detail-chat__history-date {
+    font-size: 11px;
+    color: var(--text, #6b6375);
+    opacity: 0.7;
+}
+
+.note-detail-chat__history-text {
+    font-size: 13px;
+    color: var(--text-h, #222);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.note-detail-chat__history-empty {
+    padding: 14px;
+    font-size: 13px;
+    color: var(--text, #6b6375);
+    text-align: center;
 }
 
 .note-detail-chat .chat-messages {
@@ -1166,5 +1342,14 @@ body {
     .note-detail-chat {
         width: 100%;
         height: 420px;
+    }
+
+    .note-detail-chat.is-collapsed {
+        width: 100%;
+        height: 48px;
+    }
+
+    .note-detail-chat__expand {
+        writing-mode: horizontal-tb;
     }
 }
