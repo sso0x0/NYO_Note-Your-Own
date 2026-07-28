@@ -76,6 +76,10 @@ public class Post extends BaseEntity {
         this.isDeleted = 1;
     }
 
+    public void restore() {
+        this.isDeleted = 0;
+    }
+
     public boolean isDeleted() {
         return Integer.valueOf(1).equals(isDeleted);
     }

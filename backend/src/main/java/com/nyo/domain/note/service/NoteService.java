@@ -27,6 +27,7 @@ import com.nyo.domain.user.dto.UserResponse;
 import com.nyo.domain.user.service.UserService;
 import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
+import com.nyo.global.moderation.ProhibitedWordFilter;
 import com.nyo.global.storage.FileStorageService;
 import com.nyo.global.response.PageResponse;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +57,7 @@ import java.util.stream.Collectors;
 public class NoteService {
 
     private final NoteRepository noteRepository;
+    private final ProhibitedWordFilter prohibitedWordFilter;
     private final LectureRepository lectureRepository;
     private final NoteHistoryRepository noteHistoryRepository;
     private final NoteSearchRepository noteSearchRepository; // 노트 검색 색인 (Elasticsearch)
@@ -250,7 +252,9 @@ public class NoteService {
     // 관리자 노트 관리 목록: 최신순으로 페이징하고, 작성자 상세 정보(이메일/권한 등)와
     // 연결된 강의명을 함께 내려준다.
     public Page<NoteAdminResponse> adminGetNoteList(Pageable pageable) {
-        Page<Note> notePage = noteRepository.findByIsDeleted(0, pageable);
+        // 관리자 목록에는 삭제된 노트도 포함해 isDeleted 상태를 확인할 수 있게 한다.
+        // 일반 사용자용 조회는 기존 findByIsDeleted(0, ...) 조건을 그대로 사용한다.
+        Page<Note> notePage = noteRepository.findAll(pageable);
         List<Note> notes = notePage.getContent();
 
         Map<Long, UserResponse> usersById = userService.adminGetUsersByIds(
@@ -471,6 +475,7 @@ public class NoteService {
                 .thumbnailUrl(note.getThumbnailUrl())
                 .viewCount(note.getViewCount())
                 .likeCount(note.getLikeCount())
+                .prohibitedWords(prohibitedWordFilter.findMatchedWords(note.getTitle(), note.getContent()))
                 .isDeleted(note.isDeleted())
                 .createdAt(note.getCreatedAt())
                 .updatedAt(note.getUpdatedAt())

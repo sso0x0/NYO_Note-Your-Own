@@ -52,6 +52,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
   const [commentForm, setCommentForm] = useState({
     content: '',
     parentCommentId: null,
+    parentAuthorNickname: '',
   })
   const [message, setMessage] = useState('게시글을 불러오는 중입니다.')
   const [loading, setLoading] = useState(false)
@@ -197,12 +198,17 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     setCommentForm((prev) => ({
       ...prev,
       parentCommentId: comment.id,
+      parentAuthorNickname: comment.authorNickname || '알 수 없는 사용자',
       content: '',
     }))
   }
 
   const cancelReply = () => {
-    setCommentForm((prev) => ({ ...prev, parentCommentId: null }))
+    setCommentForm((prev) => ({
+      ...prev,
+      parentCommentId: null,
+      parentAuthorNickname: '',
+    }))
   }
 
   const createComment = async (event) => {
@@ -229,7 +235,12 @@ function CommunityDetail({ postId, onBack, onEdit }) {
         return
       }
 
-      setCommentForm((prev) => ({ ...prev, content: '', parentCommentId: null }))
+      setCommentForm((prev) => ({
+        ...prev,
+        content: '',
+        parentCommentId: null,
+        parentAuthorNickname: '',
+      }))
       await loadComments()
     } catch (error) {
       setMessage(`댓글 저장 실패: ${error.message}`)
@@ -386,8 +397,8 @@ function CommunityDetail({ postId, onBack, onEdit }) {
         <form className="comment-form" onSubmit={createComment}>
           {commentForm.parentCommentId && (
             <div className="reply-target">
-              {/* 부모 댓글 번호는 노출하지 않고 답글 작성 상태만 간단히 안내합니다. */}
-              답글 작성 중
+              {/* 답글을 작성할 대상이 명확하도록 부모 댓글 작성자의 닉네임을 표시합니다. */}
+              {commentForm.parentAuthorNickname}님에 댓글의 답글 작성 중
               <button type="button" onClick={cancelReply}>취소</button>
             </div>
           )}

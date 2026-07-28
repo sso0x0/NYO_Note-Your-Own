@@ -30,6 +30,9 @@ public class CommentAdminResponse {
     @Schema(description = "대상 게시글/강의 제목 (대상이 이미 삭제됐으면 null)", example = "겨울방학 스터디 모집")
     private String targetTitle;
 
+    @Schema(description = "댓글 대상 게시글의 삭제 여부", example = "false")
+    private Boolean targetDeleted;
+
     @Schema(description = "상위 댓글 ID", example = "null")
     private Long parentCommentId;
 

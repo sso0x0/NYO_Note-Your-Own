@@ -1,5 +1,11 @@
 import { Fragment, useState } from 'react';
-import { getUserList, changeUserRole, sanctionUser, getSanctionHistory } from '../api/admin';
+import {
+  getUserList,
+  changeUserRole,
+  sanctionUser,
+  getSanctionHistory,
+  releaseUserSuspension,
+} from '../api/admin';
 import { usePagedList } from '../hooks/usePagedList';
 import './AdminUsersPage.css';
 
@@ -19,6 +25,12 @@ const STATUS_LABEL = {
   WITHDRAWN: '탈퇴',
 };
 
+// 정지 이력의 날짜를 초 단위 시간까지 동일한 형식으로 표시합니다.
+const formatSanctionDateTime = (value) => {
+  if (!value) return '';
+  return value.slice(0, 19).replace('T', ' ');
+};
+
 function SanctionPanel({ user, onDone }) {
   const [type, setType] = useState('WARNING');
   const [reason, setReason] = useState('');
@@ -27,6 +39,7 @@ function SanctionPanel({ user, onDone }) {
   const [error, setError] = useState(null);
   const [history, setHistory] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [releasing, setReleasing] = useState(false);
 
   const loadHistory = () => {
     setHistoryLoading(true);
@@ -37,6 +50,12 @@ function SanctionPanel({ user, onDone }) {
   };
 
   const handleRoleChange = async (nextRole) => {
+    // 관리자 부여와 일반 회원 전환 모두 대상 회원과 변경 권한을 한 번 더 확인합니다.
+    const nextRoleLabel = nextRole === 'ADMIN' ? '관리자' : '일반 회원';
+    if (!window.confirm(`${user.nickname}을(를) ${nextRoleLabel}(으)로 전환하시겠습니까?`)) {
+      return;
+    }
+
     setError(null);
     try {
       await changeUserRole(user.id, nextRole);
@@ -56,7 +75,10 @@ function SanctionPanel({ user, onDone }) {
         userId: user.id,
         type,
         reason,
-        endAt: type === 'SUSPENSION' && endAt ? new Date(endAt).toISOString() : null,
+        // datetime-local에서 선택한 한국 시각을 UTC로 바꾸지 않고 LocalDateTime 형식 그대로 전송합니다.
+        endAt: type === 'SUSPENSION' && endAt
+          ? (endAt.length === 16 ? `${endAt}:00` : endAt)
+          : null,
       });
       setReason('');
       setEndAt('');
@@ -68,6 +90,30 @@ function SanctionPanel({ user, onDone }) {
       setSubmitting(false);
     }
   };
+
+  const handleReleaseSuspension = async () => {
+    // 실수로 정지를 해제하지 않도록 대상 회원의 닉네임을 확인받습니다.
+    if (!window.confirm(`${user.nickname}의 정지를 해제하시겠습니까?`)) {
+      return;
+    }
+
+    setReleasing(true);
+    setError(null);
+    try {
+      await releaseUserSuspension(user.id);
+      // 회원 상태와 정지 이력의 실제 해제일을 모두 최신 값으로 다시 불러옵니다.
+      onDone();
+      loadHistory();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setReleasing(false);
+    }
+  };
+
+  const activeSuspensionId = user.status === 'SUSPENDED'
+    ? history?.find((item) => item.type === 'SUSPENSION')?.id
+    : null;
 
   return (
     <div className="admin-users__panel">
@@ -129,8 +175,21 @@ function SanctionPanel({ user, onDone }) {
                   <strong>{SANCTION_TYPES.find((t) => t.value === item.type)?.label ?? item.type}</strong>
                   {' - '}{item.reason}
                   <span className="admin-users__history-meta">
-                    {' '}({item.startAt?.slice(0, 10)}{item.endAt ? ` ~ ${item.endAt.slice(0, 10)}` : ''})
+                    {' '}({formatSanctionDateTime(item.startAt)}
+                    {item.type === 'SUSPENSION' && item.endAt
+                      ? ` ~ ${formatSanctionDateTime(item.endAt)}`
+                      : ''})
                   </span>
+                  {item.id === activeSuspensionId && (
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn--sm admin-users__release-btn"
+                      onClick={handleReleaseSuspension}
+                      disabled={releasing}
+                    >
+                      {releasing ? '해제 중...' : '정지 해제'}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
