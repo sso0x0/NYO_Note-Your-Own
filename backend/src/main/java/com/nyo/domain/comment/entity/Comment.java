@@ -26,8 +26,11 @@ public class Comment extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "post_id", nullable = false)
+    @Column(name = "post_id")
     private Long postId;
+
+    @Column(name = "lecture_id")
+    private Long lectureId;
 
     @Column(name = "user_id", nullable = false)
     private Long userId;
@@ -42,9 +45,19 @@ public class Comment extends BaseEntity {
     @Column(name = "is_deleted", nullable = false)
     private Integer isDeleted;
 
-    public static Comment create(Long postId, Long userId, Long parentCommentId, String content) {
+    public static Comment createForPost(Long postId, Long userId, Long parentCommentId, String content) {
         return Comment.builder()
                 .postId(postId)
+                .userId(userId)
+                .parentCommentId(parentCommentId)
+                .content(content)
+                .isDeleted(0)
+                .build();
+    }
+
+    public static Comment createForLecture(Long lectureId, Long userId, Long parentCommentId, String content) {
+        return Comment.builder()
+                .lectureId(lectureId)
                 .userId(userId)
                 .parentCommentId(parentCommentId)
                 .content(content)

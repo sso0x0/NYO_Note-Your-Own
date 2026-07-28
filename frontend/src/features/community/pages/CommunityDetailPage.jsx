@@ -17,6 +17,7 @@ function CommunityDetailPage() {
   useEffect(() => {
     let cancelled = false;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus('loading');
     setError(null);
     setLiked(false);

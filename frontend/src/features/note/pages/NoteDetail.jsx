@@ -1,18 +1,76 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { parseTextColors } from '../../../utils/textColor'
 import { useAuth } from '../../../context/AuthContext'
 import { parseMainImage } from '../../../utils/mainImage'
+import { generateAiTags, getNoteTags } from '../api/tag'
+import { sendMessage } from '../../chat/api/chat'
+import ChatMessage from '../../chat/ChatMessage'
+import ChatInput from '../../chat/ChatInput'
+import '../../chat/chat.css'
 
 const EMPTY_HEART_IMAGE = '/images/heart.png'
 const FILLED_HEART_IMAGE = '/images/hearts.png'
 
-function NoteDetail({ noteId, onBack, onEdit }) {
+// key={noteId}로 노트가 바뀔 때마다 이 컴포넌트를 통째로 새로 마운트해서
+// 대화 기록은 서버(chat_histories)에 계속 쌓이지만, 화면에는 다른 노트의 대화가 이어서 보이지 않는다.
+function NoteDetailChat({ lectureId }) {
+  const [chatMessages, setChatMessages] = useState([])
+  const [chatSending, setChatSending] = useState(false)
+  const [chatError, setChatError] = useState(null)
+  const chatBottomRef = useRef(null)
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chatMessages])
+
+  const handleChatSend = async (message) => {
+    setChatError(null)
+    setChatSending(true)
+    setChatMessages((previous) => [
+      ...previous,
+      { id: `pending-${Date.now()}`, senderRole: 'USER', message },
+    ])
+
+    try {
+      // 연결된 강의 ID로 저장해 노트와 강의 화면에서 같은 대화를 이어갑니다.
+      const answer = await sendMessage({ lectureId, message })
+      setChatMessages((previous) => [...previous, answer])
+    } catch (error) {
+      setChatError(error.message)
+    } finally {
+      setChatSending(false)
+    }
+  }
+
+  return (
+      <aside className="note-detail-chat">
+        <div className="note-detail-chat__header">학습 챗봇</div>
+        <div className="chat-messages">
+          {chatMessages.map((chatMessage) => (
+              <ChatMessage
+                  key={chatMessage.id}
+                  senderRole={chatMessage.senderRole}
+                  message={chatMessage.message}
+              />
+          ))}
+          <div ref={chatBottomRef} />
+        </div>
+        {chatError && <p className="chat-error">{chatError}</p>}
+        <ChatInput sending={chatSending} onSend={handleChatSend} />
+      </aside>
+  )
+}
+
+function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
   const { auth } = useAuth()
   const [note, setNote] = useState(null)
   const [message, setMessage] = useState('노트를 불러오는 중입니다.')
   const [loading, setLoading] = useState(false)
   const [liked, setLiked] = useState(false)
   const [likeLoading, setLikeLoading] = useState(false)
+  const [tags, setTags] = useState([])
+  const [tagGenerating, setTagGenerating] = useState(false)
+  const [tagError, setTagError] = useState(null)
   const userId = auth?.userId
 
   const loadNote = async () => {
@@ -44,6 +102,15 @@ function NoteDetail({ noteId, onBack, onEdit }) {
     if (response.ok) setLiked(await response.json())
   }
 
+  const loadTags = async () => {
+    try {
+      setTags(await getNoteTags(noteId))
+    } catch (error) {
+      // 태그 조회는 부가 정보라 실패해도 노트 본문 표시를 막지 않는다.
+      setTagError(error.message)
+    }
+  }
+
   useEffect(() => {
     const increaseViewCount = async () => {
       // 상세 페이지에 들어오면 common.view_logs로 하루 1회만 조회수를 올린다.
@@ -55,7 +122,7 @@ function NoteDetail({ noteId, onBack, onEdit }) {
 
     const load = async () => {
       // 조회수나 좋아요 상태 요청 하나가 실패해도 노트 본문 조회까지 중단되지 않게 독립 실행합니다.
-      await Promise.allSettled([increaseViewCount(), loadNote(), loadLikeStatus()])
+      await Promise.allSettled([increaseViewCount(), loadNote(), loadLikeStatus(), loadTags()])
     }
 
     load()
@@ -78,6 +145,20 @@ function NoteDetail({ noteId, onBack, onEdit }) {
       await loadNote()
     } finally {
       setLikeLoading(false)
+    }
+  }
+
+  const handleGenerateTags = async () => {
+    if (tagGenerating) return
+    setTagGenerating(true)
+    setTagError(null)
+    try {
+      await generateAiTags(noteId)
+      await loadTags()
+    } catch (error) {
+      setTagError(error.message)
+    } finally {
+      setTagGenerating(false)
     }
   }
 
@@ -153,18 +234,18 @@ function NoteDetail({ noteId, onBack, onEdit }) {
 
   // 삭제 버튼은 작성자 본인 또는 로그인 정보의 DB 역할이 ADMIN인 경우에만 표시합니다.
   const canDelete = note && auth && (
-    String(note.userId) === String(auth.userId) || auth.role === 'ADMIN'
+      String(note.userId) === String(auth.userId) || auth.role === 'ADMIN'
   )
   // 수정은 관리자 권한과 관계없이 노트를 작성한 로그인 사용자 본인에게만 허용합니다.
   const canEdit = note && auth && String(note.userId) === String(auth.userId)
   const mainImage = parseMainImage(note?.thumbnailUrl)
 
   const escapeHtml = (value) => String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;')
 
   const escapeAttribute = (value) => escapeHtml(value)
 
@@ -204,17 +285,17 @@ function NoteDetail({ noteId, onBack, onEdit }) {
   }
 
   const createPrintableColoredText = (text) => parseTextColors(text)
-    .map((part) => part.color
-      ? `<span style="color: ${part.color}">${escapeHtml(part.text)}</span>`
-      : escapeHtml(part.text))
-    .join('')
+      .map((part) => part.color
+          ? `<span style="color: ${part.color}">${escapeHtml(part.text)}</span>`
+          : escapeHtml(part.text))
+      .join('')
 
   const renderNoteContent = (content) => {
     // 저장된 본문에서 ```로 감싼 부분은 코드블럭으로 분리해서 보여준다.
     return content.split('```').map((part, index) => {
       if (index % 2 === 1) {
         return (
-          <pre className="note-code-block" key={index}>
+            <pre className="note-code-block" key={index}>
             <code>{part.trim()}</code>
           </pre>
         )
@@ -234,21 +315,21 @@ function NoteDetail({ noteId, onBack, onEdit }) {
       const textBeforeImage = text.slice(lastIndex, match.index)
       if (textBeforeImage) {
         blocks.push(
-          <p className="note-text-block" key={`${keyPrefix}-text-${blocks.length}`}>
-            {renderColoredText(textBeforeImage, `${keyPrefix}-color-${blocks.length}`)}
-          </p>
+            <p className="note-text-block" key={`${keyPrefix}-text-${blocks.length}`}>
+              {renderColoredText(textBeforeImage, `${keyPrefix}-color-${blocks.length}`)}
+            </p>
         )
       }
 
       blocks.push(
-        <img
-          className="content-inline-image"
-          src={match[1]}
-          style={match[2] ? { width: `${match[2]}px` } : undefined}
-          draggable={false}
-          alt="본문 이미지"
-          key={`${keyPrefix}-image-${blocks.length}`}
-        />
+          <img
+              className="content-inline-image"
+              src={match[1]}
+              style={match[2] ? { width: `${match[2]}px` } : undefined}
+              draggable={false}
+              alt="본문 이미지"
+              key={`${keyPrefix}-image-${blocks.length}`}
+          />
       )
       lastIndex = match.index + match[0].length
     }
@@ -256,9 +337,9 @@ function NoteDetail({ noteId, onBack, onEdit }) {
     const restText = text.slice(lastIndex)
     if (restText) {
       blocks.push(
-        <p className="note-text-block" key={`${keyPrefix}-text-rest`}>
-          {renderColoredText(restText, `${keyPrefix}-color-rest`)}
-        </p>
+          <p className="note-text-block" key={`${keyPrefix}-text-rest`}>
+            {renderColoredText(restText, `${keyPrefix}-color-rest`)}
+          </p>
       )
     }
 
@@ -266,115 +347,145 @@ function NoteDetail({ noteId, onBack, onEdit }) {
   }
 
   const renderColoredText = (text, keyPrefix) => (
-    // 글자색 기능: #RRGGBB 형식으로 검증된 값만 React style에 전달합니다.
-    parseTextColors(text).map((part, index) => (
-      <span style={part.color ? { color: part.color } : undefined} key={`${keyPrefix}-${index}`}>
+      // 글자색 기능: #RRGGBB 형식으로 검증된 값만 React style에 전달합니다.
+      parseTextColors(text).map((part, index) => (
+          <span style={part.color ? { color: part.color } : undefined} key={`${keyPrefix}-${index}`}>
         {part.text}
       </span>
-    ))
+      ))
   )
 
   return (
-    <>
-      <header className="note-header">
-        <div>
-          <h1>노트 상세</h1>
-          <p>선택한 노트의 내용을 확인합니다.</p>
-        </div>
-        <div className="note-header-actions">
-          {note && <button type="button" onClick={exportNotePdf}>PDF 저장</button>}
-          {canEdit && <button type="button" onClick={() => onEdit(note.id)}>수정</button>}
-          {canDelete && <button type="button" className="danger-button" onClick={deleteNote} disabled={loading}>삭제</button>}
-          <button type="button" onClick={onBack}>목록</button>
-        </div>
-      </header>
+      <>
+        <header className="note-header">
+          <div>
+            <h1>노트 상세</h1>
+            <p>선택한 노트의 내용을 확인합니다.</p>
+          </div>
+          <div className="note-header-actions">
+            {note && <button type="button" onClick={exportNotePdf}>PDF 저장</button>}
+            {canEdit && <button type="button" onClick={() => onEdit(note.id)}>수정</button>}
+            {canDelete && <button type="button" className="danger-button" onClick={deleteNote} disabled={loading}>삭제</button>}
+            <button type="button" onClick={onBack}>목록</button>
+          </div>
+        </header>
 
-      <article className="note-detail-panel">
-        {note ? (
-          <>
-            {/* 게시판 상세처럼 제목 아래에 작성자·강의·수정일·조회수를 한 줄로 표시한다. */}
-            <h1 className="post-detail-title">{note.title}</h1>
-            <p className="post-detail-byline note-detail-byline">
-              <strong>{note.authorNickname || '알 수 없는 사용자'}</strong>
-              <span aria-hidden="true"> | </span>
-              <span>{note.lectureTitle || '강의 정보 없음'}</span>
-              <span aria-hidden="true"> | </span>
-              <time dateTime={note.updatedAt}>최종 수정일 {formatDate(note.updatedAt)}</time>
-              <span aria-hidden="true"> | </span>
-              <span>조회수 {note.viewCount ?? 0}</span>
-            </p>
-            <dl className="note-meta">
-              <div>
-                <dt>노트 ID</dt>
-                <dd>{note.id}</dd>
-              </div>
-              <div>
-                <dt>강의 ID</dt>
-                <dd>{note.lectureId}</dd>
-              </div>
-              <div>
-                <dt>작성자 ID</dt>
-                <dd>{note.userId}</dd>
-              </div>
-              <div>
-                <dt>최종 수정일</dt>
-                <dd>{formatDate(note.updatedAt)}</dd>
-              </div>
-              <div>
-                <dt>조회수</dt>
-                <dd>{note.viewCount}</dd>
-              </div>
-              <div>
-                <dt>좋아요</dt>
-                <dd>{note.likeCount}</dd>
-              </div>
-            </dl>
+        <div className="note-detail-layout">
+          <article className="note-detail-panel">
+            {note ? (
+                <>
+                  {/* 게시판 상세처럼 제목 아래에 작성자·강의·수정일·조회수를 한 줄로 표시한다. */}
+                  <h1 className="post-detail-title">{note.title}</h1>
+                  <p className="post-detail-byline note-detail-byline">
+                    <strong>{note.authorNickname || '알 수 없는 사용자'}</strong>
+                    <span aria-hidden="true"> | </span>
+                    <span>{note.lectureTitle || '강의 정보 없음'}</span>
+                    <span aria-hidden="true"> | </span>
+                    <time dateTime={note.updatedAt}>최종 수정일 {formatDate(note.updatedAt)}</time>
+                    <span aria-hidden="true"> | </span>
+                    <span>조회수 {note.viewCount ?? 0}</span>
+                  </p>
 
-            <div className="note-header-actions legacy-note-like">
-              <button
-                type="button"
-                className="like-icon-button"
-                onClick={toggleLike}
-                disabled={likeLoading}
-                aria-label={liked ? '좋아요 취소' : '좋아요'}
-                aria-pressed={liked}
-              >
-                <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" draggable={false} />
-              </button>
-            </div>
+                  <div className="note-tags">
+                    {tags.map((tag) => (
+                        <button
+                            key={tag.tagId}
+                            type="button"
+                            className="note-tag-chip"
+                            onClick={() => onTagClick?.(tag.tagName)}
+                            title={`'${tag.tagName}' 태그가 붙은 다른 노트 보기`}
+                        >
+                          {tag.isAiGenerated && <span className="note-tag-chip__ai">AI</span>}
+                          {tag.tagName}
+                        </button>
+                    ))}
+                    {canEdit && (
+                        <button
+                            type="button"
+                            className="note-tag-generate"
+                            onClick={handleGenerateTags}
+                            disabled={tagGenerating}
+                        >
+                          {tagGenerating ? 'AI 태그 생성 중...' : (tags.length > 0 ? 'AI 태그 다시 생성' : 'AI 태그 생성')}
+                        </button>
+                    )}
+                  </div>
+                  {tagError && <p className="note-tag-error">{tagError}</p>}
 
-            {/* 노트 상세 화면의 이미지를 마우스로 끌어서 복사하지 못하게 합니다. */}
-            {mainImage.url && (
-              <img
-                className="note-thumbnail"
-                src={mainImage.url}
-                style={{ width: `${mainImage.width}px` }}
-                alt=""
-                draggable={false}
-              />
+                  <dl className="note-meta">
+                    <div>
+                      <dt>노트 ID</dt>
+                      <dd>{note.id}</dd>
+                    </div>
+                    <div>
+                      <dt>강의 ID</dt>
+                      <dd>{note.lectureId}</dd>
+                    </div>
+                    <div>
+                      <dt>작성자 ID</dt>
+                      <dd>{note.userId}</dd>
+                    </div>
+                    <div>
+                      <dt>최종 수정일</dt>
+                      <dd>{formatDate(note.updatedAt)}</dd>
+                    </div>
+                    <div>
+                      <dt>조회수</dt>
+                      <dd>{note.viewCount}</dd>
+                    </div>
+                    <div>
+                      <dt>좋아요</dt>
+                      <dd>{note.likeCount}</dd>
+                    </div>
+                  </dl>
+
+                  <div className="note-header-actions legacy-note-like">
+                    <button
+                        type="button"
+                        className="like-icon-button"
+                        onClick={toggleLike}
+                        disabled={likeLoading}
+                        aria-label={liked ? '좋아요 취소' : '좋아요'}
+                        aria-pressed={liked}
+                    >
+                      <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" draggable={false} />
+                    </button>
+                  </div>
+
+                  {/* 노트 상세 화면의 이미지를 마우스로 끌어서 복사하지 못하게 합니다. */}
+                  {mainImage.url && (
+                      <img
+                          className="note-thumbnail"
+                          src={mainImage.url}
+                          style={{ width: `${mainImage.width}px` }}
+                          alt=""
+                          draggable={false}
+                      />
+                  )}
+                  <div className="note-content">{renderNoteContent(note.content)}</div>
+
+                  {/* 본문 아래에서 좋아요 버튼과 현재 좋아요 수를 함께 보여준다. */}
+                  <div className="note-like-summary">
+                    <button
+                        type="button"
+                        className="like-icon-button"
+                        onClick={toggleLike}
+                        disabled={likeLoading}
+                        aria-label={liked ? '좋아요 취소' : '좋아요'}
+                        aria-pressed={liked}
+                    >
+                      <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" draggable={false} />
+                    </button>
+                    <span>좋아요 {note.likeCount ?? 0}</span>
+                  </div>
+                </>
+            ) : (
+                <p>{loading ? '불러오는 중입니다.' : message}</p>
             )}
-            <div className="note-content">{renderNoteContent(note.content)}</div>
-
-            {/* 본문 아래에서 좋아요 버튼과 현재 좋아요 수를 함께 보여준다. */}
-            <div className="note-like-summary">
-              <button
-                type="button"
-                className="like-icon-button"
-                onClick={toggleLike}
-                disabled={likeLoading}
-                aria-label={liked ? '좋아요 취소' : '좋아요'}
-                aria-pressed={liked}
-              >
-                <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" draggable={false} />
-              </button>
-              <span>좋아요 {note.likeCount ?? 0}</span>
-            </div>
-          </>
-        ) : (
-          <p>{loading ? '불러오는 중입니다.' : message}</p>
-        )}
-      </article>
-    </>
+          </article>
+          {note?.lectureId && <NoteDetailChat key={noteId} lectureId={note.lectureId} />}
+        </div>
+      </>
   )
 }
 

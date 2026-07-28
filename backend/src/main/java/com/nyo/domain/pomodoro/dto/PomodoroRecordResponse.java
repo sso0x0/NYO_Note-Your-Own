@@ -32,9 +32,6 @@ public class PomodoroRecordResponse {
     @Schema(description = "집중 시간(분)", example = "25")
     private Integer focusMinutes;
 
-    @Schema(description = "휴식 시간(분)", example = "5")
-    private Integer breakMinutes;
-
     @Schema(description = "타이머 시작 시각")
     private LocalDateTime startedAt;
 

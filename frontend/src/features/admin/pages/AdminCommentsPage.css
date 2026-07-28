@@ -1,0 +1,36 @@
+/* 표/페이지네이션/버튼 공통 스타일은 AdminLayout.css의 .admin-table / .admin-pagination /
+   .admin-btn 을 공유해서 쓴다. 여기는 댓글 상세(내용 + 작성자 정보) 펼침 영역만 담당한다. */
+.admin-comments__detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-comments__author-info {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.admin-comments__author-info dt {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.admin-comments__author-info dd {
+  margin: 2px 0 0;
+  color: var(--text-h);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .admin-comments__author-info {
+    grid-template-columns: repeat(2, minmax(100px, 1fr));
+  }
+}

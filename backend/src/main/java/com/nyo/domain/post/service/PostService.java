@@ -8,12 +8,14 @@ import com.nyo.domain.common.repository.ImageRepository;
 import com.nyo.domain.common.service.LikeService;
 import com.nyo.domain.common.service.ViewService;
 import com.nyo.domain.post.document.PostDocument;
+import com.nyo.domain.post.dto.PostAdminResponse;
 import com.nyo.domain.post.dto.PostRequest;
 import com.nyo.domain.post.dto.PostResponse;
 import com.nyo.domain.post.dto.PostPageResponse;
 import com.nyo.domain.post.entity.Post;
 import com.nyo.domain.post.repository.PostRepository;
 import com.nyo.domain.post.repository.PostSearchRepository;
+import com.nyo.domain.user.dto.UserResponse;
 import com.nyo.domain.user.service.UserService;
 import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
@@ -157,6 +159,15 @@ public class PostService {
 
     public PostResponse findOne(Long postId) {
         return toResponse(getPost(postId));
+    }
+
+    // 관리자 게시글 관리 목록: 공지 여부와 관계없이 최신순으로 페이징하고, 작성자 상세 정보(이메일/권한 등)를 함께 내려준다.
+    public Page<PostAdminResponse> adminGetPostList(Pageable pageable) {
+        Page<Post> posts = postRepository.findByIsDeleted(0, pageable);
+        Map<Long, UserResponse> usersById = userService.adminGetUsersByIds(
+                posts.getContent().stream().map(Post::getUserId).distinct().toList()
+        );
+        return posts.map(post -> toAdminResponse(post, usersById));
     }
 
     public boolean isLiked(Long postId, Long userId) {
@@ -307,6 +318,28 @@ public class PostService {
                 .build();
     }
 
+    private PostAdminResponse toAdminResponse(Post post, Map<Long, UserResponse> usersById) {
+        UserResponse author = usersById.get(post.getUserId());
+        return PostAdminResponse.builder()
+                .id(post.getId())
+                .userId(post.getUserId())
+                .authorLoginId(author != null ? author.getLoginId() : null)
+                .authorNickname(author != null ? author.getNickname() : "알 수 없는 사용자")
+                .authorEmail(author != null ? author.getEmail() : null)
+                .authorRole(author != null ? author.getRole() : null)
+                .authorStatus(author != null ? author.getStatus() : null)
+                .title(post.getTitle())
+                .content(post.getContent())
+                .thumbnailUrl(post.getThumbnailUrl())
+                .viewCount(post.getViewCount())
+                .likeCount(post.getLikeCount())
+                .isDeleted(post.isDeleted())
+                .notice(post.isNotice())
+                .createdAt(post.getCreatedAt())
+                .updatedAt(post.getUpdatedAt())
+                .build();
+    }
+
     private List<PostResponse> toResponseList(List<Post> posts) {
         // 게시글 nickname 표시: 페이지 작성자를 한 번에 조회해 반복 사용자 쿼리를 방지한다.
         Map<Long, String> nicknames = userService.getDisplayNicknames(
@@ -338,7 +371,8 @@ public class PostService {
 
     private void saveChangedPostImage(Long postId, String previousImageUrl, PostRequest request) {
         String newImageUrl = request.getThumbnailUrl();
-        if (newImageUrl == null || newImageUrl.isBlank() || newImageUrl.equals(previousImageUrl)) {
+        if (newImageUrl == null || newImageUrl.isBlank()
+                || stripUrlFragment(newImageUrl).equals(stripUrlFragment(previousImageUrl))) {
             return;
         }
 
@@ -377,6 +411,15 @@ public class PostService {
         // 썸네일 교체 시에는 본문 이미지는 유지하고 기존 썸네일 URL만 GCS와 DB에서 삭제한다.
         fileStorageService.delete(imageUrl);
         imageRepository.deleteAll(imageRepository.findByPostIdAndImageUrl(postId, imageUrl));
+    }
+
+    // 메인 이미지 크기만 바뀌었을 때 같은 GCS 파일을 삭제하지 않도록 fragment를 제외해 비교한다.
+    private String stripUrlFragment(String imageUrl) {
+        if (imageUrl == null) {
+            return "";
+        }
+        int fragmentIndex = imageUrl.indexOf('#');
+        return fragmentIndex >= 0 ? imageUrl.substring(0, fragmentIndex) : imageUrl;
     }
 
     private void deletePostImages(Long postId, String thumbnailUrl) {

@@ -11,7 +11,9 @@ import com.nyo.domain.common.repository.LikeRepository;
 import com.nyo.domain.common.service.LikeService;
 import com.nyo.domain.common.service.ViewService;
 import com.nyo.domain.note.document.NoteDocument;
+import com.nyo.domain.lecture.entity.Lecture;
 import com.nyo.domain.lecture.repository.LectureRepository;
+import com.nyo.domain.note.dto.NoteAdminResponse;
 import com.nyo.domain.note.dto.NoteRequest;
 import com.nyo.domain.note.dto.NoteResponse;
 import com.nyo.domain.note.entity.Note;
@@ -20,6 +22,7 @@ import com.nyo.domain.note.repository.NoteHistoryRepository;
 import com.nyo.domain.note.repository.NoteRepository;
 import com.nyo.domain.note.repository.NoteSearchRepository;
 import com.nyo.domain.tag.repository.NoteTagRepository;
+import com.nyo.domain.user.dto.UserResponse;
 import com.nyo.domain.user.service.UserService;
 import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
@@ -66,10 +69,12 @@ public class NoteService {
 
     @Transactional
     public NoteResponse create(Long userId, NoteRequest request) {
-        // 작성자는 컨트롤러가 JWT에서 전달하며, 강의는 임시 정책으로 DB의 첫 활성 강의를 자동 연결한다.
-        // Lecture 엔티티 전체를 읽지 않고 ID만 조회해 병합 코드와 기존 DB 컬럼 차이의 영향을 피한다.
-        Long lectureId = lectureRepository.findFirstActiveLectureId()
-                .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND));
+        // 강의 시청 화면에서는 현재 URL의 강의 ID를 사용하고, 레거시 작성 화면만 첫 활성 강의로 보완한다.
+        Long lectureId = request.getLectureId() == null
+                ? lectureRepository.findFirstActiveLectureId()
+                    .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND))
+                : lectureRepository.findActiveLectureIdById(request.getLectureId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND));
 
         Note note = Note.create(
                 userId,
@@ -170,6 +175,23 @@ public class NoteService {
         return PageResponse.of(responsePage);
     }
 
+    // 관리자 노트 관리 목록: 최신순으로 페이징하고, 작성자 상세 정보(이메일/권한 등)와
+    // 연결된 강의명을 함께 내려준다.
+    public Page<NoteAdminResponse> adminGetNoteList(Pageable pageable) {
+        Page<Note> notePage = noteRepository.findByIsDeleted(0, pageable);
+        List<Note> notes = notePage.getContent();
+
+        Map<Long, UserResponse> usersById = userService.adminGetUsersByIds(
+                notes.stream().map(Note::getUserId).distinct().toList()
+        );
+        // JOIN FETCH로 카테고리까지 함께 가져와야 트랜잭션 종료 전에 category.getName()을 지연 로딩 없이 읽을 수 있다.
+        Map<Long, Lecture> lecturesById = lectureRepository.findAllByIdInAndIsDeletedFalse(
+                notes.stream().map(Note::getLectureId).filter(Objects::nonNull).distinct().toList()
+        ).stream().collect(Collectors.toMap(Lecture::getId, Function.identity()));
+
+        return notePage.map(note -> toAdminResponse(note, usersById, lecturesById));
+    }
+
     // 마이페이지 - 내가 작성한 노트 목록
     public PageResponse<NoteResponse> findMine(Long userId, Pageable pageable) {
         Page<Note> notePage = noteRepository.findByUserIdAndIsDeleted(userId, 0, pageable);
@@ -210,7 +232,11 @@ public class NoteService {
     }
 
     public NoteResponse findOne(Long noteId) {
-        return toResponse(getNote(noteId));
+        Note note = getNote(noteId);
+        String lectureTitle = lectureRepository.findActiveLectureTitleById(note.getLectureId())
+                .orElse("강의 정보 없음");
+        // 노트 상세 응답에 연결 강의 제목을 채워 프론트의 강의 정보란에 표시한다.
+        return toResponse(note, userService.getDisplayNickname(note.getUserId()), lectureTitle);
     }
 
     public boolean isLiked(Long noteId, Long userId) {
@@ -330,14 +356,47 @@ public class NoteService {
         }
     }
 
+    private NoteAdminResponse toAdminResponse(Note note, Map<Long, UserResponse> usersById, Map<Long, Lecture> lecturesById) {
+        UserResponse author = usersById.get(note.getUserId());
+        Lecture lecture = lecturesById.get(note.getLectureId());
+        return NoteAdminResponse.builder()
+                .id(note.getId())
+                .lectureId(note.getLectureId())
+                .lectureTitle(lecture != null ? lecture.getTitle() : null)
+                .lectureCategoryName(lecture != null ? lecture.getCategory().getName() : null)
+                .lectureInstructor(lecture != null ? lecture.getInstructor() : null)
+                .lectureCapacity(lecture != null ? lecture.getCapacity() : null)
+                .lectureCurrentEnrolled(lecture != null ? lecture.getCurrentEnrolled() : null)
+                .userId(note.getUserId())
+                .authorLoginId(author != null ? author.getLoginId() : null)
+                .authorNickname(author != null ? author.getNickname() : "알 수 없는 사용자")
+                .authorEmail(author != null ? author.getEmail() : null)
+                .authorRole(author != null ? author.getRole() : null)
+                .authorStatus(author != null ? author.getStatus() : null)
+                .title(note.getTitle())
+                .content(note.getContent())
+                .thumbnailUrl(note.getThumbnailUrl())
+                .viewCount(note.getViewCount())
+                .likeCount(note.getLikeCount())
+                .isDeleted(note.isDeleted())
+                .createdAt(note.getCreatedAt())
+                .updatedAt(note.getUpdatedAt())
+                .build();
+    }
+
     private NoteResponse toResponse(Note note) {
         return toResponse(note, userService.getDisplayNickname(note.getUserId()));
     }
 
     private NoteResponse toResponse(Note note, String authorNickname) {
+        return toResponse(note, authorNickname, null);
+    }
+
+    private NoteResponse toResponse(Note note, String authorNickname, String lectureTitle) {
         return NoteResponse.builder()
                 .id(note.getId())
                 .lectureId(note.getLectureId())
+                .lectureTitle(lectureTitle)
                 .userId(note.getUserId())
                 .authorNickname(authorNickname)
                 .title(note.getTitle())
@@ -364,7 +423,8 @@ public class NoteService {
     private void saveChangedNoteImage(Long noteId, String previousImageUrl, NoteRequest request) {
         String newImageUrl = request.getThumbnailUrl();
         // 수정 화면에서 새 이미지 URL로 바뀐 경우에만 images 테이블에 추가 기록한다.
-        if (newImageUrl == null || newImageUrl.isBlank() || newImageUrl.equals(previousImageUrl)) {
+        if (newImageUrl == null || newImageUrl.isBlank()
+                || stripUrlFragment(newImageUrl).equals(stripUrlFragment(previousImageUrl))) {
             return;
         }
 
@@ -403,6 +463,15 @@ public class NoteService {
         // 썸네일 교체 시에는 본문 이미지는 유지하고 기존 썸네일 URL만 GCS와 DB에서 삭제한다.
         fileStorageService.delete(imageUrl);
         imageRepository.deleteAll(imageRepository.findByNoteIdAndImageUrl(noteId, imageUrl));
+    }
+
+    // 이미지 크기만 URL fragment로 바뀐 경우 같은 GCS 파일을 새 이미지로 오인하지 않게 합니다.
+    private String stripUrlFragment(String imageUrl) {
+        if (imageUrl == null) {
+            return "";
+        }
+        int fragmentIndex = imageUrl.indexOf('#');
+        return fragmentIndex >= 0 ? imageUrl.substring(0, fragmentIndex) : imageUrl;
     }
 
     private void deleteNoteImages(Long noteId, String thumbnailUrl) {

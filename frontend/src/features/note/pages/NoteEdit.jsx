@@ -94,10 +94,7 @@ function NoteEdit({ noteId, onBack, onSaved }) {
   const insertCodeBlock = () => {
     // 노트 수정 중에도 본문에 마크다운 코드블럭 문법을 추가할 수 있게 한다.
     const codeBlock = '\n```java\n// 코드를 입력하세요\n```\n'
-    setForm((prev) => ({
-      ...prev,
-      content: `${prev.content}${codeBlock}`,
-    }))
+    contentRef.current?.insertCodeBlock(codeBlock)
   }
 
   const applyTextColor = (color) => {

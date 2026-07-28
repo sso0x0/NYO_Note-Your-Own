@@ -29,6 +29,11 @@ public class CommentController {
         return commentService.findByPost(postId);
     }
 
+    @GetMapping("/lectures/{lectureId}")
+    public List<CommentResponse> findByLecture(@PathVariable Long lectureId) {
+        return commentService.findByLecture(lectureId);
+    }
+
     @PostMapping
     public CommentResponse create(
             @Valid @RequestBody CommentRequest request

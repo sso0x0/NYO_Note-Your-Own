@@ -35,6 +35,8 @@ function NoteDetailRoute() {
             noteId={noteId}
             onBack={() => navigate({ pathname: '/main/notes', search: location.search })}
             onEdit={() => navigate({ pathname: 'edit', search: location.search })}
+            // 태그 칩을 누르면 같은 태그가 붙은 다른 노트들을 목록에서 검색해 보여준다.
+            onTagClick={(tagName) => navigate({ pathname: '/main/notes', search: `?keyword=${encodeURIComponent(tagName)}` })}
         />
     )
 }

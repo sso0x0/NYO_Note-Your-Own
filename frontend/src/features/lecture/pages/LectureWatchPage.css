@@ -193,19 +193,32 @@
   font-size: 15px;
 }
 
-.lecture-watch-page__note-toolbar button[type='submit'] {
+.lecture-watch-page__note-submit {
+  padding: 8px 20px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
   background: var(--accent);
-  border-color: var(--accent);
   color: #fff;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.lecture-watch-page__note-save-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .lecture-watch-page__note-toolbar button:disabled,
-.lecture-watch-page__image-btn:has(input:disabled) {
+.lecture-watch-page__image-btn:has(input:disabled),
+.lecture-watch-page__note-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
 .lecture-watch-page__note-message {
+  margin: 0;
   font-size: 13px;
   color: var(--text);
 }

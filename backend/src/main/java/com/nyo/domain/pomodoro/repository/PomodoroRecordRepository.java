@@ -8,10 +8,16 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public interface PomodoroRecordRepository extends JpaRepository<PomodoroRecord, Long> {
 
     Page<PomodoroRecord> findByUserId(Long userId, Pageable pageable);
+
+    // 선택 삭제: 요청 id 목록 중 본인 소유가 아닌 id는 조건에 안 걸려 조용히 무시된다
+    void deleteByIdInAndUserId(List<Long> ids, Long userId);
+
+    void deleteAllByUserId(Long userId);
 
     // recordDate는 startedAt의 날짜 부분(PomodoroRecord 생성 시 자동 계산)이라 여기서 바로 범위 검색 가능
     Page<PomodoroRecord> findByUserIdAndRecordDateBetween(

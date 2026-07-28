@@ -1,5 +1,6 @@
 package com.nyo.domain.lecture.service;
 
+import com.nyo.domain.lecture.dto.LectureAdminResponse;
 import com.nyo.domain.lecture.dto.LectureRequest;
 import com.nyo.domain.lecture.dto.LectureResponse;
 import org.springframework.data.domain.Page;
@@ -12,6 +13,9 @@ public interface LectureService {
 
     // 전체 강의 목록 조회 (페이징)
     Page<LectureResponse> getLectureList(Pageable pageable);
+
+    // 관리자 강의 관리 목록 조회 (노트/댓글 개수 포함, 페이징). categoryId가 null이면 전체 조회.
+    Page<LectureAdminResponse> adminGetLectureList(Long categoryId, Pageable pageable);
 
     // 카테고리별 강의 목록 조회 (페이징)
     Page<LectureResponse> getLectureListByCategory(Long categoryId, Pageable pageable);
@@ -36,6 +40,9 @@ public interface LectureService {
 
     // 좋아요 취소
     void unlikeLecture(Long id, Long userId);
+
+    // 현재 로그인 사용자의 좋아요 여부 조회 (상세 화면 하트 아이콘 상태 결정용)
+    boolean isLiked(Long id, Long userId);
 
     // 수강신청
     void enrollLecture(Long id, Long userId);

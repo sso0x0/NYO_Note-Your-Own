@@ -79,7 +79,7 @@ function CommunityBoard({ onCreate, onOpenPost }) {
     } finally {
       setLoading(false)
     }
-  }, [auth?.accessToken])
+  }, [auth])
 
   const movePage = useCallback((page, sort = sortBy) => {
     const safePage = Math.max(1, page)
@@ -141,10 +141,8 @@ function CommunityBoard({ onCreate, onOpenPost }) {
       <header className="note-header">
         <div>
           <h1>커뮤니티 게시판</h1>
-          <p>DB에 저장된 커뮤니티 게시글을 자동으로 불러옵니다.</p>
         </div>
         <div className="note-header-actions">
-          <button type="button" onClick={() => loadPosts(currentPage, sortBy)} disabled={loading}>새로고침</button>
           <button type="button" onClick={onCreate}>게시글 작성</button>
         </div>
       </header>

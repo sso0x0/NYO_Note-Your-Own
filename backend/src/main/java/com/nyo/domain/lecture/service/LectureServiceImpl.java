@@ -9,12 +9,15 @@ import com.nyo.domain.common.entity.TargetType;
 import com.nyo.domain.common.repository.LikeRepository;
 import com.nyo.domain.common.service.LikeService;
 import com.nyo.domain.common.service.ViewService;
+import com.nyo.domain.comment.repository.CommentRepository;
 import com.nyo.domain.lecture.document.LectureDocument;
+import com.nyo.domain.lecture.dto.LectureAdminResponse;
 import com.nyo.domain.lecture.dto.LectureRequest;
 import com.nyo.domain.lecture.dto.LectureResponse;
 import com.nyo.domain.lecture.entity.Lecture;
 import com.nyo.domain.lecture.repository.LectureRepository;
 import com.nyo.domain.lecture.repository.LectureSearchRepository;
+import com.nyo.domain.note.repository.NoteRepository;
 import com.nyo.domain.user.entity.User;
 import com.nyo.domain.user.repository.UserRepository;
 import com.nyo.global.exception.BusinessException;
@@ -53,6 +56,9 @@ public class LectureServiceImpl implements LectureService {
     // 수강신청은 좋아요와 동일한 (user, targetType, targetId) 구조라 likes 테이블을 ENROLL 타입으로 재사용
     // (별도 테이블 대신 재활용, LikeService는 "좋아요" 전용 메시지라 우회하고 Repository 직접 사용)
     private final LikeRepository likeRepository;
+    // 관리자 강의 관리 목록에서 강의별 노트/댓글 개수를 집계하기 위해 직접 의존한다.
+    private final NoteRepository noteRepository;
+    private final CommentRepository commentRepository;
 
     // 강의 존재 + 삭제 여부 검증 (존재하지 않거나 삭제된 경우 예외)
     private void validateLectureExists(Long id) {
@@ -109,6 +115,30 @@ public class LectureServiceImpl implements LectureService {
     public Page<LectureResponse> getLectureList(Pageable pageable) {
         return lectureRepository.findByIsDeletedFalse(pageable) // 삭제된 강의 제외
                 .map(LectureResponse::from);
+    }
+
+    // 관리자 강의 관리 목록: 강의별 노트/댓글 개수를 함께 집계해 내려준다. categoryId가 있으면 해당 카테고리로 필터링한다.
+    @Override
+    public Page<LectureAdminResponse> adminGetLectureList(Long categoryId, Pageable pageable) {
+        if (categoryId != null && !categoryRepository.existsById(categoryId)) {
+            throw new BusinessException(ErrorCode.CATEGORY_NOT_FOUND);
+        }
+
+        Page<Lecture> lectures = categoryId != null
+                ? lectureRepository.findByCategoryIdAndIsDeletedFalse(categoryId, pageable)
+                : lectureRepository.findByIsDeletedFalse(pageable);
+        List<Long> lectureIds = lectures.getContent().stream().map(Lecture::getId).toList();
+
+        Map<Long, Long> noteCountsById = lectureIds.isEmpty() ? Map.of() : noteRepository.countByLectureIdsGrouped(lectureIds).stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
+        Map<Long, Long> commentCountsById = lectureIds.isEmpty() ? Map.of() : commentRepository.countByLectureIdsGrouped(lectureIds).stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
+
+        return lectures.map(lecture -> LectureAdminResponse.from(
+                lecture,
+                noteCountsById.getOrDefault(lecture.getId(), 0L),
+                commentCountsById.getOrDefault(lecture.getId(), 0L)
+        ));
     }
 
     // 카테고리별 강의 목록 조회
@@ -257,6 +287,12 @@ public class LectureServiceImpl implements LectureService {
                 .build());
 
         lectureRepository.decreaseLikeCount(id); // 캐시된 좋아요 수 원자 감소
+    }
+
+    // 좋아요 여부 조회
+    @Override
+    public boolean isLiked(Long id, Long userId) {
+        return likeService.isLiked(userId, "LECTURE", id);
     }
 
     // 수강신청 (likes 테이블을 ENROLL 타입으로 재사용)

@@ -1,62 +1,22 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import nyoLogo from '../assets/images/nyo_logo.png';
+import { Outlet } from 'react-router-dom';
+import Header from './Header';
+import Footer from './Footer';
 import WidgetDock from './WidgetDock';
 import './ProtectedLayout.css';
 
-// 로그인 후 화면 전체에서 공통으로 보이는 헤더 + 페이지 전환 네비게이션.
-// 새 기능 페이지를 /main 하위 라우트로 추가했다면 여기에도 링크를 추가해야 메뉴에서 보인다.
+// 로그인 후 화면 전체에서 공통으로 쓰는 레이아웃. 상단 헤더(Header)와 하단 푸터(Footer)는
+// 모든 /main, /admin 이외의 보호된 페이지에서 공통으로 재사용하도록 별도 컴포넌트로 분리했다.
 // 뽀모도로/챗봇은 라우트가 아니라 WidgetDock(우하단 플로팅 아이콘 2개)으로 모든 페이지에 떠 있다.
 function ProtectedLayout() {
-  const { auth, logout } = useAuth();
-
-  // ProtectedRoute redirects to /login as soon as auth clears, so we only
-  // need to clear it here — navigating manually races with that redirect
-  // and can leave the URL out of sync with the rendered page.
-  const handleLogout = () => {
-    logout();
-  };
-
   return (
-      <div className="protected-layout">
-        <header className="protected-layout__header">
-          <Link to="/main" className="protected-layout__logo">
-          <span className="protected-layout__logo-mark">
-            <img src={nyoLogo} alt="NYO" />
-          </span>
-          </Link>
-          <nav className="protected-layout__nav">
-            <NavLink to="/main" end className={({ isActive }) => (isActive ? 'is-active' : '')}>
-              메인
-            </NavLink>
-            <NavLink to="/main/lectures" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-              강의
-            </NavLink>
-            <NavLink to="/main/notes" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-              노트
-            </NavLink>
-            <NavLink to="/main/community" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-              커뮤니티
-            </NavLink>
-            <NavLink to="/main/mypage" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-              마이페이지
-            </NavLink>
-            {auth?.role === 'ADMIN' && (
-              <NavLink to="/main/admin" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-                관리자
-              </NavLink>
-            )}
-          </nav>
-          <div className="protected-layout__user">
-            <span>{auth?.nickname}님 환영합니다</span>
-            <button type="button" onClick={handleLogout}>로그아웃</button>
-          </div>
-        </header>
-        <main className="protected-layout__content">
-          <Outlet />
-        </main>
-        <WidgetDock />
-      </div>
+    <div className="protected-layout">
+      <Header />
+      <main className="protected-layout__content">
+        <Outlet />
+      </main>
+      <Footer />
+      <WidgetDock />
+    </div>
   );
 }
 

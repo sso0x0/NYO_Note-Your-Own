@@ -15,7 +15,10 @@ const serializeNode = (node) => {
 
   const content = Array.from(node.childNodes).map(serializeNode).join('')
   const color = node instanceof HTMLElement ? node.dataset.noteColor : null
-  const wrappedContent = color ? `[color=${color}]${content}[/color]` : content
+  let wrappedContent = color ? `[color=${color}]${content}[/color]` : content
+  if (node instanceof HTMLElement && node.dataset.noteBold) wrappedContent = `[bold]${wrappedContent}[/bold]`
+  if (node instanceof HTMLElement && node.dataset.noteItalic) wrappedContent = `[italic]${wrappedContent}[/italic]`
+  if (node instanceof HTMLElement && node.dataset.noteUnderline) wrappedContent = `[underline]${wrappedContent}[/underline]`
 
   return ['DIV', 'P'].includes(node.nodeName) ? `${wrappedContent}\n` : wrappedContent
 }
@@ -78,14 +81,28 @@ const serializeEditor = (editor) => Array.from(editor.childNodes)
 const renderValue = (editor, value) => {
   editor.replaceChildren()
   const appendText = (text) => parseTextColors(text).forEach((part) => {
-    if (!part.color) {
+    if (!part.color && !part.bold && !part.italic && !part.underline) {
       editor.append(document.createTextNode(part.text))
       return
     }
 
     const span = document.createElement('span')
-    span.dataset.noteColor = part.color
-    span.style.color = part.color
+    if (part.color) {
+      span.dataset.noteColor = part.color
+      span.style.color = part.color
+    }
+    if (part.bold) {
+      span.dataset.noteBold = 'true'
+      span.style.fontWeight = '700'
+    }
+    if (part.italic) {
+      span.dataset.noteItalic = 'true'
+      span.style.fontStyle = 'italic'
+    }
+    if (part.underline) {
+      span.dataset.noteUnderline = 'true'
+      span.style.textDecoration = 'underline'
+    }
     span.textContent = part.text
     editor.append(span)
   })
@@ -115,12 +132,12 @@ const RichTextEditor = forwardRef(function RichTextEditor({ value, onChange }, r
   const rememberSelection = () => {
     const selection = window.getSelection()
     const editor = editorRef.current
-    if (!selection?.rangeCount || selection.isCollapsed) return
+    if (!selection?.rangeCount) return
 
     const range = selection.getRangeAt(0)
     if (!editor?.contains(range.startContainer) || !editor.contains(range.endContainer)) return
 
-    // 역방향 드래그 수정: anchor/focus 방향과 무관한 정규화된 Range를 저장합니다.
+    // 드래그 선택 영역뿐 아니라 일반 텍스트 커서도 저장해 파일 선택 후 이미지 삽입 위치로 사용합니다.
     selectionRef.current = range.cloneRange()
   }
 
@@ -145,18 +162,44 @@ const RichTextEditor = forwardRef(function RichTextEditor({ value, onChange }, r
       const image = createResizableImage(source, previewUrl)
 
       const selection = window.getSelection()
-      const range = selection?.rangeCount ? selection.getRangeAt(0) : null
+      const liveRange = selection?.rangeCount ? selection.getRangeAt(0) : null
+      // 파일 선택창을 열며 포커스를 잃었으면 에디터에서 마지막으로 기억한 커서 위치를 복원합니다.
+      const range = liveRange && editor.contains(liveRange.startContainer)
+        ? liveRange
+        : selectionRef.current?.cloneRange()
       if (range && editor.contains(range.startContainer)) {
         range.deleteContents()
         range.insertNode(image)
         range.setStartAfter(image)
         range.collapse(true)
-        selection.removeAllRanges()
-        selection.addRange(range)
+        selection?.removeAllRanges()
+        selection?.addRange(range)
+        selectionRef.current = range.cloneRange()
       } else {
         editor.append(image)
       }
       editor.append(document.createElement('br'))
+      emitChange()
+      return true
+    },
+    insertCodeBlock(codeBlock) {
+      const editor = editorRef.current
+      if (!editor) return false
+
+      // 에디터 전체를 다시 그리지 않고 현재 커서에 코드블록 문법만 넣어 이미지 미리보기를 유지합니다.
+      const textNode = document.createTextNode(codeBlock)
+      const selection = window.getSelection()
+      const range = selection?.rangeCount ? selection.getRangeAt(0) : null
+      if (range && editor.contains(range.startContainer)) {
+        range.deleteContents()
+        range.insertNode(textNode)
+        range.setStartAfter(textNode)
+        range.collapse(true)
+        selection.removeAllRanges()
+        selection.addRange(range)
+      } else {
+        editor.append(textNode)
+      }
       emitChange()
       return true
     },
@@ -172,6 +215,63 @@ const RichTextEditor = forwardRef(function RichTextEditor({ value, onChange }, r
 
       // 색상 재적용 수정: 기존 색상 span을 풀어 중첩 코드를 만들지 않고 새 색상 하나로 교체합니다.
       span.querySelectorAll('[data-note-color]').forEach((child) => child.replaceWith(...child.childNodes))
+      range.insertNode(span)
+
+      const selection = window.getSelection()
+      selection.removeAllRanges()
+      selection.selectAllChildren(span)
+      selectionRef.current = selection.getRangeAt(0).cloneRange()
+      emitChange()
+      return true
+    },
+    applyTextStyle(styleName) {
+      const range = selectionRef.current
+      if (!range || range.collapsed || !['bold', 'italic', 'underline'].includes(styleName)) return false
+
+      const editor = editorRef.current
+      const dataAttribute = styleName === 'bold'
+        ? 'data-note-bold'
+        : styleName === 'italic'
+          ? 'data-note-italic'
+          : 'data-note-underline'
+      const selector = `[${dataAttribute}]`
+      const startElement = range.startContainer.nodeType === Node.ELEMENT_NODE
+        ? range.startContainer
+        : range.startContainer.parentElement
+      const endElement = range.endContainer.nodeType === Node.ELEMENT_NODE
+        ? range.endContainer
+        : range.endContainer.parentElement
+      const startWrapper = startElement?.closest?.(selector)
+      const endWrapper = endElement?.closest?.(selector)
+
+      if (startWrapper && startWrapper === endWrapper && editor?.contains(startWrapper)) {
+        // 같은 서식이 적용된 선택 영역에서 버튼을 다시 누르면 감싼 span만 풀어 토글 해제합니다.
+        const children = [...startWrapper.childNodes]
+        startWrapper.replaceWith(...children)
+        if (children.length > 0) {
+          const selection = window.getSelection()
+          const nextRange = document.createRange()
+          nextRange.setStartBefore(children[0])
+          nextRange.setEndAfter(children.at(-1))
+          selection.removeAllRanges()
+          selection.addRange(nextRange)
+          selectionRef.current = nextRange.cloneRange()
+        }
+        emitChange()
+        return true
+      }
+
+      const span = document.createElement('span')
+      const dataKey = `note${styleName[0].toUpperCase()}${styleName.slice(1)}`
+      span.dataset[dataKey] = 'true'
+      if (styleName === 'bold') span.style.fontWeight = '700'
+      if (styleName === 'italic') span.style.fontStyle = 'italic'
+      if (styleName === 'underline') span.style.textDecoration = 'underline'
+      span.append(range.extractContents())
+
+      // 같은 서식을 다시 감싸 중첩 코드가 쌓이지 않도록 선택 영역 내부의 동일 서식은 합칩니다.
+      span.querySelectorAll(selector)
+        .forEach((child) => child.replaceWith(...child.childNodes))
       range.insertNode(span)
 
       const selection = window.getSelection()
