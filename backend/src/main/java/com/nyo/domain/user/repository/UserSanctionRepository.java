@@ -16,4 +16,10 @@ public interface UserSanctionRepository extends JpaRepository<UserSanction, Long
 
     // 정지 해제 여부 판단용: 가장 최근에 등록된 정지 건 하나만 조회
     Optional<UserSanction> findTopByUserIdAndTypeOrderByCreatedAtDesc(Long userId, SanctionType type);
+
+    // 로그인 전에 누적된 미확인 경고를 최신순으로 조회합니다.
+    List<UserSanction> findByUserIdAndTypeAndEndAtIsNullOrderByCreatedAtDesc(
+            Long userId,
+            SanctionType type
+    );
 }

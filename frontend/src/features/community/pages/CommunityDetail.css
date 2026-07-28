@@ -1,0 +1,446 @@
+/* 게시글 상세: 메인 페이지 카테고리 칩(Pretendard, 13px/600)과 커뮤니티 목록의
+   포인트 색(핑크)에 맞춰 통일한다. note-detail-panel 등 기존 공용 클래스는
+   노트/강의 상세와 공유하므로 손대지 않고, 이 래퍼 아래에서만 새 모양으로 덮어쓴다. */
+.post-detail-page {
+  --pd-accent: #e57391;
+  --pd-accent-bg: #fdeef2;
+  --pd-ink: #1c1c1a;
+  --pd-line: #eaeaea;
+
+  /* 부모(.protected-layout__content)가 flex-direction:column이라 width:100%
+     없이 margin:0 auto만 쓰면 stretch가 풀리면서 내용물 크기로 쪼그라드는
+     문제가 있었다. width:100%로 폭을 먼저 채운 뒤, 커뮤니티 게시판 목록
+     (.community-board-page)과 똑같은 max-width + margin:0 auto로 양 옆
+     여백을 정확히 그 페이지만큼만 남긴다. */
+  width: 100%;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 24px 32px 64px;
+  text-align: left;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.post-detail-page h1,
+.post-detail-page h2 {
+  font-family: inherit;
+}
+
+/* ---------- toolbar ---------- */
+
+.post-detail-page__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.post-detail-page__back {
+  padding: 8px 16px;
+  border: 1px solid var(--pd-line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.post-detail-page__back:hover {
+  border-color: var(--pd-accent);
+  color: var(--pd-accent);
+}
+
+.post-detail-page__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.post-detail-page__actions button {
+  padding: 8px 16px;
+  border: 1px solid var(--pd-line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.post-detail-page__actions button:hover {
+  border-color: var(--pd-accent);
+  color: var(--pd-accent);
+}
+
+.post-detail-page__actions .danger-button {
+  border-color: #f3d2d2;
+  color: #e5484d;
+}
+
+.post-detail-page__actions .danger-button:hover {
+  border-color: #e5484d;
+  background: #fdeaea;
+  color: #e5484d;
+}
+
+/* ---------- article ---------- */
+
+.post-detail-page__article {
+  padding-bottom: 8px;
+}
+
+.post-detail-page__title {
+  margin: 0 0 14px;
+  font-size: clamp(1.6rem, 3.4vw, 2.2rem);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.3;
+  color: var(--pd-ink);
+  overflow-wrap: anywhere;
+}
+
+.post-detail-page__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--pd-line);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.post-detail-page__author {
+  color: var(--pd-ink);
+}
+
+.post-detail-page__dot {
+  color: #ccc;
+}
+
+.post-detail-page__thumb {
+  margin: 0 0 24px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #f5f5f5;
+  text-align: center;
+}
+
+.post-detail-page__thumb img {
+  display: inline-block;
+  max-width: 100%;
+  border-radius: 14px;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.post-detail-page__content {
+  margin: 0 0 28px;
+  color: var(--pd-ink);
+  font-size: 15.5px;
+  line-height: 1.75;
+  text-align: left;
+}
+
+.post-detail-page__content .note-text-block {
+  margin: 0 0 1em;
+  white-space: pre-wrap;
+}
+
+.post-detail-page__content .note-code-block {
+  margin: 0 0 1em;
+  padding: 16px;
+  border-radius: 10px;
+  background: #1f2933;
+  color: #f7fafc;
+  font-family: Consolas, Monaco, monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+.post-detail-page__content .content-inline-image {
+  display: block;
+  max-width: 100%;
+  margin: 1em 0;
+  border-radius: 10px;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.post-detail-page__status {
+  padding: 48px 0;
+  color: var(--text);
+  text-align: center;
+}
+
+/* ---------- like ---------- */
+
+.post-detail-page__like-row {
+  display: flex;
+  justify-content: flex-start;
+  padding: 20px 0 4px;
+  border-top: 1px solid var(--pd-line);
+}
+
+.post-detail-page__like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border: 1px solid var(--pd-line);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--pd-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.post-detail-page__like-btn img {
+  width: 18px;
+  height: 18px;
+}
+
+.post-detail-page__like-btn:hover:not(:disabled) {
+  border-color: var(--pd-accent);
+}
+
+/* ---------- comments ---------- */
+
+.post-detail-page__comments {
+  margin-top: 32px;
+}
+
+.post-detail-page__comments h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 16px;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--pd-ink);
+}
+
+.post-detail-page__comment-count {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pd-accent);
+}
+
+.post-detail-page .comment-form {
+  margin: 0 0 28px;
+  gap: 10px;
+}
+
+.post-detail-page .comment-form textarea {
+  padding: 12px 14px;
+  border: 1px solid var(--pd-line);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: none;
+  overflow: hidden;
+  min-height: 46px;
+  transition: height 0.1s ease;
+}
+
+.post-detail-page .comment-form textarea:focus {
+  outline: none;
+  border-color: var(--pd-accent);
+}
+
+.post-detail-page .comment-form button {
+  align-self: flex-end;
+  padding: 9px 20px;
+  border: none;
+  border-radius: 8px;
+  background: var(--pd-ink);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.post-detail-page .comment-form button:hover {
+  opacity: 0.85;
+}
+
+.post-detail-page .reply-target {
+  margin-bottom: -2px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--pd-accent-bg);
+  color: var(--pd-accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.post-detail-page .reply-target button {
+  padding: 4px 10px;
+  border: 1px solid var(--pd-accent);
+  border-radius: 999px;
+  background: none;
+  color: var(--pd-accent);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.post-detail-page .comment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.post-detail-page .comment-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid var(--pd-line);
+}
+
+.post-detail-page .comment-list > .comment-item:first-child {
+  border-top: none;
+}
+
+.post-detail-page .comment-item__avatar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--pd-accent-bg);
+  color: var(--pd-accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.post-detail-page .comment-body {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+}
+
+.post-detail-page .comment-body__header {
+  margin-bottom: 4px;
+}
+
+.post-detail-page .comment-body__author {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pd-ink);
+}
+
+.post-detail-page .comment-body p {
+  margin: 0 0 8px;
+  color: var(--pd-ink);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.post-detail-page .comment-body__actions {
+  display: flex;
+  gap: 4px;
+}
+
+.post-detail-page .comment-body__actions button {
+  padding: 3px 10px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.post-detail-page .comment-body__actions button:hover {
+  background: var(--pd-accent-bg);
+  color: var(--pd-accent);
+}
+
+.post-detail-page .comment-body__actions .danger-button {
+  color: #e5484d;
+}
+
+.post-detail-page .comment-body__actions .danger-button:hover {
+  background: #fdeaea;
+  color: #e5484d;
+}
+
+.post-detail-page .comment-edit-form {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.post-detail-page .comment-edit-form textarea {
+  grid-column: 1 / -1;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--pd-line);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  resize: none;
+  overflow: hidden;
+  min-height: 46px;
+  transition: height 0.1s ease;
+}
+
+.post-detail-page .comment-edit-form button {
+  padding: 6px 14px;
+  border: 1px solid var(--pd-line);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--pd-ink);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.post-detail-page .comment-edit-form button:hover {
+  border-color: var(--pd-accent);
+  color: var(--pd-accent);
+}
+
+.post-detail-page .comment-replies {
+  flex-basis: 100%;
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 4px 0 0 16px;
+  border-left: 2px solid var(--pd-accent-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.post-detail-page .comment-replies .comment-item {
+  padding: 12px 0;
+}
+
+@media (max-width: 640px) {
+  .post-detail-page {
+    padding: 16px 16px 48px;
+  }
+}

@@ -51,3 +51,7 @@
 .admin-users__history-meta {
   color: var(--text);
 }
+
+.admin-users__release-btn {
+  margin-left: 8px;
+}

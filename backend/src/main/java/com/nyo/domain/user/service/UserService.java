@@ -291,6 +291,40 @@ public class UserService {
                 .toList();
     }
 
+    // 로그인 후 아직 확인하지 않은 최신 경고를 한 번만 반환하고 즉시 확인 시각을 기록합니다.
+    @Transactional
+    public UserSanctionResponse acknowledgeLatestWarning(Long userId) {
+        List<UserSanction> warnings = userSanctionRepository
+                .findByUserIdAndTypeAndEndAtIsNullOrderByCreatedAtDesc(
+                        userId,
+                        SanctionType.WARNING
+                );
+        if (warnings.isEmpty()) return null;
+
+        // 여러 경고가 로그인 전에 누적돼도 다음 로그인에 오래된 경고가 다시 뜨지 않게 모두 확인 처리합니다.
+        warnings.forEach(UserSanction::acknowledge);
+        return toSanctionResponse(warnings.get(0));
+    }
+
+    // 현재 적용 중인 최신 정지를 즉시 해제하고, 실제 해제 시각을 해당 정지 이력의 종료일로 기록합니다.
+    @Transactional
+    public UserResponse adminReleaseSuspension(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
+        if (user.getStatus() != UserStatus.SUSPENDED) {
+            throw new BusinessException(ErrorCode.MEMBER_SUSPENSION_NOT_ACTIVE);
+        }
+
+        UserSanction suspension = userSanctionRepository
+                .findTopByUserIdAndTypeOrderByCreatedAtDesc(userId, SanctionType.SUSPENSION)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_SUSPENSION_NOT_ACTIVE));
+
+        suspension.release(LocalDateTime.now());
+        user.changeStatus(UserStatus.ACTIVE);
+        return toResponse(user);
+    }
+
     // ================== 여기까지 관리자 기능 ==================
 
     // 구글 로그인 시에도 일반 로그인(login())과 동일한 정책 적용: 정지 만료면 자동 해제, 아니면 상태 확인 후 차단

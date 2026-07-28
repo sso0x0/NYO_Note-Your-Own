@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react';
-import { getAdminPostList } from '../api/post';
+import { getAdminPostList, restorePost } from '../api/post';
 import { deletePost } from '../../community/api/post';
 import { usePagedList } from '../hooks/usePagedList';
 import './AdminModerationPage.css';
@@ -18,6 +18,16 @@ function AdminModerationPage() {
     if (!window.confirm(`"${post.title}" 게시글을 삭제할까요?`)) return;
     try {
       await deletePost(post.id);
+      posts.reload();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleRestorePost = async (post) => {
+    if (!window.confirm('복구하시겠습니까?')) return;
+    try {
+      await restorePost(post.id);
       posts.reload();
     } catch (err) {
       alert(err.message);
@@ -44,29 +54,41 @@ function AdminModerationPage() {
                 <th>작성자</th>
                 <th>조회</th>
                 <th>좋아요</th>
+                <th>금지어 검사</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {postItems.map((post, index) => (
                 <Fragment key={post.id}>
-                  <tr>
+                  <tr className={post.isDeleted ? 'admin-row--deleted' : undefined}>
                     <td>{posts.pageData.number * PAGE_SIZE + index + 1}</td>
                     <td>
                       <button type="button" className="admin-table__title-btn" onClick={() => handleToggle(post.id)}>
-                        {post.notice ? '[공지] ' : ''}{post.title}
+                        {post.notice ? '[공지] ' : ''}{post.title} {post.isDeleted && <span className="admin-deleted-label">(삭제됨)</span>}
                       </button>
                     </td>
                     <td>{post.authorNickname}</td>
                     <td>{post.viewCount ?? 0}</td>
                     <td>{post.likeCount ?? 0}</td>
+                    <td>
+                      {post.prohibitedWords?.length > 0 ? (
+                        <span className="admin-moderation-warning">
+                          검토 필요
+                        </span>
+                      ) : '정상'}
+                    </td>
                     <td className="admin-actions">
-                      <button type="button" className="admin-btn admin-btn--sm admin-btn--danger" onClick={() => handleDeletePost(post)}>삭제</button>
+                      {post.isDeleted ? (
+                        <button type="button" className="admin-deleted-button" onClick={() => handleRestorePost(post)}>삭제됨</button>
+                      ) : (
+                        <button type="button" className="admin-btn admin-btn--sm admin-btn--danger" onClick={() => handleDeletePost(post)}>삭제</button>
+                      )}
                     </td>
                   </tr>
                   {expandedPostId === post.id && (
                     <tr>
-                      <td colSpan={6}>
+                      <td colSpan={7}>
                         <div className="admin-detail-wrap">
                           <div className="admin-detail">{post.content}</div>
                           <dl className="admin-author-info">

@@ -1,22 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { sendMessage } from './api/chat'
-import ChatMessage from './ChatMessage'
+import ChatMessage, { SmileIcon } from './ChatMessage'
 import ChatInput from './ChatInput'
 import '../../components/widget.css'
 import './chat.css'
-
-// 말풍선 모양의 선(line) 아이콘. 이모지(💬) 대신 다른 위젯(뽀모도로)과
-// 톤을 맞춘 단색 아웃라인 아이콘을 쓰기 위해 인라인 SVG로 직접 그린다.
-function CommentIcon() {
-  return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
-           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M4 5.5h16a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H9l-4.5 4V16H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z" />
-        <path d="M8 10h8M8 13h5" />
-      </svg>
-  )
-}
 
 // 위젯을 맨 처음 열었을 때만 한 번 보여주는 환영 메시지. localStorage에 표시 여부를
 // 남겨서, 페이지 이동으로 messages가 초기화된 뒤에도 다시 뜨지 않게 한다.
@@ -82,7 +70,7 @@ export default function ChatWidget({ stacked = false, onOpenChange } = {}) {
         {open && (
             <div className={`widget__panel chat-panel${stacked ? ' widget__panel--stacked' : ''}`}>
               <div className="widget__header chat-header">
-                <span className="chat-header__avatar" aria-hidden="true" />
+                <span className="chat-header__avatar" aria-hidden="true"><SmileIcon /></span>
                 <span className="chat-header__title">무엇을 도와드릴까요?</span>
                 <button type="button" className="chat-header__close" onClick={() => setOpen(false)} aria-label="챗봇 닫기">✕</button>
               </div>
@@ -92,7 +80,7 @@ export default function ChatWidget({ stacked = false, onOpenChange } = {}) {
                 ))}
                 {sending && (
                     <div className="chat-row chat-row-assistant">
-                      <span className="chat-avatar" aria-hidden="true" />
+                      <span className="chat-avatar" aria-hidden="true"><SmileIcon /></span>
                       <div className="chat-bubble chat-bubble-assistant chat-typing">
                         <span /><span /><span />
                       </div>
@@ -110,7 +98,7 @@ export default function ChatWidget({ stacked = false, onOpenChange } = {}) {
             onClick={handleToggle}
             aria-label={open ? '챗봇 닫기' : '챗봇 열기'}
         >
-          {open ? '✕' : <CommentIcon />}
+          {open ? '✕' : <SmileIcon />}
         </button>
       </div>
   )

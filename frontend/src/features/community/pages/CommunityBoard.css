@@ -1,0 +1,407 @@
+.community-board-page {
+  /* 강의/노트 목록 페이지와 동일한 구성으로 맞추되, 커뮤니티 기존 포인트 색(핑크)을 그대로 사용한다. */
+  --cb-accent: #e57391;
+  --cb-accent-bg: #fdeef2;
+  --cb-ink: #1c1c1a;
+  --cb-line: #eaeaea;
+
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 24px 32px 56px;
+  text-align: left;
+  box-sizing: border-box;
+  /* 메인/강의 카테고리와 동일한 Pretendard 계열로 통일한다. */
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* index.css의 전역 h1,h2,h3 규칙이 글꼴을 system-ui로 되돌려놓기 때문에,
+   제목 요소들은 명시적으로 위 Pretendard 상속을 다시 받도록 한다. */
+.community-board-page h2,
+.community-board-page__list .post-card__title {
+  font-family: inherit;
+}
+
+.community-board-page__crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.community-board-page__crumbs a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.community-board-page__crumbs a:hover {
+  color: var(--cb-accent);
+}
+
+.community-board-page__crumbs .is-current {
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.community-board-page h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text-h);
+}
+
+.community-board-page__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--cb-line);
+}
+
+/* 정렬 박스 바로 왼쪽에 붙도록, 왼쪽의 남는 공간을 이 요소가 흡수해 오른쪽으로 붙는다. */
+.community-board-page__summary {
+  flex-shrink: 0;
+  margin: 0 0 0 auto;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* 강의/노트 목록 페이지의 정렬 드롭다운과 동일한 형태(버튼 + 리스트박스)로 맞춘다. */
+.community-board-page__sort {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.community-board-page__sort-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 118px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.community-board-page__sort-btn:hover {
+  border-color: var(--cb-accent);
+}
+
+.community-board-page__sort-caret {
+  flex-shrink: 0;
+  color: #999;
+  transition: transform 0.2s ease;
+}
+
+.community-board-page__sort-btn[aria-expanded='true'] .community-board-page__sort-caret {
+  transform: rotate(180deg);
+}
+
+.community-board-page__sort-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 20;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--cb-line);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(31, 41, 79, 0.16);
+}
+
+.community-board-page__sort-option {
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-h);
+  font-size: 13px;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.community-board-page__sort-option:hover {
+  background: var(--cb-accent-bg);
+  color: var(--cb-accent);
+}
+
+.community-board-page__sort-option.is-selected {
+  background: var(--cb-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.community-board-page__write-btn {
+  flex-shrink: 0;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 8px;
+  background: var(--cb-ink);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.community-board-page__write-btn:hover {
+  opacity: 0.85;
+}
+
+/* 카드는 공용 PostCard 스타일을 그대로 쓰되, 이미지 없이 제목/작성자/조회수/좋아요/작성일자를
+   각각 칼럼으로 나눈 표 형태로 덮어쓴다. 각 글은 박스가 아니라 구분선으로만 나뉜다. */
+.community-board-page__list-header,
+.community-board-page__list .post-card__body {
+  display: grid;
+  grid-template-columns: 1fr 140px 96px 96px 120px;
+  align-items: center;
+  gap: 12px;
+}
+
+.community-board-page__list-header {
+  margin-top: 20px;
+  padding: 10px 12px;
+  border-bottom: 2px solid var(--cb-ink);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.community-board-page__list-header span {
+  text-align: center;
+}
+
+.community-board-page__list-header span:first-child {
+  text-align: left;
+}
+
+.community-board-page__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.community-board-page__list--notice {
+  margin-bottom: 0;
+}
+
+.community-board-page__list .post-card {
+  border: none;
+  border-bottom: 1px solid var(--cb-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: background 0.15s ease;
+}
+
+.community-board-page__list .post-card:hover {
+  transform: none;
+  background: #f5f5f5;
+}
+
+.community-board-page__list .post-card__link {
+  display: block;
+  min-height: 52px;
+  padding: 12px 12px;
+}
+
+.community-board-page__list .post-card__body {
+  padding: 0;
+}
+
+.community-board-page__list .post-card__col--title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.community-board-page__list .post-card__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+/* 루트에 지정된 line-height(145%)가 절대값(23.2px)으로 상속되어 작은 글자에도
+   똑같이 적용되는 바람에 행이 불필요하게 늘어져 보였다. 각 글자 크기에 맞게 다시 잡는다. */
+.community-board-page__list .post-card__col--author,
+.community-board-page__list .post-card__col--views,
+.community-board-page__list .post-card__col--likes,
+.community-board-page__list .post-card__col--date {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1.3;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.community-board-page__list .post-card__col--views,
+.community-board-page__list .post-card__col--likes,
+.community-board-page__list .post-card__col--date {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #999;
+}
+
+/* 공지는 행 전체가 아니라 라벨만 빨갛게, 목록에서 눈에 띄도록 조금 크게 표시한다. */
+.community-board-page__list .post-card__badge {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  font-size: 13px;
+  background: #fdeaea;
+  color: #e5484d;
+}
+
+.community-board-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 40px;
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--text);
+}
+
+.community-board-page__empty img {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  opacity: 0.6;
+}
+
+.community-board-page__empty strong {
+  color: var(--text-h);
+  font-size: 15px;
+}
+
+.community-board-page__empty button {
+  margin-top: 8px;
+  padding: 9px 20px;
+  border: 1px solid var(--cb-line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.community-board-page__empty button:hover {
+  border-color: var(--cb-accent);
+  color: var(--cb-accent);
+}
+
+.community-board-page__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 32px;
+}
+
+.community-board-page__page-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--cb-line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.community-board-page__page-btn:hover:not(:disabled) {
+  border-color: var(--cb-accent);
+  color: var(--cb-accent);
+}
+
+.community-board-page__page-btn.is-active {
+  border-color: var(--cb-ink);
+  background: var(--cb-ink);
+  color: #fff;
+}
+
+.community-board-page__page-btn--nav {
+  padding: 0 14px;
+  font-weight: 600;
+}
+
+/* 이전/다음 버튼은 클릭 가능한 상태일 때 검은색 텍스트로, 마우스를 올리거나 누르면
+   카테고리 필터의 활성 스타일처럼 배경까지 검게 채운다. */
+.community-board-page__page-btn--nav:not(:disabled) {
+  border-color: var(--cb-ink);
+  color: var(--cb-ink);
+}
+
+.community-board-page__page-btn--nav:hover:not(:disabled),
+.community-board-page__page-btn--nav:active:not(:disabled) {
+  border-color: var(--cb-ink);
+  background: var(--cb-ink);
+  color: #fff;
+}
+
+.community-board-page__page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+  .community-board-page__toolbar {
+    flex-wrap: wrap;
+  }
+
+  .community-board-page__summary {
+    order: 1;
+    flex-basis: 100%;
+  }
+
+  /* 좁은 화면에서는 작성자/조회수/좋아요 칼럼을 숨기고 제목·작성일자만 남긴다. */
+  .community-board-page__list-header,
+  .community-board-page__list .post-card__body {
+    grid-template-columns: 1fr 90px;
+  }
+
+  .community-board-page__list-header span:nth-child(2),
+  .community-board-page__list-header span:nth-child(3),
+  .community-board-page__list-header span:nth-child(4),
+  .community-board-page__list .post-card__col--author,
+  .community-board-page__list .post-card__col--views,
+  .community-board-page__list .post-card__col--likes {
+    display: none;
+  }
+}

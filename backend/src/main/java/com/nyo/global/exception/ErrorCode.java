@@ -70,6 +70,7 @@ public enum ErrorCode {
     MEMBER_SIGNUP_CONFLICT(HttpStatus.CONFLICT, "이미 처리 중인 요청입니다. 잠시 후 다시 시도해주세요."),
     MEMBER_CANNOT_SANCTION_SELF(HttpStatus.BAD_REQUEST, "관리자는 자기 자신을 제재할 수 없습니다."),
     MEMBER_CANNOT_CHANGE_OWN_ROLE(HttpStatus.BAD_REQUEST, "관리자는 자기 자신의 권한을 변경할 수 없습니다."),
+    MEMBER_SUSPENSION_NOT_ACTIVE(HttpStatus.CONFLICT, "현재 정지 상태인 회원이 아닙니다."),
     MEMBER_CURRENT_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "현재 비밀번호가 일치하지 않습니다."),
     MEMBER_OAUTH_PASSWORD_CHANGE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "소셜 로그인 계정은 비밀번호를 변경할 수 없습니다."),
     MEMBER_INVALID_NEW_PASSWORD(HttpStatus.BAD_REQUEST, "새 비밀번호는 8자 이상 72자 이하로 입력해주세요."),
