@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import Timer from './Timer'
 import StatsAndHistory from './StatsAndHistory'
@@ -31,17 +31,23 @@ function detectStudyContext(pathname) {
 
 // 뽀모도로 아이콘 + 팝업창. ChatWidget과 같은 방식(WidgetDock)으로 모든 페이지에서
 // 접근할 수 있고, 타이머/통계 로직은 페이지였을 때 쓰던 Timer·StatsAndHistory를 그대로 재사용한다.
-export default function PomodoroWidget() {
+export default function PomodoroWidget({ stacked = false, onOpenChange } = {}) {
   const [open, setOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const location = useLocation()
   const studyContext = useMemo(() => detectStudyContext(location.pathname), [location.pathname])
 
+  // 챗봇 위젯이 이미 열려 있을 때 이 위젯을 열면(또는 그 반대) WidgetDock이 열린 순서를
+  // 알 수 있게 open 상태가 바뀔 때마다 알린다.
+  useEffect(() => {
+    onOpenChange?.(open)
+  }, [open, onOpenChange])
+
   return (
-      <div className="widget">
+      <div className="widget pomodoro-widget">
         {open && (
-            <div className="widget__panel">
-              <div className="widget__header">
+            <div className={`widget__panel pomodoro-panel${stacked ? ' widget__panel--stacked' : ''}`}>
+              <div className="widget__header pomodoro-header">
                 <span>뽀모도로 타이머</span>
                 <button type="button" onClick={() => setOpen(false)} aria-label="뽀모도로 닫기">✕</button>
               </div>
@@ -57,7 +63,7 @@ export default function PomodoroWidget() {
         )}
         <button
             type="button"
-            className="widget__toggle"
+            className="widget__toggle pomodoro-toggle"
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? '뽀모도로 닫기' : '뽀모도로 열기'}
         >

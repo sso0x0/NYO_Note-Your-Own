@@ -492,7 +492,7 @@ function MyPage() {
                             <>
                                 <LineChart
                                     data={pomodoroChartData}
-                                    color="#e57391"
+                                    color="var(--accent)"
                                     valueLabel="집중 시간(h)"
                                     formatValue={(hours) => `${Math.round(hours * 60)}분`}
                                 />

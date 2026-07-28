@@ -205,8 +205,8 @@
 }
 
 .mypage__pomodoro-filter button:hover:not(:disabled) {
-  border-color: #e57391;
-  color: #e57391;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .mypage__pomodoro-filter button:disabled {
