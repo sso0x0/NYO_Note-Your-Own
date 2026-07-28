@@ -10,6 +10,12 @@
   background: #fffbfd;
 }
 
+/* 챗봇(오른쪽 아이콘)이 뽀모도로보다 나중에 열렸을 때 밀려나는 거리.
+   뽀모도로 패널을 완전히 지나쳐야 해서 뽀모도로 쪽(284px)보다 더 많이 이동한다. */
+.chat-panel.widget__panel--stacked {
+  right: 428px;
+}
+
 .chat-header {
   background: linear-gradient(135deg, #dceeff 0%, #ffe1ee 100%);
   border-bottom: none;

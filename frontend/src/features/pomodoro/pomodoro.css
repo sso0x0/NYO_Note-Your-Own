@@ -10,6 +10,12 @@
   border-bottom: none;
 }
 
+/* 뽀모도로(왼쪽 아이콘)가 챗봇보다 나중에 열렸을 때 밀려나는 거리.
+   챗봇의 기본 위치보다 16px만 더 왼쪽으로 가면 되므로 챗봇 쪽(428px)보다 덜 이동한다. */
+.pomodoro-panel.widget__panel--stacked {
+  right: 284px;
+}
+
 /* 위젯 패널(widget.css의 .widget__panel) 내부 스크롤 영역 */
 .pomodoro-panel__body {
   flex: 1;
