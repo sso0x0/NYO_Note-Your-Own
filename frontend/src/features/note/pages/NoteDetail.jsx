@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { parseTextColors } from '../../../utils/textColor'
 import { useAuth } from '../../../context/AuthContext'
 import { parseMainImage } from '../../../utils/mainImage'
-import { generateAiTags, getNoteTags } from '../api/tag'
+import { addNoteTag, deleteNoteTag, generateAiTags, getNoteTags } from '../api/tag'
 import { sendMessage } from '../../chat/api/chat'
 import ChatMessage from '../../chat/ChatMessage'
 import ChatInput from '../../chat/ChatInput'
@@ -177,6 +177,8 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
   const [tags, setTags] = useState([])
   const [tagGenerating, setTagGenerating] = useState(false)
   const [tagError, setTagError] = useState(null)
+  const [newTagName, setNewTagName] = useState('')
+  const [tagSubmitting, setTagSubmitting] = useState(false)
   const userId = auth?.userId
 
   const loadTags = async () => {
@@ -199,6 +201,36 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
       setTagError(error.message)
     } finally {
       setTagGenerating(false)
+    }
+  }
+
+  // 작성자가 태그명을 직접 입력해 추가. 이미 있는 이름이면 백엔드가 기존 태그에 매핑해준다.
+  const handleAddTag = async (event) => {
+    event.preventDefault()
+    const name = newTagName.trim()
+    if (!name || tagSubmitting) return
+
+    setTagSubmitting(true)
+    setTagError(null)
+    try {
+      await addNoteTag(noteId, name)
+      setNewTagName('')
+      await loadTags()
+    } catch (error) {
+      setTagError(error.message)
+    } finally {
+      setTagSubmitting(false)
+    }
+  }
+
+  // AI가 붙였든 직접 추가했든, 작성자 본인이면 태그를 뗄 수 있다.
+  const handleDeleteTag = async (tagId) => {
+    setTagError(null)
+    try {
+      await deleteNoteTag(noteId, tagId)
+      await loadTags()
+    } catch (error) {
+      setTagError(error.message)
     }
   }
 
@@ -551,16 +583,27 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
 
                   <div className="note-tags">
                     {tags.map((tag) => (
-                        <button
-                            key={tag.tagId}
-                            type="button"
-                            className="note-tag-chip"
-                            onClick={() => onTagClick?.(tag.tagName)}
-                            title={`'${tag.tagName}' 태그가 붙은 다른 노트 보기`}
-                        >
-                          {tag.isAiGenerated && <span className="note-tag-chip__ai">AI</span>}
-                          {tag.tagName}
-                        </button>
+                        <span key={tag.tagId} className="note-tag-chip">
+                          <button
+                              type="button"
+                              className="note-tag-chip__label"
+                              onClick={() => onTagClick?.(tag.tagName)}
+                              title={`'${tag.tagName}' 태그가 붙은 다른 노트 보기`}
+                          >
+                            {tag.isAiGenerated && <span className="note-tag-chip__ai">AI</span>}
+                            {tag.tagName}
+                          </button>
+                          {canEdit && (
+                              <button
+                                  type="button"
+                                  className="note-tag-chip__remove"
+                                  onClick={() => handleDeleteTag(tag.tagId)}
+                                  aria-label={`'${tag.tagName}' 태그 삭제`}
+                              >
+                                ✕
+                              </button>
+                          )}
+                        </span>
                     ))}
                     {canEdit && (
                         <button
@@ -571,6 +614,25 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
                         >
                           {tagGenerating ? 'AI 태그 생성 중...' : (tags.length > 0 ? 'AI 태그 다시 생성' : 'AI 태그 생성')}
                         </button>
+                    )}
+                    {canEdit && (
+                        <form className="note-tag-add" onSubmit={handleAddTag}>
+                          <input
+                              type="text"
+                              className="note-tag-add__input"
+                              value={newTagName}
+                              onChange={(event) => setNewTagName(event.target.value)}
+                              placeholder="태그 직접 추가"
+                              maxLength={50}
+                          />
+                          <button
+                              type="submit"
+                              className="note-tag-add__submit"
+                              disabled={tagSubmitting || !newTagName.trim()}
+                          >
+                            {tagSubmitting ? '추가 중...' : '+ 추가'}
+                          </button>
+                        </form>
                     )}
                   </div>
                   {tagError && <p className="note-tag-error">{tagError}</p>}
@@ -646,7 +708,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
                 <p>{loading ? '불러오는 중입니다.' : message}</p>
             )}
           </article>
-          {note?.lectureId && <NoteDetailChat key={noteId} lectureId={note.lectureId} noteId={noteId} />}
+          {note && <NoteDetailChat key={noteId} lectureId={note.lectureId ?? null} noteId={noteId} />}
         </div>
       </>
   )

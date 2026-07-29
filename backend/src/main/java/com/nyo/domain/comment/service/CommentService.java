@@ -129,18 +129,6 @@ public class CommentService {
                         .build());
     }
 
-    // 💡 추가: 마이페이지 - 내가 작성한 댓글 목록 (삭제되지 않은 것만, 최신순)
-    public Page<CommentMyResponse> getMyComments(Long userId, Pageable pageable) {
-        return commentRepository.findByUserIdAndIsDeletedOrderByCreatedAtDesc(userId, 0, pageable)
-                .map(comment -> CommentMyResponse.builder()
-                        .id(comment.getId())
-                        .postId(comment.getPostId())
-                        .lectureId(comment.getLectureId())
-                        .content(comment.getContent())
-                        .createdAt(comment.getCreatedAt())
-                        .build());
-    }
-
     private CommentAdminResponse toAdminResponse(
             Comment comment,
             Map<Long, UserResponse> usersById,
