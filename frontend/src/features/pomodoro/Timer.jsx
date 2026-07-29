@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { createRecord, getActiveRecord, updateRecord } from './api/pomodoro'
+import { createRecord } from './api/pomodoro'
 import { DEFAULT_FOCUS_MINUTES } from './constants'
 import { toLocalDateTimeString } from './dateUtil'
 
-// 뽀모도로 카운트다운 타이머. 집중 분을 사용자가 설정할 수 있고,
-// "시작"을 누른 시점에 백엔드에 진행 중 기록을 만들고(POST), 끝나면(자동 만료 또는
-// "종료" 클릭) endedAt을 채워 같은 기록을 업데이트(PATCH)한다.
+// 뽀모도로 카운트다운 타이머. 집중 분을 사용자가 설정할 수 있고, 화면에서 카운트다운을
+// 돌리다가 끝나면(자동 만료 또는 "종료" 클릭) 그때 한 번에 완성된 기록을 저장한다(POST).
+// 진행 중에는 서버에 아무것도 남기지 않으므로, 새로고침이나 탭 닫기로 세션이 끊기면 그
+// 세션은 기록되지 않는다 — "진행 중" 상태로 어정쩡하게 남는 기록을 만들지 않기 위한 선택.
 // 휴식 타이머는 일시정지 기능과 역할이 겹쳐서 제거함 — 쉬고 싶으면 일시정지를 쓰면 된다.
 // lectureId/noteId: PomodoroWidget이 현재 페이지(강의 시청/노트 상세)에서 뽑아 넘겨준다.
 // status: 'idle'(시작 전) | 'running'(진행 중) | 'paused'(일시정지)
@@ -15,10 +16,6 @@ import { toLocalDateTimeString } from './dateUtil'
 // 늦추는(throttle) 경우가 많아서, 단순 감소 방식이면 남은 시간이 실제 경과 시간보다 느리게
 // 줄어드는 오차가 누적된다. 벽시계 차이로 다시 계산하면 tick이 늦게 와도 다음 tick에서
 // 바로 정확한 값으로 따라잡는다. anchorRef는 시작/재실행마다 그 시점 기준으로 갱신된다.
-//
-// 마운트될 때마다(위젯을 다시 열 때) 본인의 진행 중 기록(endedAt이 비어있는 것)이 있는지 확인해서,
-// 새로고침/탭 닫기로 남겨진 세션을 이어서 한다. 자리를 비운 사이 계획한 시간이 이미 다 지났으면
-// 알림 없이 계획한 시간만큼 채운 걸로 조용히 마무리한다.
 export default function Timer({ onFinished, lectureId = null, noteId = null }) {
   const [focusMinutes, setFocusMinutes] = useState(DEFAULT_FOCUS_MINUTES)
   const [focusSeconds, setFocusSeconds] = useState(0)
@@ -68,7 +65,7 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
   }
 
   // 타이머 종료 처리: 자동 만료(카운트다운 0)와 수동 "종료" 클릭이 공유한다.
-  // endedAt을 채워 PATCH하면 서버가 이 기록을 완료된 세션으로 집계한다.
+  // 시작~종료를 한 번에 담은 완성된 기록을 이 시점에 딱 한 번 저장한다.
   const finish = async (session, remainingAtFinish, { auto = false } = {}) => {
     clearInterval(intervalRef.current)
     setStatus('idle')
@@ -80,9 +77,7 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
     // 30초를 기준으로 반올림한다 (1분 30초→2분, 1분 29초→1분). 30초 미만은 0분으로 취급.
     const elapsedMinutes = Math.round(elapsedSeconds / 60)
     try {
-      // update()는 lectureId/noteId를 무조건 덮어쓰므로, 시작할 때 연결된 값을 여기서도 그대로 보내야
-      // 종료 시점에 연결이 풀리지 않는다.
-      await updateRecord(session.id, {
+      await createRecord({
         lectureId: session.lectureId,
         noteId: session.noteId,
         focusMinutes: elapsedMinutes,
@@ -96,54 +91,9 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
     onFinished() // 부모(PomodoroPage)에 알려서 오늘/전체 통계와 기록 목록을 다시 불러오게 한다
   }
 
-  // 위젯을 다시 열 때마다 본인의 진행 중 기록이 있는지 확인해 이어서 한다.
-  useEffect(() => {
-    let cancelled = false
-
-    const resumeIfActive = async () => {
-      try {
-        const record = await getActiveRecord()
-        if (!record || cancelled) return
-
-        // focusMinutes는 진행 중일 때는 아직 "계획한 시간"을 뜻한다(끝나야 실제 흐른 시간으로 바뀜).
-        // startedAt의 초 단위는 분 단위로 저장하며 이미 반올림됐으므로 이어서 할 때도 그 정밀도를 따른다.
-        const startedAt = new Date(record.startedAt)
-        const durationSeconds = record.focusMinutes * 60
-        const elapsedSinceStart = Math.floor((Date.now() - startedAt.getTime()) / 1000)
-        const session = {
-          id: record.id,
-          startedAt,
-          durationSeconds,
-          lectureId: record.lectureId,
-          noteId: record.noteId,
-        }
-
-        if (elapsedSinceStart >= durationSeconds) {
-          // 자리를 비운 사이 계획한 시간이 이미 다 지났다 — 알림 없이 조용히 마무리한다.
-          finish(session, 0)
-          return
-        }
-
-        sessionRef.current = session
-        anchorRef.current = { time: new Date(), remaining: durationSeconds - elapsedSinceStart }
-        setRemainingSeconds(durationSeconds - elapsedSinceStart)
-        setStatus('running')
-        runCountdown()
-      } catch {
-        // 이어서 할 기록 조회 실패는 조용히 무시한다 — 사용자는 그냥 새로 시작하면 된다.
-      }
-    }
-
-    resumeIfActive()
-    return () => {
-      cancelled = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // "시작" 클릭: endedAt 없이 기록을 먼저 생성해두고(진행 중 상태), 화면에서는
-  // 1초 간격 카운트다운만 표시한다. 0에 도달하면 finish()로 자동 종료.
-  const start = async () => {
+  // "시작" 클릭: 서버에는 아직 아무것도 저장하지 않고 화면 카운트다운만 바로 시작한다.
+  // 끝나면 finish()가 시작~종료를 한 번에 담아 저장한다.
+  const start = () => {
     setError(null)
     const durationSeconds = focusMinutes * 60 + focusSeconds
     if (durationSeconds <= 0) {
@@ -158,21 +108,11 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
     const startedAt = new Date()
     const linkedLectureId = linkEnabled ? lectureId : null
     const linkedNoteId = linkEnabled ? noteId : null
-    try {
-      const record = await createRecord({
-        lectureId: linkedLectureId,
-        noteId: linkedNoteId,
-        focusMinutes: Math.round(durationSeconds / 60),
-        startedAt: toLocalDateTimeString(startedAt),
-      })
-      sessionRef.current = { id: record.id, startedAt, durationSeconds, lectureId: linkedLectureId, noteId: linkedNoteId }
-      anchorRef.current = { time: startedAt, remaining: durationSeconds }
-      setRemainingSeconds(durationSeconds)
-      setStatus('running')
-      runCountdown()
-    } catch (err) {
-      setError(err.message)
-    }
+    sessionRef.current = { startedAt, durationSeconds, lectureId: linkedLectureId, noteId: linkedNoteId }
+    anchorRef.current = { time: startedAt, remaining: durationSeconds }
+    setRemainingSeconds(durationSeconds)
+    setStatus('running')
+    runCountdown()
   }
 
   // 일시정지: 인터벌만 멈추고 세션/남은 시간은 그대로 들고 있는다.

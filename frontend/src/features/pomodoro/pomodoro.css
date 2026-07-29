@@ -337,11 +337,6 @@
   white-space: nowrap;
 }
 
-.pomodoro-history__duration--active {
-  background: rgba(230, 158, 15, 0.12);
-  color: #b8860b;
-}
-
 .pomodoro-history__toggle {
   width: 100%;
   margin-top: 0.5rem;
