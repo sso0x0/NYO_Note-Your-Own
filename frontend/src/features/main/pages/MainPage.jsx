@@ -7,6 +7,10 @@ import { getPostList, searchPosts } from '../../community/api/post';
 import LectureCard from '../../lecture/components/LectureCard';
 import NoteCard from '../../note/components/NoteCard';
 import PostCard from '../../community/components/PostCard';
+import frontendImg from '../../../assets/images/category/frontend.jpg';
+import backendImg from '../../../assets/images/category/backend.jpg';
+import csImg from '../../../assets/images/category/cs.png';
+import bigdataImg from '../../../assets/images/category/bigdata.jpg';
 import './MainPage.css';
 
 const HIGHLIGHT_SIZE = 5;
@@ -35,6 +39,14 @@ function getCategoryDefinition(name = '') {
     return '대량의 데이터를 수집·저장·처리·분석해 의미 있는 인사이트를 뽑아내는 분야예요. 통계와 데이터 파이프라인 구축부터 머신러닝·딥러닝 모델링까지 폭넓게 다루며, Python이나 SQL 같은 도구로 데이터를 정제하고 시각화하는 작업도 포함돼요. 서비스에서 쌓인 로그와 사용자 데이터를 바탕으로 의사결정을 돕거나 새로운 기능을 만들어내는, 데이터 기반 문제 해결 능력이 중요한 영역이에요. Hadoop, Spark 같은 분산 처리 프레임워크로 대규모 데이터를 다루는 경험이나, 데이터 웨어하우스·데이터 레이크 설계처럼 데이터를 체계적으로 관리하는 역량도 함께 요구돼요. 최근에는 AI/ML 모델을 실제 서비스에 배포하고 운영하는 MLOps 역량까지 데이터 분야의 범위가 점점 넓어지고 있어요.';
   }
   return '';
+}
+
+// 카테고리 이름에 어울리는 대표 이미지를 매칭한다. 매칭되는 게 없으면 프론트엔드 이미지를 기본값으로 쓴다.
+function getCategoryImage(name = '') {
+  if (/백엔드|back/i.test(name)) return backendImg;
+  if (/^cs$|컴퓨터|알고리즘/i.test(name)) return csImg;
+  if (/빅데이터|데이터|data/i.test(name)) return bigdataImg;
+  return frontendImg;
 }
 
 // 카테고리 이름에 어울리는 칩 아이콘을 대략적으로 매칭한다. 매칭되는 게 없으면 기본 태그 아이콘을 쓴다.
@@ -438,7 +450,12 @@ function MainPage() {
             >
               <div className="main-page__category-detail-scroll">
                 <div className="main-page__category-detail-head">
-                  <div>
+                  <img
+                    className="main-page__category-detail-image"
+                    src={getCategoryImage(selectedCategory.name)}
+                    alt={selectedCategory.name}
+                  />
+                  <div className="main-page__category-detail-text">
                     <span className="main-page__eyebrow">CATEGORY</span>
                     <h2>{selectedCategory.name}</h2>
                     <p>{getCategoryDefinition(selectedCategory.name)}</p>

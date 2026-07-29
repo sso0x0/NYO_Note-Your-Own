@@ -13,10 +13,40 @@ function autoGrowTextarea(el) {
   el.style.height = `${el.scrollHeight}px`
 }
 
+function formatDate(value) {
+  if (!value) return '-'
+  return new Date(value).toLocaleString('ko-KR')
+}
+
+// 댓글 프로필 아바타 색상 팔레트. 매번 렌더링할 때마다 바뀌면 산만하므로
+// 작성자(userId) 기준으로 고정된 색을 골라서 같은 사람은 항상 같은 색이 나오게 한다.
+const AVATAR_PALETTE = [
+  { bg: '#fdeef2', fg: '#e57391' },
+  { bg: '#eef4fd', fg: '#4f83cc' },
+  { bg: '#eafbf0', fg: '#2f9e58' },
+  { bg: '#fff6e0', fg: '#c98a1f' },
+  { bg: '#f3edfd', fg: '#8a5cf6' },
+  { bg: '#fdece8', fg: '#e0553f' },
+  { bg: '#e8fbfa', fg: '#1fa79a' },
+  { bg: '#fdf0f7', fg: '#d1499a' },
+]
+
+function avatarColorFor(comment) {
+  const seed = String(comment.userId ?? comment.authorNickname ?? comment.id ?? '')
+  let hash = 0
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0
+  }
+  const { bg, fg } = AVATAR_PALETTE[hash % AVATAR_PALETTE.length]
+  return { backgroundColor: bg, color: fg }
+}
+
 // 댓글 개수는 최상위 댓글뿐 아니라 중첩된 대댓글까지 모두 포함해서 센다.
+// 답글을 위해 자리표시자로 남아있는 삭제된 댓글은 세지 않는다.
 function countComments(comments) {
   return comments.reduce(
-    (total, comment) => total + 1 + (comment.replies?.length ? countComments(comment.replies) : 0),
+    (total, comment) =>
+      total + (comment.isDeleted ? 0 : 1) + (comment.replies?.length ? countComments(comment.replies) : 0),
     0,
   )
 }
@@ -26,6 +56,7 @@ function CommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
   const [editContent, setEditContent] = useState(comment.content)
   const isOwner = auth && String(comment.userId) === String(auth.userId)
   const canDelete = !comment.isDeleted && (isOwner || auth?.role === 'ADMIN')
+  const isEdited = !comment.isDeleted && comment.createdAt && comment.updatedAt && comment.createdAt !== comment.updatedAt
 
   const saveEdit = async () => {
     const saved = await onUpdate(comment, editContent)
@@ -33,8 +64,12 @@ function CommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
   }
 
   return (
-      <li className="comment-item">
-        <div className="comment-item__avatar" aria-hidden="true">
+      <li className={`comment-item${comment.isDeleted ? ' comment-item--deleted' : ''}`}>
+        <div
+            className="comment-item__avatar"
+            aria-hidden="true"
+            style={comment.isDeleted ? undefined : avatarColorFor(comment)}
+        >
           {(comment.authorNickname || '?').charAt(0)}
         </div>
         <div className="comment-body">
@@ -42,6 +77,10 @@ function CommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
             {/* 댓글 nickname 표시: 댓글과 재귀 렌더링되는 대댓글 모두 작성자 nickname을 사용합니다. */}
             <div className="comment-body__header">
               <span className="comment-body__author">{comment.authorNickname || '알 수 없는 사용자'}</span>
+              {!comment.isDeleted && (
+                  <time className="comment-body__date" dateTime={comment.createdAt}>{formatDate(comment.createdAt)}</time>
+              )}
+              {isEdited && <span className="comment-body__edited">(수정됨)</span>}
             </div>
             {editing ? (
                 <div className="comment-edit-form">
@@ -55,7 +94,7 @@ function CommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
                   <button type="button" onClick={saveEdit}>저장</button>
                   <button type="button" onClick={() => setEditing(false)}>취소</button>
                 </div>
-            ) : <p>{comment.content}</p>}
+            ) : <p className={comment.isDeleted ? 'comment-body__deleted-text' : undefined}>{comment.content}</p>}
           </div>
           <div className="comment-body__actions">
             {!comment.isDeleted && <button type="button" onClick={() => onReply(comment)}>답글</button>}
@@ -217,6 +256,15 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     setCommentForm((prev) => ({ ...prev, [name]: value }))
   }
 
+  // Shift+Enter는 줄바꿈, Enter만 누르면 댓글이 바로 등록되게 한다.
+  // 한글 등 조합 입력 중 Enter로 글자를 완성하는 경우(isComposing)에는 등록되지 않게 막는다.
+  const handleCommentKeyDown = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+      event.preventDefault()
+      event.currentTarget.form?.requestSubmit()
+    }
+  }
+
   // 삭제 버튼은 작성자 본인 또는 로그인 정보의 DB 역할이 ADMIN인 경우에만 표시합니다.
   const canDelete = post && auth && (
       String(post.userId) === String(auth.userId) || auth.role === 'ADMIN'
@@ -308,11 +356,6 @@ function CommunityDetail({ postId, onBack, onEdit }) {
       return
     }
     await loadComments()
-  }
-
-  const formatDate = (value) => {
-    if (!value) return '-'
-    return new Date(value).toLocaleString('ko-KR')
   }
 
   const renderPostContent = (content) => {
@@ -435,6 +478,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
                 value={commentForm.content}
                 onChange={handleCommentChange}
                 onInput={(event) => autoGrowTextarea(event.target)}
+                onKeyDown={handleCommentKeyDown}
                 placeholder="댓글 내용"
             />
             <button type="submit" disabled={loading}>댓글 등록</button>

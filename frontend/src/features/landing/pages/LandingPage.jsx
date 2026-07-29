@@ -2,6 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import nyoLogo from '../../../assets/images/nyo_logo.png';
+import backendPhoto from '../../../assets/images/category/backend-photo.jpg';
+import csPhoto from '../../../assets/images/category/cs-photo.jpg';
+import bigdataPhoto from '../../../assets/images/category/bigdata-photo.jpg';
+import lectureReact from '../../../assets/images/category/lecture-react.jpg';
+import lectureTypescript from '../../../assets/images/category/lecture-typescript.jpg';
+import lectureCss from '../../../assets/images/category/lecture-css.jpg';
+import lectureTraffic from '../../../assets/images/category/lecture-traffic.jpg';
+import lectureJpa from '../../../assets/images/category/lecture-jpa.jpg';
+import lectureOs from '../../../assets/images/category/lecture-os.jpg';
+import lectureNetwork from '../../../assets/images/category/lecture-network.jpg';
+import lectureMl from '../../../assets/images/category/lecture-ml.jpg';
+import lectureSql from '../../../assets/images/category/lecture-sql.jpg';
 import './LandingPage.css';
 
 function MonitorIcon(props) {
@@ -67,24 +79,24 @@ const HeartIcon = (props) => (
 // 실제 강의 데이터가 아직 충분하지 않아, 카테고리당 3개씩 임의로 만든 인기 강의 예시.
 const POPULAR_LECTURES = {
     프론트엔드: [
-        { title: 'React 완벽 가이드: 컴포넌트 설계부터 상태관리까지', instructor: '김민준', students: 512, likeCount: 342, viewCount: 5820 },
-        { title: '타입스크립트로 시작하는 실전 UI 개발', instructor: '이서연', students: 388, likeCount: 289, viewCount: 4210 },
-        { title: 'CSS Grid & Flexbox 레이아웃 마스터클래스', instructor: '박도윤', students: 276, likeCount: 201, viewCount: 3150 },
+        { title: 'React 완벽 가이드: 컴포넌트 설계부터 상태관리까지', instructor: '김민준', students: 512, likeCount: 342, viewCount: 5820, image: lectureReact },
+        { title: '타입스크립트로 시작하는 실전 UI 개발', instructor: '이서연', students: 388, likeCount: 289, viewCount: 4210, image: lectureTypescript },
+        { title: 'CSS Grid & Flexbox 레이아웃 마스터클래스', instructor: '박도윤', students: 276, likeCount: 201, viewCount: 3150, image: lectureCss },
     ],
     백엔드: [
-        { title: '스프링부트로 배우는 실전 REST API 설계', instructor: '최지훈', students: 601, likeCount: 415, viewCount: 6890 },
-        { title: '대용량 트래픽을 견디는 서버 아키텍처', instructor: '정하은', students: 402, likeCount: 298, viewCount: 4520 },
-        { title: 'JPA와 QueryDSL로 배우는 데이터 접근 계층', instructor: '한소율', students: 245, likeCount: 176, viewCount: 2980 },
+        { title: '스프링부트로 배우는 실전 REST API 설계', instructor: '최지훈', students: 601, likeCount: 415, viewCount: 6890, image: backendPhoto },
+        { title: '대용량 트래픽을 견디는 서버 아키텍처', instructor: '정하은', students: 402, likeCount: 298, viewCount: 4520, image: lectureTraffic },
+        { title: 'JPA와 QueryDSL로 배우는 데이터 접근 계층', instructor: '한소율', students: 245, likeCount: 176, viewCount: 2980, image: lectureJpa },
     ],
     CS: [
-        { title: '자료구조와 알고리즘 총정리', instructor: '오세훈', students: 730, likeCount: 523, viewCount: 8420 },
-        { title: '운영체제 핵심 개념 완전정복', instructor: '배유진', students: 340, likeCount: 267, viewCount: 3890 },
-        { title: '네트워크 기초부터 실전 트러블슈팅까지', instructor: '강태윤', students: 198, likeCount: 188, viewCount: 2650 },
+        { title: '자료구조와 알고리즘 총정리', instructor: '오세훈', students: 730, likeCount: 523, viewCount: 8420, image: csPhoto },
+        { title: '운영체제 핵심 개념 완전정복', instructor: '배유진', students: 340, likeCount: 267, viewCount: 3890, image: lectureOs },
+        { title: '네트워크 기초부터 실전 트러블슈팅까지', instructor: '강태윤', students: 198, likeCount: 188, viewCount: 2650, image: lectureNetwork },
     ],
     빅데이터: [
-        { title: '파이썬으로 시작하는 데이터 분석', instructor: '윤채원', students: 655, likeCount: 456, viewCount: 7120 },
-        { title: '머신러닝 실전 프로젝트로 배우기', instructor: '신동현', students: 470, likeCount: 334, viewCount: 5340 },
-        { title: 'SQL로 배우는 데이터 전처리', instructor: '임하늘', students: 289, likeCount: 210, viewCount: 3410 },
+        { title: '파이썬으로 시작하는 데이터 분석', instructor: '윤채원', students: 655, likeCount: 456, viewCount: 7120, image: bigdataPhoto },
+        { title: '머신러닝 실전 프로젝트로 배우기', instructor: '신동현', students: 470, likeCount: 334, viewCount: 5340, image: lectureMl },
+        { title: 'SQL로 배우는 데이터 전처리', instructor: '임하늘', students: 289, likeCount: 210, viewCount: 3410, image: lectureSql },
     ],
 };
 
@@ -225,8 +237,18 @@ function LandingPage() {
                         {POPULAR_LECTURES[activeCategory].map((lecture, index) => (
                             <article className={`popular-card popular-card--${activeCategoryData.theme}`} key={lecture.title}>
                                 <div className="popular-card__thumb">
+                                    <img
+                                        className="popular-card__thumb-img"
+                                        src={lecture.image}
+                                        alt=""
+                                        loading="lazy"
+                                    />
                                     <span className="popular-card__rank">{index + 1}</span>
-                                    <activeCategoryData.Icon width="34" height="34" />
+                                    <span className="popular-card__play" aria-hidden="true">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff">
+                                            <path d="M8 5v14l11-7z" />
+                                        </svg>
+                                    </span>
                                 </div>
                                 <div className="popular-card__body">
                                     <span className="popular-card__category">{activeCategory}</span>

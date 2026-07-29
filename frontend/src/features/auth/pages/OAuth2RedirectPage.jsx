@@ -33,7 +33,7 @@ function OAuth2RedirectPage() {
                     nickname: user.nickname,
                     role: user.role,
                 });
-                navigate('/main', { replace: true });
+                navigate(user.role === 'ADMIN' ? '/admin' : '/main', { replace: true });
             })
             .catch(() => {
                 alert('로그인 처리에 실패했습니다.');
