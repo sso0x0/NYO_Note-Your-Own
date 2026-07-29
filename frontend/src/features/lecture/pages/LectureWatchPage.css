@@ -300,6 +300,18 @@
     background: var(--lw-accent);
 }
 
+.lecture-watch-page__note-detail-link {
+  margin-right: auto;
+  color: var(--text-h);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.lecture-watch-page__note-detail-link:hover {
+  text-decoration: underline;
+}
+
 .lecture-watch-page__note-toolbar button:disabled,
 .lecture-watch-page__image-btn:has(input:disabled),
 .lecture-watch-page__note-submit:disabled {

@@ -580,6 +580,14 @@ function LectureWatchPage() {
                                         onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
                                         placeholder="제목을 입력하세요"
                                     />
+                                    {myNote && (
+                                        <Link
+                                            to={`/main/notes/${myNote.id}`}
+                                            className="lecture-watch-page__note-detail-link"
+                                        >
+                                            노트 상세 가기
+                                        </Link>
+                                    )}
                                     <button type="submit" className="lecture-watch-page__note-submit" disabled={saving}>
                                         {saving ? '저장 중...' : '저장'}
                                     </button>
