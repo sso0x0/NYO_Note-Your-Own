@@ -1,0 +1,80 @@
+.report-open-button {
+  border: 0;
+  background: transparent;
+  color: #777;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.report-open-button:hover {
+  color: #ff4f4f;
+  text-decoration: underline;
+}
+
+.report-modal-backdrop {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.report-modal {
+  width: min(480px, 100%);
+  padding: 24px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.report-modal h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+}
+
+.report-modal textarea {
+  box-sizing: border-box;
+  width: 100%;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid #d7dce3;
+  border-radius: 8px;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.report-modal__counter {
+  margin-top: 6px;
+  color: #888;
+  font-size: 12px;
+  text-align: right;
+}
+
+.report-modal__error {
+  margin: 8px 0 0;
+  color: #d9363e;
+  font-size: 13px;
+}
+
+.report-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.report-modal__actions button {
+  padding: 9px 16px;
+  border: 1px solid #d7dce3;
+  border-radius: 7px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.report-modal__actions .report-modal__submit {
+  border-color: #ff4f4f;
+  background: #ff4f4f;
+  color: #fff;
+}

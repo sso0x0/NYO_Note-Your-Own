@@ -50,8 +50,8 @@
 }
 
 .post-detail-page__back:hover {
-  border-color: var(--pd-accent);
-  color: var(--pd-accent);
+  border-color: #6065fb;
+  color: #6065fb;
 }
 
 .post-detail-page__actions {
@@ -187,6 +187,30 @@
   justify-content: flex-start;
   padding: 20px 0 4px;
   border-top: 1px solid var(--pd-line);
+}
+
+.post-detail-page__like-row .community-report-button {
+  margin-left: auto;
+  padding: 4px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #ff4f4f;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.post-detail-page__like-row .community-report-button::before {
+  content: "⚠️";
+  margin-right: 5px;
+}
+
+.post-detail-page__like-row .community-report-button:hover {
+  background: transparent;
+  color: #ff4f4f;
+  text-decoration: underline;
 }
 
 .post-detail-page__like-btn {
@@ -459,6 +483,22 @@
 .post-detail-page .comment-body__actions .danger-button:hover {
   background: #fdeaea;
   color: #e5484d;
+}
+
+.post-detail-page .comment-body__actions .comment-report-button {
+  color: #ff4f4f;
+}
+
+.post-detail-page .comment-body__actions .comment-report-button::before {
+  content: "⚠️";
+  margin-right: 4px;
+}
+
+.post-detail-page .comment-body__actions .comment-report-button:hover,
+.post-detail-page .comment-body__actions .comment-report-button:focus {
+  background: transparent;
+  color: #ff4f4f;
+  text-decoration: underline;
 }
 
 .post-detail-page .comment-edit-form {

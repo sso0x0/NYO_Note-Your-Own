@@ -33,6 +33,15 @@
   display: block;
 }
 
+.note-card__thumb img.note-card__thumb-fallback-image {
+  box-sizing: border-box;
+  object-fit: contain;
+  padding: 0;
+  background: #fafaff;
+  transform: scale(1.45);
+  user-select: none;
+}
+
 .note-card__thumb-fallback {
   width: 100%;
   height: 100%;

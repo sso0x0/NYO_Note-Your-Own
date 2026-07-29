@@ -1,4 +1,6 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+// 기본값을 현재 접속 origin으로 둬서, localhost든 ngrok 터널 주소든
+// 항상 같은 origin(Vite dev server)으로 요청이 가고 vite.config.js의 프록시가 백엔드로 넘겨준다.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 
 // AuthContext가 로그인 시 이 키로 localStorage에 저장한다. fetch는 React 트리 밖에서
 // 일어나므로 context 대신 여기서 직접 읽는다.
