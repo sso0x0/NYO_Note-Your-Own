@@ -64,7 +64,7 @@ const validators = {
     return '';
   },
   phone: (value) => {
-    if (!value) return ''; // 선택 항목
+    if (!value.trim()) return '휴대폰 번호를 입력해 주세요'; // 선택 항목
     if (!PHONE_PATTERN.test(value)) return '올바른 전화번호 형식이 아닙니다. (예: 010-1234-5678)';
     return '';
   },

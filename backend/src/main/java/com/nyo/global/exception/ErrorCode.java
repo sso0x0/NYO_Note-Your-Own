@@ -79,7 +79,7 @@ public enum ErrorCode {
     MEMBER_FIND_ID_NOT_FOUND(HttpStatus.NOT_FOUND, "일치하는 회원 정보가 없습니다."),
     PASSWORD_RESET_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND, "일치하는 회원 정보가 없습니다."),
     PASSWORD_RESET_CODE_INVALID(HttpStatus.BAD_REQUEST, "인증코드가 일치하지 않거나 만료되었습니다."),
-    EMAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "이메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요."),
+    SMS_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "문자 발송에 실패했습니다. 잠시 후 다시 시도해주세요."),
 
     // ai / pomodoro (장예지)
     AI_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "AI 응답 생성에 실패했습니다."),

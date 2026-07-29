@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { findLoginId, sendPasswordResetCode, resetPassword } from '../api/auth';
+import { findLoginId, sendPasswordResetCode, verifyPasswordResetCode, resetPassword } from '../api/auth';
 import nyoLogo from '../../../assets/images/nyo_logo.png';
 
 import './AuthPage.css';
@@ -58,12 +58,13 @@ function FindIdForm() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
-        setResult(null);
+        setInfo(null);
 
-        if (!form.name.trim() || !form.email.trim()) {
-            setError('이름과 이메일을 모두 입력해 주세요.');
+        if (!codeVerified) {
+            setError('인증코드 확인을 먼저 완료해 주세요.');
             return;
         }
+        // ...기존 코드 그대로
 
         setSubmitting(true);
         try {
@@ -119,31 +120,35 @@ function FindIdForm() {
 function ResetPasswordForm() {
     const navigate = useNavigate();
     const [codeSent, setCodeSent] = useState(false);
-    const [form, setForm] = useState({ loginId: '', email: '', code: '', newPassword: '', confirmPassword: '' });
+    const [form, setForm] = useState({ loginId: '', phone: '', code: '', newPassword: '', confirmPassword: '' });
     const [error, setError] = useState(null);
     const [info, setInfo] = useState(null);
     const [sendingCode, setSendingCode] = useState(false);
     const [resetting, setResetting] = useState(false);
+    const [codeVerified, setCodeVerified] = useState(false);
+    const [verifying, setVerifying] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
     };
 
+
+
     const handleSendCode = async () => {
         setError(null);
         setInfo(null);
 
-        if (!form.loginId.trim() || !form.email.trim()) {
-            setError('아이디와 이메일을 모두 입력해 주세요.');
+        if (!form.loginId.trim() || !form.phone.trim()) {
+            setError('아이디와 휴대폰 번호를 모두 입력해 주세요.');
             return;
         }
 
         setSendingCode(true);
         try {
-            await sendPasswordResetCode({ loginId: form.loginId, email: form.email });
+            await sendPasswordResetCode({ loginId: form.loginId, phone: form.phone });
             setCodeSent(true);
-            setInfo('인증코드를 이메일로 보냈어요. 5분 이내에 입력해 주세요.');
+            setInfo('인증코드를 문자로 보냈어요. 5분 이내에 입력해 주세요.');
         } catch (err) {
             setError(err.message);
         } finally {
@@ -173,7 +178,7 @@ function ResetPasswordForm() {
         try {
             await resetPassword({
                 loginId: form.loginId,
-                email: form.email,
+                phone: form.phone,
                 code: form.code,
                 newPassword: form.newPassword,
             });
@@ -204,14 +209,15 @@ function ResetPasswordForm() {
             </div>
 
             <div className="auth-page__field">
-                <label htmlFor="reset-email">이메일</label>
+                <label htmlFor="reset-phone">휴대폰 번호</label>
                 <div className="auth-page__code-row">
                     <input
-                        id="reset-email"
-                        name="email"
-                        type="email"
-                        autoComplete="email"
-                        value={form.email}
+                        id="reset-phone"
+                        name="phone"
+                        type="tel"
+                        placeholder="010-1234-5678"
+                        autoComplete="tel"
+                        value={form.phone}
                         onChange={handleChange}
                         disabled={codeSent}
                     />
@@ -230,44 +236,30 @@ function ResetPasswordForm() {
                 <>
                     <div className="auth-page__field">
                         <label htmlFor="reset-code">인증코드</label>
-                        <input
-                            id="reset-code"
-                            name="code"
-                            type="text"
-                            inputMode="numeric"
-                            maxLength={6}
-                            value={form.code}
-                            onChange={handleChange}
-                        />
+                        <div className="auth-page__code-row">
+                            <input
+                                id="reset-code"
+                                name="code"
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={6}
+                                value={form.code}
+                                onChange={(e) => {
+                                    handleChange(e);
+                                    setCodeVerified(false); // 코드를 다시 수정하면 인증 상태 초기화
+                                }}
+                                disabled={codeVerified}
+                            />
+                            <button
+                                type="button"
+                                className="auth-page__code-btn"
+                                onClick={handleVerifyCode}
+                                disabled={verifying || codeVerified}
+                            >
+                                {verifying ? '확인 중...' : codeVerified ? '확인됨' : '인증확인'}
+                            </button>
+                        </div>
                     </div>
-
-                    <div className="auth-page__field">
-                        <label htmlFor="reset-new-password">새 비밀번호</label>
-                        <input
-                            id="reset-new-password"
-                            name="newPassword"
-                            type="password"
-                            autoComplete="new-password"
-                            value={form.newPassword}
-                            onChange={handleChange}
-                        />
-                    </div>
-
-                    <div className="auth-page__field">
-                        <label htmlFor="reset-confirm-password">새 비밀번호 확인</label>
-                        <input
-                            id="reset-confirm-password"
-                            name="confirmPassword"
-                            type="password"
-                            autoComplete="new-password"
-                            value={form.confirmPassword}
-                            onChange={handleChange}
-                        />
-                    </div>
-
-                    <button type="submit" className="auth-page__submit" disabled={resetting}>
-                        {resetting ? '변경 중...' : '비밀번호 재설정'}
-                    </button>
                 </>
             )}
         </form>

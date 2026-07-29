@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import com.nyo.domain.user.dto.PasswordResetCodeVerifyRequest;
 
 /**
  * 일반 회원용 API. 전부 본인 관련 기능만 다루며(마이페이지 등), 다른 회원 정보 조회/수정은 불가능하다.
@@ -79,6 +80,14 @@ public class UserController {
         userService.sendPasswordResetCode(request);
         return ApiResponse.ok();
     }
+    // 💡 비밀번호 찾기 1.5단계: 최종 제출 전에 인증코드가 맞는지 미리 확인
+    @Operation(summary = "비밀번호 재설정 인증코드 확인")
+    @PostMapping("/password/verify-code")
+    public ApiResponse<Void> verifyPasswordResetCode(@Valid @RequestBody PasswordResetCodeVerifyRequest request) {
+        userService.verifyPasswordResetCode(request);
+        return ApiResponse.ok();
+    }
+
 
     // 💡 비밀번호 찾기 2단계: 인증코드 검증 후 새 비밀번호로 교체
     @Operation(summary = "비밀번호 재설정")
