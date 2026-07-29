@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    // ngrok 등 외부 호스트로 접속할 때 Vite가 차단하지 않도록
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
