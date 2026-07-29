@@ -99,6 +99,13 @@ public class PomodoroService {
                 pomodoroRecordRepository.findByUserId(userId, pageable).map(this::toResponse));
     }
 
+    // 타이머 위젯을 다시 열었을 때 이어서 할 진행 중 기록이 있는지 확인한다. 없으면 null.
+    public PomodoroRecordResponse getActiveRecord(Long userId) {
+        return pomodoroRecordRepository.findFirstByUserIdAndEndedAtIsNullOrderByStartedAtDesc(userId)
+                .map(this::toResponse)
+                .orElse(null);
+    }
+
     // recordDate(타이머 시작일)를 startDate~endDate로 필터링. 날짜 역순이면 바로 에러 처리.
     public PageResponse<PomodoroRecordResponse> getRecordsByPeriod(
             Long userId, LocalDate startDate, LocalDate endDate, Pageable pageable) {

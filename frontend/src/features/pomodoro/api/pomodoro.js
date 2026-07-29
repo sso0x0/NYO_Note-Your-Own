@@ -6,6 +6,11 @@ export function createRecord(payload) {
   return apiPost('/api/pomodoros', payload)
 }
 
+// 이어서 할 진행 중 기록(endedAt이 비어있는 가장 최근 것) 조회. 없으면 null.
+export function getActiveRecord() {
+  return apiGet('/api/pomodoros/active')
+}
+
 // endedAt을 채워서 호출 = 타이머 종료(같은 기록을 완료 상태로 갱신)
 export function updateRecord(id, payload) {
   return apiPatch(`/api/pomodoros/${id}`, payload)

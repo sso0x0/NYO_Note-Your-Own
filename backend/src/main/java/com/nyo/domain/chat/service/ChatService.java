@@ -6,15 +6,21 @@ import com.nyo.domain.chat.entity.SenderRole;
 import com.nyo.domain.chat.repository.ChatHistoryRepository;
 import com.nyo.domain.chat.dto.ChatHistoryRequest ;
 import com.nyo.domain.chat.dto.ChatHistoryResponse;
+import com.nyo.domain.note.document.NoteDocument;
+import com.nyo.domain.note.entity.Note;
+import com.nyo.domain.note.repository.NoteRepository;
+import com.nyo.domain.note.repository.NoteSearchRepository;
 import com.nyo.global.response.PageResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -26,11 +32,11 @@ public class ChatService {
 
     private final ChatHistoryRepository chatHistoryRepository;
     private final OpenAiClient openAiClient;
-    private final JdbcTemplate jdbcTemplate;
+    private final NoteRepository noteRepository;
+    private final NoteSearchRepository noteSearchRepository;
 
     private static final int MAX_NOTES = 3;              // 프롬프트에 넣을 노트 수
     private static final int MAX_NOTE_LENGTH = 8000;     // 노트당 본문 발췌 길이
-    private static final int MAX_KEYWORDS = 5;           // LIKE 검색에 쓸 키워드 수
 
     private static final String SYSTEM_PROMPT = """
             너는 NYO 학습 플랫폼의 복습 챗봇이다. 사용자가 자기가 쓴 강의 노트를 복습하도록 돕는 게 목적이다.
@@ -117,11 +123,10 @@ public class ChatService {
     }
 
     /**
-     * 질문 키워드로 사용자 본인 노트를 LIKE 검색하고, 매칭이 없으면 최근 노트로 폴백합니다.
+     * 질문을 Elasticsearch(nori 형태소 분석)로 검색해 사용자 본인 노트 중 관련도 높은 노트를 찾고,
+     * 매칭이 없으면 최근 노트로 폴백합니다.
      * noteId가 오면(노트 상세 화면에서 보고 있는 노트) 검색 결과와 무관하게 그 노트를 항상 맨 앞에 넣는다 —
      * "이 노트 설명해줘" 같은 일반적인 질문은 키워드 매칭이 되지 않아 엉뚱한 최근 노트만 잡히기 때문.
-     * Note 엔티티(염상환 파트)가 아직 없어서 JdbcTemplate로 읽기 전용 조회.
-     * TODO: Elasticsearch 연동(박소현 파트) 후 검색 고도화, Note 엔티티 머지 후 교체 검토
      */
     private String buildNoteContext(Long userId, Long lectureId, Long noteId, String question) {
         List<NoteSnippet> notes = new ArrayList<>();
@@ -130,10 +135,9 @@ public class ChatService {
             findNoteById(noteId).ifPresent(notes::add);
         }
 
-        List<String> keywords = extractKeywords(question);
-        List<NoteSnippet> searched = searchNotes(userId, lectureId, keywords);
+        List<NoteSnippet> searched = searchNotes(userId, lectureId, question);
         if (searched.isEmpty()) {
-            searched = searchNotes(userId, lectureId, List.of()); // 키워드 매칭 실패 시 최근 노트
+            searched = recentNotes(userId, lectureId); // 검색 매칭 실패 시 최근 노트
         }
         for (NoteSnippet candidate : searched) {
             if (notes.size() >= MAX_NOTES) break;
@@ -157,69 +161,32 @@ public class ChatService {
     }
 
     // 노트는 어차피 전체 공개 게시물이라, 지금 화면에 띄워 놓고 보고 있는 노트(noteId)라면
-    // 작성자가 본인이 아니어도 그 내용을 그대로 참고하게 한다. (아래 searchNotes의 키워드/최근
-    // 노트 폴백 검색은 "내 노트 복습"용이라 계속 본인 노트로만 제한한다.)
+    // 작성자가 본인이 아니어도 그 내용을 그대로 참고하게 한다. (아래 searchNotes/recentNotes의
+    // 검색·최근 노트 폴백은 "내 노트 복습"용이라 계속 본인 노트로만 제한한다.)
     private Optional<NoteSnippet> findNoteById(Long noteId) {
-        List<NoteSnippet> result = jdbcTemplate.query(
-                "SELECT id, title, content FROM notes WHERE id = ? AND is_deleted = 0",
-                (rs, rowNum) -> new NoteSnippet(rs.getLong("id"), rs.getString("title"), rs.getString("content")),
-                noteId);
-        return result.stream().findFirst();
+        return noteRepository.findByIdAndIsDeleted(noteId, 0).map(NoteSnippet::from);
     }
 
-    private List<NoteSnippet> searchNotes(Long userId, Long lectureId, List<String> keywords) {
-        StringBuilder sql = new StringBuilder(
-                "SELECT id, title, content FROM notes WHERE user_id = ? AND is_deleted = 0");
-        List<Object> params = new ArrayList<>(List.of(userId));
-
-        if (lectureId != null) {
-            sql.append(" AND lecture_id = ?");
-            params.add(lectureId);
+    // 본인 노트만(및 지금 보고 있는 강의로) 범위를 좁혀 질문 문장으로 Elasticsearch 검색한다.
+    // 조사가 섞인 문장을 그대로 넘겨도 title/content가 nori 분석기로 색인돼 있어 알아서
+    // 형태소 단위로 매칭되므로, LIKE 검색 때처럼 직접 조사를 잘라낼 필요가 없다.
+    private List<NoteSnippet> searchNotes(Long userId, Long lectureId, String question) {
+        if (!StringUtils.hasText(question)) {
+            return List.of();
         }
-        if (!keywords.isEmpty()) {
-            List<String> conditions = new ArrayList<>();
-            for (String keyword : keywords) {
-                conditions.add("(title LIKE ? OR content LIKE ?)");
-                params.add("%" + keyword + "%");
-                params.add("%" + keyword + "%");
-            }
-            sql.append(" AND (").append(String.join(" OR ", conditions)).append(")");
-        }
-        sql.append(" ORDER BY updated_at DESC FETCH FIRST ").append(MAX_NOTES).append(" ROWS ONLY");
-
-        return jdbcTemplate.query(sql.toString(),
-                (rs, rowNum) -> new NoteSnippet(rs.getLong("id"), rs.getString("title"), rs.getString("content")),
-                params.toArray());
+        Pageable pageable = PageRequest.of(0, MAX_NOTES);
+        Page<NoteDocument> result = lectureId != null
+                ? noteSearchRepository.searchByKeywordForUserAndLecture(question, userId, lectureId, pageable)
+                : noteSearchRepository.searchByKeywordForUser(question, userId, pageable);
+        return result.getContent().stream().map(NoteSnippet::from).toList();
     }
 
-    // 조사가 붙은 채로 끝나는 단어부터 (길이가 긴 조사 우선) 매칭한다.
-    // 예: "리액트를" -> "를" 제거 -> "리액트"
-    private static final List<String> TRAILING_PARTICLES = List.of(
-            "이라는", "라는", "에게서", "에서는", "으로는", "로는", "이나마", "이라도",
-            "에게", "에서", "으로", "까지", "부터", "처럼", "만큼", "이나", "라도", "마다", "보다", "이란", "란",
-            "을", "를", "이", "가", "은", "는", "의", "에", "로", "와", "과", "도", "만", "나"
-    );
-
-    // 질문을 공백 기준으로 잘라 2글자 이상 단어를 키워드로 사용 (LIKE 와일드카드 문자는 제거).
-    // 한국어 조사가 그대로 붙어 있으면 노트 본문과 문자열이 달라 LIKE 매칭이 실패하므로,
-    // 뒤에 붙은 조사를 잘라내 어근만 남긴다 (어근은 원래 단어의 부분 문자열이라 매칭 범위만 넓어질 뿐 안전하다).
-    private List<String> extractKeywords(String question) {
-        return Arrays.stream(question.split("\\s+"))
-                .map(word -> word.replaceAll("[%_?!.,]", "").trim())
-                .map(this::stripTrailingParticle)
-                .filter(word -> word.length() >= 2)
-                .distinct()
-                .limit(MAX_KEYWORDS)
-                .toList();
-    }
-
-    private String stripTrailingParticle(String word) {
-        for (String particle : TRAILING_PARTICLES) {
-            if (word.length() > particle.length() + 1 && word.endsWith(particle)) {
-                return word.substring(0, word.length() - particle.length());
-            }
-        }
-        return word;
+    private List<NoteSnippet> recentNotes(Long userId, Long lectureId) {
+        Pageable pageable = PageRequest.of(0, MAX_NOTES, Sort.by(Sort.Direction.DESC, "updatedAt"));
+        Page<Note> page = lectureId != null
+                ? noteRepository.findByUserIdAndLectureIdAndIsDeleted(userId, lectureId, 0, pageable)
+                : noteRepository.findByUserIdAndIsDeleted(userId, 0, pageable);
+        return page.getContent().stream().map(NoteSnippet::from).toList();
     }
 
     private ChatHistoryResponse toResponse(ChatHistory history) {
@@ -234,5 +201,12 @@ public class ChatService {
     }
 
     private record NoteSnippet(Long id, String title, String content) {
+        static NoteSnippet from(Note note) {
+            return new NoteSnippet(note.getId(), note.getTitle(), note.getContent());
+        }
+
+        static NoteSnippet from(NoteDocument document) {
+            return new NoteSnippet(document.getId(), document.getTitle(), document.getContent());
+        }
     }
 }

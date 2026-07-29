@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nyo.domain.ai.client.OpenAiClient;
 import com.nyo.domain.common.dto.response.AiTagResponse;
 import com.nyo.domain.note.dto.NoteTagResponse ;
+import com.nyo.domain.note.entity.Note;
+import com.nyo.domain.note.repository.NoteRepository;
 import com.nyo.domain.note.service.NoteService;
 import com.nyo.domain.tag.entity.NoteTag;
 import com.nyo.domain.tag.entity.NoteTagId;
@@ -14,7 +16,6 @@ import com.nyo.domain.tag.repository.TagRepository;
 import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +26,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AiTaggingService {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final NoteRepository noteRepository;
     private final OpenAiClient openAiClient;
     private final TagRepository tagRepository;
     private final NoteTagRepository noteTagRepository;
@@ -54,12 +55,12 @@ public class AiTaggingService {
      */
     @Transactional
     public AiTagResponse generateTags(Long noteId) {
-        NoteSnippet note = findNote(noteId);
+        Note note = findNote(noteId);
 
-        String content = note.content().length() > MAX_CONTENT_LENGTH
-                ? note.content().substring(0, MAX_CONTENT_LENGTH)
-                : note.content();
-        String userPrompt = "제목: %s\n\n본문:\n%s".formatted(note.title(), content);
+        String content = note.getContent().length() > MAX_CONTENT_LENGTH
+                ? note.getContent().substring(0, MAX_CONTENT_LENGTH)
+                : note.getContent();
+        String userPrompt = "제목: %s\n\n본문:\n%s".formatted(note.getTitle(), content);
 
         String aiResult = openAiClient.chatJson(SYSTEM_PROMPT, userPrompt);
 
@@ -112,18 +113,8 @@ public class AiTaggingService {
                 .build();
     }
 
-    // Note 엔티티(염상환 파트)가 아직 없어서 JdbcTemplate로 읽기 전용 조회
-    // TODO: Note 엔티티 머지 후 NoteRepository 조회로 교체
-    private NoteSnippet findNote(Long noteId) {
-        return jdbcTemplate.query(
-                        "SELECT title, content FROM notes WHERE id = ? AND is_deleted = 0",
-                        (rs, rowNum) -> new NoteSnippet(rs.getString("title"), rs.getString("content")),
-                        noteId)
-                .stream()
-                .findFirst()
+    private Note findNote(Long noteId) {
+        return noteRepository.findByIdAndIsDeleted(noteId, 0)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOTE_NOT_FOUND));
-    }
-
-    private record NoteSnippet(String title, String content) {
     }
 }

@@ -40,6 +40,9 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
     // 마이페이지 - 내가 작성한 노트 목록
     Page<Note> findByUserIdAndIsDeleted(Long userId, Integer isDeleted, Pageable pageable);
 
+    // 챗봇 RAG 검색어 매칭 실패 시 폴백용: 본인이 특정 강의에서 쓴 노트를 최근 수정순으로.
+    Page<Note> findByUserIdAndLectureIdAndIsDeleted(Long userId, Long lectureId, Integer isDeleted, Pageable pageable);
+
     List<Note> findByLectureIdAndIsDeletedOrderByCreatedAtDesc(Long lectureId, Integer isDeleted);
 
     Optional<Note> findByIdAndIsDeleted(Long id, Integer isDeleted);

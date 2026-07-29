@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { createRecord, updateRecord } from './api/pomodoro'
+import { createRecord, getActiveRecord, updateRecord } from './api/pomodoro'
 import { DEFAULT_FOCUS_MINUTES } from './constants'
 import { toLocalDateTimeString } from './dateUtil'
 
@@ -9,6 +9,16 @@ import { toLocalDateTimeString } from './dateUtil'
 // 휴식 타이머는 일시정지 기능과 역할이 겹쳐서 제거함 — 쉬고 싶으면 일시정지를 쓰면 된다.
 // lectureId/noteId: PomodoroWidget이 현재 페이지(강의 시청/노트 상세)에서 뽑아 넘겨준다.
 // status: 'idle'(시작 전) | 'running'(진행 중) | 'paused'(일시정지)
+//
+// 카운트다운은 매 tick마다 "1초씩 감소"가 아니라 anchorRef(기준 시각+그때 남은 초)와
+// 지금 시각의 차이로 다시 계산한다. setInterval은 백그라운드 탭에서 브라우저가 실행 주기를
+// 늦추는(throttle) 경우가 많아서, 단순 감소 방식이면 남은 시간이 실제 경과 시간보다 느리게
+// 줄어드는 오차가 누적된다. 벽시계 차이로 다시 계산하면 tick이 늦게 와도 다음 tick에서
+// 바로 정확한 값으로 따라잡는다. anchorRef는 시작/재실행마다 그 시점 기준으로 갱신된다.
+//
+// 마운트될 때마다(위젯을 다시 열 때) 본인의 진행 중 기록(endedAt이 비어있는 것)이 있는지 확인해서,
+// 새로고침/탭 닫기로 남겨진 세션을 이어서 한다. 자리를 비운 사이 계획한 시간이 이미 다 지났으면
+// 알림 없이 계획한 시간만큼 채운 걸로 조용히 마무리한다.
 export default function Timer({ onFinished, lectureId = null, noteId = null }) {
   const [focusMinutes, setFocusMinutes] = useState(DEFAULT_FOCUS_MINUTES)
   const [focusSeconds, setFocusSeconds] = useState(0)
@@ -27,28 +37,42 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
   // 보여주지 않기 때문에 값이 바뀔 일은 없지만, state 대신 ref로 들고 있어야
   // setInterval 콜백(클로저)이 항상 이 세션의 값을 참조하게 된다.
   const sessionRef = useRef(null)
+  // 카운트다운 재계산 기준점: { time: 그 시점의 Date, remaining: 그 시점에 남아있던 초 }.
+  // "시작"과 "재실행"마다 그 순간을 기준으로 새로 세팅된다.
+  const anchorRef = useRef(null)
 
   // 컴포넌트가 사라질 때 돌고 있는 인터벌을 정리 (다른 탭으로 이동해도 타이머가 안 죽는 문제 방지)
   useEffect(() => () => clearInterval(intervalRef.current), [])
 
-  // 1초 간격 카운트다운. "시작"과 "재실행" 둘 다 여기서 인터벌을 새로 건다.
+  // 매 tick마다 anchorRef 기준으로 남은 시간을 다시 계산한다 (위 상단 주석 참고 — 단순 감소가 아님).
   const runCountdown = () => {
     intervalRef.current = setInterval(() => {
-      setRemainingSeconds((prev) => {
-        if (prev <= 1) {
-          finish(sessionRef.current, 0)
-          return 0
-        }
-        return prev - 1
-      })
+      const anchor = anchorRef.current
+      const elapsedSinceAnchor = Math.floor((Date.now() - anchor.time.getTime()) / 1000)
+      const next = anchor.remaining - elapsedSinceAnchor
+      if (next <= 0) {
+        clearInterval(intervalRef.current)
+        setRemainingSeconds(0)
+        finish(sessionRef.current, 0, { auto: true })
+        return
+      }
+      setRemainingSeconds(next)
     }, 1000)
+  }
+
+  // 자동 종료(카운트다운이 0에 도달)했을 때만 브라우저 알림을 띄운다. 수동 "종료"는 사용자가
+  // 이미 화면을 보고 있는 상태라 알림이 필요 없다. 소리는 의도적으로 넣지 않는다.
+  const notifyFinished = () => {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
+    new Notification('뽀모도로 타이머 종료', { body: '설정한 집중 시간이 끝났어요.' })
   }
 
   // 타이머 종료 처리: 자동 만료(카운트다운 0)와 수동 "종료" 클릭이 공유한다.
   // endedAt을 채워 PATCH하면 서버가 이 기록을 완료된 세션으로 집계한다.
-  const finish = async (session, remainingAtFinish) => {
+  const finish = async (session, remainingAtFinish, { auto = false } = {}) => {
     clearInterval(intervalRef.current)
     setStatus('idle')
+    if (auto) notifyFinished()
     const endedAt = new Date()
     // 실제로 흐른 시간은 "계획한 시간 - 남은 시간"으로 계산한다. 벽시계 차이(종료 - 시작)를
     // 쓰면 일시정지해둔 시간까지 흐른 걸로 잡히기 때문에, 카운트다운이 실제로 줄어든 만큼만 센다.
@@ -72,6 +96,51 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
     onFinished() // 부모(PomodoroPage)에 알려서 오늘/전체 통계와 기록 목록을 다시 불러오게 한다
   }
 
+  // 위젯을 다시 열 때마다 본인의 진행 중 기록이 있는지 확인해 이어서 한다.
+  useEffect(() => {
+    let cancelled = false
+
+    const resumeIfActive = async () => {
+      try {
+        const record = await getActiveRecord()
+        if (!record || cancelled) return
+
+        // focusMinutes는 진행 중일 때는 아직 "계획한 시간"을 뜻한다(끝나야 실제 흐른 시간으로 바뀜).
+        // startedAt의 초 단위는 분 단위로 저장하며 이미 반올림됐으므로 이어서 할 때도 그 정밀도를 따른다.
+        const startedAt = new Date(record.startedAt)
+        const durationSeconds = record.focusMinutes * 60
+        const elapsedSinceStart = Math.floor((Date.now() - startedAt.getTime()) / 1000)
+        const session = {
+          id: record.id,
+          startedAt,
+          durationSeconds,
+          lectureId: record.lectureId,
+          noteId: record.noteId,
+        }
+
+        if (elapsedSinceStart >= durationSeconds) {
+          // 자리를 비운 사이 계획한 시간이 이미 다 지났다 — 알림 없이 조용히 마무리한다.
+          finish(session, 0)
+          return
+        }
+
+        sessionRef.current = session
+        anchorRef.current = { time: new Date(), remaining: durationSeconds - elapsedSinceStart }
+        setRemainingSeconds(durationSeconds - elapsedSinceStart)
+        setStatus('running')
+        runCountdown()
+      } catch {
+        // 이어서 할 기록 조회 실패는 조용히 무시한다 — 사용자는 그냥 새로 시작하면 된다.
+      }
+    }
+
+    resumeIfActive()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // "시작" 클릭: endedAt 없이 기록을 먼저 생성해두고(진행 중 상태), 화면에서는
   // 1초 간격 카운트다운만 표시한다. 0에 도달하면 finish()로 자동 종료.
   const start = async () => {
@@ -80,6 +149,11 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
     if (durationSeconds <= 0) {
       setError('시간을 1초 이상으로 설정해주세요.')
       return
+    }
+    // 타이머가 끝났을 때 알림을 띄우려면 미리 권한을 받아둬야 한다. 이미 허용/거부된 상태면
+    // 브라우저가 다시 묻지 않고 바로 반환하므로 매번 호출해도 안전하다.
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission()
     }
     const startedAt = new Date()
     const linkedLectureId = linkEnabled ? lectureId : null
@@ -92,6 +166,7 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
         startedAt: toLocalDateTimeString(startedAt),
       })
       sessionRef.current = { id: record.id, startedAt, durationSeconds, lectureId: linkedLectureId, noteId: linkedNoteId }
+      anchorRef.current = { time: startedAt, remaining: durationSeconds }
       setRemainingSeconds(durationSeconds)
       setStatus('running')
       runCountdown()
@@ -106,8 +181,9 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
     setStatus('paused')
   }
 
-  // 재실행: 멈췄던 남은 시간부터 카운트다운을 다시 건다.
+  // 재실행: 멈췄던 남은 시간을 새 기준점으로 삼아 카운트다운을 다시 건다.
   const resume = () => {
+    anchorRef.current = { time: new Date(), remaining: remainingSeconds }
     setStatus('running')
     runCountdown()
   }

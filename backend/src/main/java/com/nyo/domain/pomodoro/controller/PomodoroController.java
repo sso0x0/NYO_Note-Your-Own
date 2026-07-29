@@ -85,6 +85,13 @@ public class PomodoroController {
         return ApiResponse.ok(null);
     }
 
+    @Operation(summary = "이어서 할 진행 중 기록 조회",
+            description = "endedAt이 비어있는 가장 최근 기록을 반환합니다. 없으면 data가 null입니다. 타이머 위젯을 다시 열었을 때 새로고침/탭 닫기로 남겨진 세션을 이어서 하기 위해 사용합니다.")
+    @GetMapping("/active")
+    public ApiResponse<PomodoroRecordResponse> getActiveRecord() {
+        return ApiResponse.ok(pomodoroService.getActiveRecord(SecurityUtil.getCurrentUserId()));
+    }
+
     @Operation(summary = "회원별 타이머 기록 목록 조회 (최신순)")
     @GetMapping
     public ApiResponse<PageResponse<PomodoroRecordResponse>> getRecords(
