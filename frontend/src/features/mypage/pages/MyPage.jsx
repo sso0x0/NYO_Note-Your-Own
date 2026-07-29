@@ -3,20 +3,52 @@ import { useNavigate, Link } from 'react-router-dom';
 import { getMyInfo, updateMyProfile, withdraw } from '../api/mypage';
 import { getMyNotes, getLikedNotes } from '../../note/api/note';
 import { getPostList, getMyComments } from '../../community/api/post';
-import { getLectureList, isEnrolled } from '../../lecture/api/lecture';
+import { getLectureList, isEnrolled, getLecture } from '../../lecture/api/lecture';
 import { deleteAllHistories, deleteHistories, getHistories } from '../../chat/api/chat';
 import { getRecordsByPeriod, getTodayStudyTime, getTotalStudyTime } from '../../pomodoro/api/pomodoro';
 import { toLocalDateString } from '../../pomodoro/dateUtil';
 import { useAuth } from '../../../context/AuthContext';
 import NoteCard from '../../note/components/NoteCard';
+import LectureCard from '../../lecture/components/LectureCard';
+import { SmileIcon } from '../../chat/ChatMessage';
 import LineChart from '../../../components/charts/LineChart';
 import './MyPage.css';
+
+const TABS = [
+    { id: 'pomodoro', label: '학습 기록' },
+    { id: 'lectures', label: '수강 강의' },
+    { id: 'posts', label: '게시글' },
+    { id: 'comments', label: '댓글' },
+    { id: 'notes', label: '작성 노트' },
+    { id: 'likedNotes', label: '좋아요 노트' },
+    { id: 'chat', label: '챗봇 기록' },
+];
 
 const LIST_SIZE = 8;
 const POST_SCAN_SIZE = 50; // 내 글을 찾기 위해 넉넉히 훑어볼 최근 게시글 수
 const LECTURE_SCAN_SIZE = 30; // 수강신청 여부를 물어볼 최근 강의 수 (개별 API 호출 방식이라 너무 크게 잡지 않습니다)
 const CHAT_HISTORY_SIZE = 10; // 챗봇 대화 기록 한 페이지당 개수
 const POMODORO_PERIOD_SIZE = 100; // 기간별 조회 시 한 번에 가져올 기록 수
+const PAGE_SIZE = 5; // 노트/강의/게시글/댓글 목록을 한 페이지에 보여줄 개수
+
+function paginate(items, page) {
+    return items.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+}
+
+function Pager({ page, totalPages, onChange }) {
+    if (totalPages <= 1) return null;
+    return (
+        <div className="mypage__pager">
+            <button type="button" onClick={() => onChange(page - 1)} disabled={page === 0}>
+                이전
+            </button>
+            <span className="mypage__pager-status">{page + 1} / {totalPages}</span>
+            <button type="button" onClick={() => onChange(page + 1)} disabled={page >= totalPages - 1}>
+                다음
+            </button>
+        </div>
+    );
+}
 
 function defaultPomodoroRange() {
     const end = new Date();
@@ -46,6 +78,7 @@ function MyPage() {
     const [profile, setProfile] = useState(null);
     const [status, setStatus] = useState('idle');
     const [error, setError] = useState(null);
+    const [activeTab, setActiveTab] = useState(TABS[0].id);
 
     const [editing, setEditing] = useState(false);
     const [form, setForm] = useState({ name: '', nickname: '', phone: '', currentPassword: '', newPassword: '' });
@@ -58,6 +91,12 @@ function MyPage() {
     const [myLectures, setMyLectures] = useState([]);
     const [myComments, setMyComments] = useState([]);
 
+    const [notesPage, setNotesPage] = useState(0);
+    const [likedNotesPage, setLikedNotesPage] = useState(0);
+    const [lecturesPage, setLecturesPage] = useState(0);
+    const [postsPage, setPostsPage] = useState(0);
+    const [commentsPage, setCommentsPage] = useState(0);
+
     const [chatHistories, setChatHistories] = useState([]);
     const [chatHistoryPage, setChatHistoryPage] = useState(0);
     const [chatHistoryHasMore, setChatHistoryHasMore] = useState(false);
@@ -66,6 +105,7 @@ function MyPage() {
     const [selectedChatId, setSelectedChatId] = useState(null);
     const [selectedChatPairIds, setSelectedChatPairIds] = useState([]);
     const [chatHistoryDeleting, setChatHistoryDeleting] = useState(false);
+    const [lectureTitleMap, setLectureTitleMap] = useState({});
 
     const [pomodoroToday, setPomodoroToday] = useState(0);
     const [pomodoroWeek, setPomodoroWeek] = useState(0);
@@ -73,6 +113,7 @@ function MyPage() {
     const [pomodoroTotal, setPomodoroTotal] = useState(0);
     const [pomodoroRange, setPomodoroRange] = useState(defaultPomodoroRange);
     const [pomodoroRecords, setPomodoroRecords] = useState([]);
+    const [pomodoroPage, setPomodoroPage] = useState(0);
     const [pomodoroStatus, setPomodoroStatus] = useState('idle'); // idle | loading | success | error
     const [pomodoroError, setPomodoroError] = useState(null);
 
@@ -102,6 +143,32 @@ function MyPage() {
         if (!stillExists) setSelectedChatId(chatPairs[0].question.id);
     }, [chatPairs, selectedChatId]);
 
+    // 대화 기록에는 강의 번호(lectureId)만 저장돼 있어, 목록에는 "강의 #12" 대신
+    // 실제 강의명을 보여주기 위해 아직 모르는 강의만 골라 상세 정보를 따로 불러온다.
+    useEffect(() => {
+        const missingIds = [...new Set(
+            chatPairs.map((pair) => pair.question.lectureId).filter((id) => id != null)
+        )].filter((id) => !(id in lectureTitleMap));
+
+        if (missingIds.length === 0) return;
+
+        let cancelled = false;
+        Promise.all(missingIds.map((id) => getLecture(id).catch(() => null))).then((lectures) => {
+            if (cancelled) return;
+            setLectureTitleMap((prev) => {
+                const next = { ...prev };
+                missingIds.forEach((id, index) => {
+                    next[id] = lectures[index]?.title ?? null;
+                });
+                return next;
+            });
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [chatPairs, lectureTitleMap]);
+
     const pomodoroChartData = useMemo(() => {
         const grouped = {};
         pomodoroRecords.forEach((record) => {
@@ -119,6 +186,7 @@ function MyPage() {
         getRecordsByPeriod({ startDate: range.start, endDate: range.end, size: POMODORO_PERIOD_SIZE })
             .then((page) => {
                 setPomodoroRecords(page?.content ?? []);
+                setPomodoroPage(0);
                 setPomodoroStatus('success');
             })
             .catch((err) => {
@@ -405,6 +473,25 @@ function MyPage() {
                         )}
                     </div>
 
+                    <nav className="mypage__tabs" role="tablist" aria-label="마이페이지 메뉴">
+                        {TABS.map((tab) => (
+                            <button
+                                key={tab.id}
+                                type="button"
+                                role="tab"
+                                aria-selected={activeTab === tab.id}
+                                className={
+                                    'mypage__tab-btn' + (activeTab === tab.id ? ' mypage__tab-btn--active' : '')
+                                }
+                                onClick={() => setActiveTab(tab.id)}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </nav>
+
+                    <div className="mypage__panel">
+                    {activeTab === 'pomodoro' && (
                     <section className="mypage__section">
                         <h3>뽀모도로 학습 기록</h3>
                         <div className="mypage__pomodoro-summary">
@@ -463,7 +550,7 @@ function MyPage() {
                                     formatValue={(hours) => `${Math.round(hours * 60)}분`}
                                 />
                                 <ul className="mypage__pomodoro-list">
-                                    {pomodoroRecords.map((record) => (
+                                    {paginate(pomodoroRecords, pomodoroPage).map((record) => (
                                         <li key={record.id} className="mypage__pomodoro-item">
                                             <span className="mypage__pomodoro-item-date">{record.recordDate}</span>
                                             <span className="mypage__pomodoro-item-detail">
@@ -480,109 +567,149 @@ function MyPage() {
                                         </li>
                                     ))}
                                 </ul>
+                                <Pager
+                                    page={pomodoroPage}
+                                    totalPages={Math.ceil(pomodoroRecords.length / PAGE_SIZE)}
+                                    onChange={setPomodoroPage}
+                                />
                             </>
                         )}
                     </section>
+                    )}
 
+                    {activeTab === 'lectures' && (
                     <section className="mypage__section">
                         <h3>내가 수강신청한 강의</h3>
                         {myLectures.length === 0 ? (
                             <p>수강신청한 강의가 없습니다.</p>
                         ) : (
-                            <ul className="mypage__post-list">
-                                {myLectures.map((lecture) => (
-                                    <li key={lecture.id} className="mypage__post-item">
-                                        <Link to={`/main/lectures/${lecture.id}`} className="mypage__post-link">
-                      <span className="mypage__post-title">
-                        {lecture.isPopular && <span className="mypage__post-badge">인기</span>}
-                          {lecture.title}
-                      </span>
-                                            <span className="mypage__post-meta">
-                        {lecture.instructor && `${lecture.instructor} · `}
-                                                조회 {lecture.viewCount ?? 0} · 좋아요 {lecture.likeCount ?? 0}
-                      </span>
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
+                            <>
+                                <div className="mypage__lecture-list">
+                                    {paginate(myLectures, lecturesPage).map((lecture) => (
+                                        <LectureCard key={lecture.id} lecture={lecture} />
+                                    ))}
+                                </div>
+                                <Pager
+                                    page={lecturesPage}
+                                    totalPages={Math.ceil(myLectures.length / PAGE_SIZE)}
+                                    onChange={setLecturesPage}
+                                />
+                            </>
                         )}
                     </section>
+                    )}
 
+                    {activeTab === 'posts' && (
                     <section className="mypage__section">
                         <h3>내가 작성한 게시글</h3>
                         {myPosts.length === 0 ? (
                             <p>작성한 게시글이 없습니다.</p>
                         ) : (
-                            <ul className="mypage__post-list">
-                                {myPosts.map((post) => (
-                                    <li key={post.id} className="mypage__post-item">
-                                        <Link to={`/main/community/${post.id}`} className="mypage__post-link">
-                      <span className="mypage__post-title">
-                        {post.notice && <span className="mypage__post-badge">공지</span>}
-                          {post.title}
-                      </span>
-                                            <span className="mypage__post-meta">
-                        조회 {post.viewCount ?? 0} · 좋아요 {post.likeCount ?? 0}
-                                                {post.createdAt && ` · ${post.createdAt.slice(0, 10)}`}
-                      </span>
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
+                            <>
+                                <ul className="mypage__post-list">
+                                    {paginate(myPosts, postsPage).map((post) => (
+                                        <li key={post.id} className="mypage__post-item">
+                                            <Link to={`/main/community/${post.id}`} className="mypage__post-link">
+                          <span className="mypage__post-title">
+                            {post.notice && <span className="mypage__post-badge">공지</span>}
+                              {post.title}
+                          </span>
+                                                <span className="mypage__post-meta">
+                          조회 {post.viewCount ?? 0} · 좋아요 {post.likeCount ?? 0}
+                                                    {post.createdAt && ` · ${post.createdAt.slice(0, 10)}`}
+                          </span>
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                                <Pager
+                                    page={postsPage}
+                                    totalPages={Math.ceil(myPosts.length / PAGE_SIZE)}
+                                    onChange={setPostsPage}
+                                />
+                            </>
                         )}
                     </section>
+                    )}
 
-                    {/* 💡 추가: 내가 작성한 댓글 */}
+                    {activeTab === 'comments' && (
                     <section className="mypage__section">
                         <h3>내가 작성한 댓글</h3>
                         {myComments.length === 0 ? (
                             <p>작성한 댓글이 없습니다.</p>
                         ) : (
-                            <ul className="mypage__post-list">
-                                {myComments.map((comment) => (
-                                    <li key={comment.id} className="mypage__post-item">
-                                        <Link
-                                            to={comment.postId ? `/main/community/${comment.postId}` : `/main/lectures/${comment.lectureId}`}
-                                            className="mypage__post-link"
-                                        >
-                                            <span className="mypage__post-title">{comment.content}</span>
-                                            <span className="mypage__post-meta">
-                                                {comment.postId ? '커뮤니티' : '강의'}
-                                                {comment.createdAt && ` · ${comment.createdAt.replace('T', ' ').slice(0, 16)}`}
-                                            </span>
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
+                            <>
+                                <ul className="mypage__post-list">
+                                    {paginate(myComments, commentsPage).map((comment) => (
+                                        <li key={comment.id} className="mypage__post-item">
+                                            <Link
+                                                to={comment.postId ? `/main/community/${comment.postId}` : `/main/lectures/${comment.lectureId}`}
+                                                className="mypage__post-link"
+                                            >
+                                                <span className="mypage__post-title">{comment.content}</span>
+                                                <span className="mypage__post-meta">
+                                                    {comment.postId ? '커뮤니티' : '강의'}
+                                                    {comment.createdAt && ` · ${comment.createdAt.replace('T', ' ').slice(0, 16)}`}
+                                                </span>
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                                <Pager
+                                    page={commentsPage}
+                                    totalPages={Math.ceil(myComments.length / PAGE_SIZE)}
+                                    onChange={setCommentsPage}
+                                />
+                            </>
                         )}
                     </section>
+                    )}
 
+                    {activeTab === 'notes' && (
                     <section className="mypage__section">
                         <h3>내가 작성한 노트</h3>
                         {myNotes.length === 0 ? (
                             <p>작성한 노트가 없습니다.</p>
                         ) : (
-                            <div className="mypage__grid">
-                                {myNotes.map((note) => (
-                                    <NoteCard key={note.id} note={note} />
-                                ))}
-                            </div>
+                            <>
+                                <div className="mypage__note-list">
+                                    {paginate(myNotes, notesPage).map((note) => (
+                                        <NoteCard key={note.id} note={note} />
+                                    ))}
+                                </div>
+                                <Pager
+                                    page={notesPage}
+                                    totalPages={Math.ceil(myNotes.length / PAGE_SIZE)}
+                                    onChange={setNotesPage}
+                                />
+                            </>
                         )}
                     </section>
+                    )}
 
+                    {activeTab === 'likedNotes' && (
                     <section className="mypage__section">
                         <h3>내가 좋아요한 노트</h3>
                         {likedNotes.length === 0 ? (
                             <p>좋아요한 노트가 없습니다.</p>
                         ) : (
-                            <div className="mypage__grid">
-                                {likedNotes.map((note) => (
-                                    <NoteCard key={note.id} note={note} />
-                                ))}
-                            </div>
+                            <>
+                                <div className="mypage__note-list">
+                                    {paginate(likedNotes, likedNotesPage).map((note) => (
+                                        <NoteCard key={note.id} note={note} />
+                                    ))}
+                                </div>
+                                <Pager
+                                    page={likedNotesPage}
+                                    totalPages={Math.ceil(likedNotes.length / PAGE_SIZE)}
+                                    onChange={setLikedNotesPage}
+                                />
+                            </>
                         )}
                     </section>
+                    )}
 
+                    {activeTab === 'chat' && (
                     <section className="mypage__section">
                         <h3>챗봇 대화 기록</h3>
                         {chatHistoryError && <p role="alert">불러오지 못했습니다: {chatHistoryError}</p>}
@@ -594,6 +721,7 @@ function MyPage() {
                                     <label className="mypage__chat-select-all">
                                         <input
                                             type="checkbox"
+                                            className="mypage__chat-checkbox"
                                             checked={chatPairs.length > 0 && selectedChatPairIds.length === chatPairs.length}
                                             disabled={chatHistoryDeleting}
                                             onChange={toggleAllChatPairsSelected}
@@ -621,71 +749,82 @@ function MyPage() {
                                 </div>
 
                                 <div className="mypage__chat-layout">
-                                    <ul className="mypage__chat-question-list">
-                                        {chatPairs.map((pair) => (
-                                            <li key={pair.question.id} className="mypage__chat-question-item">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedChatPairIds.includes(pair.question.id)}
-                                                    disabled={chatHistoryDeleting}
-                                                    onChange={() => toggleChatPairSelected(pair.question.id)}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className={
-                                                        'mypage__chat-question-btn' +
-                                                        (pair.question.id === selectedChatId ? ' mypage__chat-question-btn--active' : '')
-                                                    }
-                                                    onClick={() => setSelectedChatId(pair.question.id)}
-                                                >
-                                                    <span className="mypage__chat-question-text">{pair.question.message}</span>
-                                                    <span className="mypage__chat-question-meta">
-                                                        {pair.question.lectureId && `강의 #${pair.question.lectureId} · `}
-                                                        {pair.question.createdAt && pair.question.createdAt.replace('T', ' ').slice(0, 16)}
-                                                    </span>
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                    <div className="mypage__chat-sidebar">
+                                        <ul className="mypage__chat-question-list">
+                                            {chatPairs.map((pair) => (
+                                                <li key={pair.question.id} className="mypage__chat-question-item">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="mypage__chat-checkbox"
+                                                        checked={selectedChatPairIds.includes(pair.question.id)}
+                                                        disabled={chatHistoryDeleting}
+                                                        onChange={() => toggleChatPairSelected(pair.question.id)}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className={
+                                                            'mypage__chat-question-btn' +
+                                                            (pair.question.id === selectedChatId ? ' mypage__chat-question-btn--active' : '')
+                                                        }
+                                                        onClick={() => setSelectedChatId(pair.question.id)}
+                                                    >
+                                                        <span className="mypage__chat-question-text">{pair.question.message}</span>
+                                                        <span className="mypage__chat-question-meta">
+                                                            {pair.question.lectureId && (
+                                                                <>{lectureTitleMap[pair.question.lectureId] ?? `강의 #${pair.question.lectureId}`} · </>
+                                                            )}
+                                                            {pair.question.createdAt && pair.question.createdAt.replace('T', ' ').slice(0, 16)}
+                                                        </span>
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+
+                                        {chatHistoryHasMore && (
+                                            <button
+                                                type="button"
+                                                className="mypage__chat-load-more"
+                                                onClick={handleLoadMoreChatHistory}
+                                                disabled={chatHistoryLoadingMore || chatHistoryDeleting}
+                                            >
+                                                {chatHistoryLoadingMore ? '불러오는 중...' : '더 보기'}
+                                            </button>
+                                        )}
+                                    </div>
 
                                     <div className="mypage__chat-detail">
                                         {selectedChatPair ? (
-                                            <>
-                                                <div className="mypage__chat-item">
-                                                    <div className="mypage__chat-item-header">
-                                                        <span className="mypage__chat-role mypage__chat-role--user">나</span>
+                                            <div className="mypage__chat-thread">
+                                                <div className="mypage__chat-row mypage__chat-row--user">
+                                                    <div className="mypage__chat-bubble mypage__chat-bubble--user">
+                                                        {selectedChatPair.question.message}
                                                     </div>
-                                                    <p className="mypage__chat-message">{selectedChatPair.question.message}</p>
                                                 </div>
-                                                <div className="mypage__chat-item">
-                                                    <div className="mypage__chat-item-header">
-                                                        <span className="mypage__chat-role mypage__chat-role--assistant">AI</span>
-                                                    </div>
+                                                <div className="mypage__chat-row mypage__chat-row--assistant">
+                                                    <span className="mypage__chat-avatar" aria-hidden="true">
+                                                        <SmileIcon />
+                                                    </span>
                                                     {selectedChatPair.answer ? (
-                                                        <p className="mypage__chat-message">{selectedChatPair.answer.message}</p>
+                                                        <div className="mypage__chat-bubble mypage__chat-bubble--assistant">
+                                                            {selectedChatPair.answer.message}
+                                                        </div>
                                                     ) : (
-                                                        <p className="mypage__chat-message mypage__chat-message--pending">아직 답변이 없습니다.</p>
+                                                        <div className="mypage__chat-bubble mypage__chat-bubble--assistant mypage__chat-bubble--pending">
+                                                            아직 답변이 없습니다.
+                                                        </div>
                                                     )}
                                                 </div>
-                                            </>
+                                            </div>
                                         ) : (
-                                            <p>왼쪽 목록에서 질문을 선택해주세요.</p>
+                                            <p className="mypage__chat-detail-empty">왼쪽 목록에서 질문을 선택해주세요.</p>
                                         )}
                                     </div>
                                 </div>
-                                {chatHistoryHasMore && (
-                                    <button
-                                        type="button"
-                                        className="mypage__chat-load-more"
-                                        onClick={handleLoadMoreChatHistory}
-                                        disabled={chatHistoryLoadingMore || chatHistoryDeleting}
-                                    >
-                                        {chatHistoryLoadingMore ? '불러오는 중...' : '더 보기'}
-                                    </button>
-                                )}
                             </>
                         )}
                     </section>
+                    )}
+                    </div>
 
                     <div className="mypage__danger-zone">
                         <button type="button" className="mypage__withdraw-btn" onClick={handleWithdraw}>
