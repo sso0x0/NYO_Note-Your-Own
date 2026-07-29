@@ -314,7 +314,13 @@ function NoteBoard({ onOpenNote }) {
                                         {note.thumbnailUrl ? (
                                             <img src={note.thumbnailUrl} alt={note.title} loading="lazy" />
                                         ) : (
-                                            <div className="note-card__thumb-fallback" aria-hidden="true" />
+                                            /* 대표 이미지가 없는 노트 카드에 노트 전용 기본 이미지를 표시한다. */
+                                            <img
+                                                className="note-card__thumb-fallback-image"
+                                                src="/images/note-empty.png"
+                                                alt=""
+                                                draggable={false}
+                                            />
                                         )}
                                     </div>
 

@@ -12,4 +12,6 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
             Long reporterId, ReportTargetType targetType, Long targetId);
 
     Page<Report> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    Page<Report> findByTargetTypeOrderByCreatedAtDesc(ReportTargetType targetType, Pageable pageable);
 }

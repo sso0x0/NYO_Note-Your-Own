@@ -6,8 +6,8 @@ export function createReport(targetType, targetId, reason) {
 }
 
 // 관리자 페이지에서 최신 신고 목록을 페이지 단위로 조회한다.
-export function getAdminReports({ page = 0, size = 10 } = {}) {
-  return apiGet('/api/admin/reports', { page, size })
+export function getAdminReports({ page = 0, size = 10, targetType } = {}) {
+  return apiGet('/api/admin/reports', { page, size, targetType })
 }
 
 export function markReportReviewed(reportId) {

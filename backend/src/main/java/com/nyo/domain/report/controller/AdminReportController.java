@@ -1,6 +1,7 @@
 package com.nyo.domain.report.controller;
 
 import com.nyo.domain.report.dto.ReportAdminResponse;
+import com.nyo.domain.report.entity.ReportTargetType;
 import com.nyo.domain.report.service.ReportService;
 import com.nyo.global.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -18,8 +19,9 @@ public class AdminReportController {
 
     @GetMapping
     public ApiResponse<Page<ReportAdminResponse>> findAll(
+            @RequestParam(required = false) ReportTargetType targetType,
             @PageableDefault(size = 10) Pageable pageable) {
-        return ApiResponse.ok(reportService.findAll(pageable));
+        return ApiResponse.ok(reportService.findAll(targetType, pageable));
     }
 
     @PostMapping("/{reportId}/review")

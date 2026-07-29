@@ -652,7 +652,10 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
                                 </button>
                                 <span>좋아요 {note.likeCount ?? 0}</span>
                                 {/* 노트 ID를 신고 대상으로 전달하고, 신고 사유 입력은 공통 신고 창에서 처리한다. */}
-                                <ReportButton targetType="NOTE" targetId={note.id} className="note-report-button" />
+                                {/* 본인이 작성한 노트는 자신을 신고할 수 없으므로 신고 버튼을 숨긴다. */}
+                                {!canEdit && (
+                                  <ReportButton targetType="NOTE" targetId={note.id} className="note-report-button" />
+                                )}
                             </div>
                         </>
                     ) : (

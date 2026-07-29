@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAdminReports, markReportReviewed } from '../../report/api/report'
 import { usePagedList } from '../hooks/usePagedList'
@@ -10,8 +10,25 @@ const formatDate = (value) => value ? new Date(value).toLocaleString('ko-KR') : 
 
 function AdminReportsPage() {
   const navigate = useNavigate()
-  const reports = usePagedList(getAdminReports)
+  const [targetType, setTargetType] = useState('')
+  const reports = usePagedList(({ page, size }) => getAdminReports({
+    page,
+    size,
+    targetType: targetType || undefined,
+  }))
   const [expandedId, setExpandedId] = useState(null)
+  const firstFilterRender = useRef(true)
+
+  useEffect(() => {
+    if (firstFilterRender.current) {
+      firstFilterRender.current = false
+      return
+    }
+    // 유형을 변경하면 이전 페이지 번호를 유지하지 않고 첫 페이지에서 다시 조회한다.
+    reports.setPage(0)
+    reports.reload()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetType])
 
   const review = async (report) => {
     if (!window.confirm('이 신고를 확인 완료로 처리하시겠습니까?')) return
@@ -29,6 +46,14 @@ function AdminReportsPage() {
   return (
     <div className="admin-page admin-reports">
       <div className="admin-page__scroll">
+        <div className="admin-toolbar">
+          <select className="admin-select" value={targetType} onChange={(event) => setTargetType(event.target.value)}>
+            <option value="">전체 유형</option>
+            <option value="NOTE">노트</option>
+            <option value="POST">게시글</option>
+            <option value="COMMENT">댓글</option>
+          </select>
+        </div>
         {reports.status === 'loading' && <p>불러오는 중...</p>}
         {reports.status === 'error' && <p role="alert">불러오지 못했습니다: {reports.error}</p>}
         {reports.status === 'success' && reports.pageData && (
@@ -42,7 +67,7 @@ function AdminReportsPage() {
             <tbody>
               {items.map((report, index) => (
                 <Fragment key={report.id}>
-                  <tr className={report.status === 'REVIEWED' ? 'admin-report--reviewed' : undefined}>
+                  <tr className={report.status === 'REVIEWED' ? 'admin-row--deleted' : undefined}>
                     <td>{reports.pageData.number * PAGE_SIZE + index + 1}</td>
                     <td>{TYPE_LABEL[report.targetType] ?? report.targetType}</td>
                     <td>
@@ -82,9 +107,11 @@ function AdminReportsPage() {
                     <tr>
                       <td colSpan={9}>
                         <div className="admin-report-detail">
-                          <div><strong>신고 사유</strong><p>{report.reason}</p></div>
-                          <div><strong>신고 대상 내용</strong><p>{report.targetContent || '(내용 없음)'}</p></div>
-                          <small>대상 ID: {report.targetId} · 신고자 ID: {report.reporterId}</small>
+                          <div className="admin-detail"><strong>신고 사유</strong><p>{report.reason}</p></div>
+                          <div className="admin-detail"><strong>신고 대상 내용</strong><p>{report.targetContent || '(내용 없음)'}</p></div>
+                          <div className="admin-report-detail__meta">
+                            대상 ID: {report.targetId} · 신고자 ID: {report.reporterId}
+                          </div>
                         </div>
                       </td>
                     </tr>

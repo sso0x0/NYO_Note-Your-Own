@@ -191,22 +191,26 @@
 
 .post-detail-page__like-row .community-report-button {
   margin-left: auto;
-  padding: 8px 16px;
-  border: 1px solid #f3d2d2;
-  border-radius: 8px;
-  background: var(--bg);
-  color: #e5484d;
+  padding: 4px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #ff4f4f;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
 }
 
+.post-detail-page__like-row .community-report-button::before {
+  content: "⚠️";
+  margin-right: 5px;
+}
+
 .post-detail-page__like-row .community-report-button:hover {
-  border-color: #e5484d;
-  background: #fdeaea;
-  color: #e5484d;
-  text-decoration: none;
+  background: transparent;
+  color: #ff4f4f;
+  text-decoration: underline;
 }
 
 .post-detail-page__like-btn {
@@ -479,6 +483,22 @@
 .post-detail-page .comment-body__actions .danger-button:hover {
   background: #fdeaea;
   color: #e5484d;
+}
+
+.post-detail-page .comment-body__actions .comment-report-button {
+  color: #ff4f4f;
+}
+
+.post-detail-page .comment-body__actions .comment-report-button::before {
+  content: "⚠️";
+  margin-right: 4px;
+}
+
+.post-detail-page .comment-body__actions .comment-report-button:hover,
+.post-detail-page .comment-body__actions .comment-report-button:focus {
+  background: transparent;
+  color: #ff4f4f;
+  text-decoration: underline;
 }
 
 .post-detail-page .comment-edit-form {

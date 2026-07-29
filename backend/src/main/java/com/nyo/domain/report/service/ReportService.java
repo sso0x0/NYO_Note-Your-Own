@@ -44,9 +44,12 @@ public class ReportService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ReportAdminResponse> findAll(Pageable pageable) {
+    public Page<ReportAdminResponse> findAll(ReportTargetType targetType, Pageable pageable) {
         // 신고 목록은 항상 최신 신고부터 보여주고, 대상이 삭제되어도 신고 이력은 유지한다.
-        return reportRepository.findAllByOrderByCreatedAtDesc(pageable).map(this::toAdminResponse);
+        Page<Report> reports = targetType == null
+                ? reportRepository.findAllByOrderByCreatedAtDesc(pageable)
+                : reportRepository.findByTargetTypeOrderByCreatedAtDesc(targetType, pageable);
+        return reports.map(this::toAdminResponse);
     }
 
     @Transactional
