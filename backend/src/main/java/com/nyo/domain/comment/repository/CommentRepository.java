@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
+    long countByCreatedAtAfter(java.time.LocalDateTime createdAt);
 
     // 게시글 삭제·복구 시 해당 게시글에 연결된 원댓글과 답글을 함께 상태 변경한다.
     List<Comment> findByPostId(Long postId);

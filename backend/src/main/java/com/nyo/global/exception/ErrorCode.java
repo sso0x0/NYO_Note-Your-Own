@@ -50,6 +50,11 @@ public enum ErrorCode {
     // 좋아요와 조회 기록은 NOTE 또는 POST처럼 서버가 지원하는 대상 타입만 허용합니다.
     TARGET_TYPE_INVALID(HttpStatus.BAD_REQUEST, "지원하지 않는 대상 타입입니다."),
 
+    // 신고 관련 에러코드
+    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 신고입니다."),
+    REPORT_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND, "신고 대상을 찾을 수 없습니다."),
+    REPORT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 신고한 대상입니다."),
+
     // 노트/게시글 이미지 관련 에러코드
     IMAGE_EMPTY(HttpStatus.BAD_REQUEST, "업로드할 이미지가 없습니다."),
     IMAGE_INVALID_EXTENSION(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 확장자입니다."),

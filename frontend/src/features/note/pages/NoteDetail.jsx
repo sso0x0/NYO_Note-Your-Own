@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { parseTextColors } from '../../../utils/textColor'
 import { useAuth } from '../../../context/AuthContext'
 import { parseMainImage } from '../../../utils/mainImage'
+import ReportButton from '../../report/components/ReportButton'
 import { generateAiTags, getNoteTags } from '../api/tag'
 import { sendMessage } from '../../chat/api/chat'
 import ChatMessage from '../../chat/ChatMessage'
@@ -529,8 +530,9 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
           <div className="note-detail-page__toolbar-main">
             <button type="button" className="note-detail-page__list-button" onClick={onBack}>목록</button>
             <div className="note-header-actions">
-              {note && <button type="button" onClick={exportNotePdf}>PDF 저장</button>}
-              {note && <button type="button" onClick={exportNoteMarkdown}>마크다운 저장</button>}
+              {/* 노트 파일 저장 기능은 작성자 본인에게만 표시한다. */}
+              {canEdit && <button type="button" onClick={exportNotePdf}>PDF 저장</button>}
+              {canEdit && <button type="button" onClick={exportNoteMarkdown}>마크다운 저장</button>}
               {canEdit && <button type="button" onClick={() => onEdit(note)}>수정</button>}
               {canDelete && <button type="button" className="danger-button" onClick={deleteNote} disabled={loading}>삭제</button>}
             </div>
@@ -649,6 +651,8 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
                       <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" draggable={false} />
                     </button>
                     <span>좋아요 {note.likeCount ?? 0}</span>
+                    {/* 노트 ID를 신고 대상으로 전달하고, 신고 사유 입력은 공통 신고 창에서 처리한다. */}
+                    <ReportButton targetType="NOTE" targetId={note.id} className="note-report-button" />
                   </div>
                 </>
             ) : (

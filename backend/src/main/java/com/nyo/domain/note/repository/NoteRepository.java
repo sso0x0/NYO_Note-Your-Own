@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface NoteRepository extends JpaRepository<Note, Long> {
+    long countByCreatedAtAfter(java.time.LocalDateTime createdAt);
 
     // 노트 게시판 서버 페이지네이션: 삭제되지 않은 노트만 Pageable 조건으로 조회합니다.
     Page<Note> findByIsDeleted(Integer isDeleted, Pageable pageable);

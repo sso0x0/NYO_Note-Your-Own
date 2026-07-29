@@ -1,4 +1,5 @@
 import { Fragment, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   getUserList,
   changeUserRole,
@@ -201,8 +202,10 @@ function SanctionPanel({ user, onDone }) {
 }
 
 function AdminUsersPage() {
-  const users = usePagedList(getUserList);
-  const [expandedUserId, setExpandedUserId] = useState(null);
+  const location = useLocation();
+  const users = usePagedList(getUserList, location.state?.focusPage ?? 0);
+  // 신고 관리에서 넘어오면 신고 대상 작성자의 관리 패널을 바로 펼친다.
+  const [expandedUserId, setExpandedUserId] = useState(location.state?.focusUserId ?? null);
 
   const handleToggle = (userId) => {
     setExpandedUserId((prev) => (prev === userId ? null : userId));

@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { to: '/admin/moderation', label: '게시물 관리' },
   { to: '/admin/notes', label: '노트 관리' },
   { to: '/admin/comments', label: '댓글 관리' },
+  { to: '/admin/reports', label: '신고 관리' },
 ];
 
 // 일반 회원용 ProtectedLayout(헤더/네비게이션)을 공유하지 않는 관리자 전용 콘솔 셸.

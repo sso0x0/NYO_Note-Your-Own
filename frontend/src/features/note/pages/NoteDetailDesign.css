@@ -182,6 +182,26 @@
   border-top: 1px solid var(--border);
 }
 
+.note-detail-page .note-like-summary .note-report-button {
+  /* 좋아요는 왼쪽에 두고 신고 버튼만 노트 칸의 오른쪽 끝으로 보낸다. */
+  margin-left: auto;
+  padding: 8px 14px;
+  border: 1px solid #ff4f4f;
+  border-radius: 8px;
+  background: var(--bg);
+  color: #ff4f4f;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.note-detail-page .note-like-summary .note-report-button:hover {
+  border-color: #ff4f4f;
+  background: #ff4f4f;
+  color: #fff;
+  text-decoration: none;
+}
+
 .note-detail-page .note-detail-chat {
   position: sticky;
   top: 24px;
