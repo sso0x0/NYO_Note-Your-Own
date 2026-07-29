@@ -45,8 +45,8 @@
    index.css의 전역 h1,h2,h3 규칙이 system-ui로 되돌려놓기 때문에 명시적으로 다시 지정해야 한다. */
 .note-board-page h2 {
   margin: 0;
-  font-size: 28px;
-  font-weight: 800;
+  font-size: 32px;
+  font-weight: 700;
   letter-spacing: -0.5px;
   color: var(--text-h);
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -72,6 +72,15 @@
   white-space: nowrap;
 }
 
+.note-board-page__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  color: var(--text);
+  font-size: 15px;
+}
+
 .note-board-page__filters {
   display: flex;
   flex-wrap: wrap;
@@ -92,8 +101,9 @@
 }
 
 .note-board-page__filters button:hover {
-  border-color: var(--nb-accent);
-  color: var(--nb-accent);
+  border-color: var(--nb-ink);
+  color: #fff;
+  background: var(--nb-ink);
 }
 
 .note-board-page__filters button.is-active {

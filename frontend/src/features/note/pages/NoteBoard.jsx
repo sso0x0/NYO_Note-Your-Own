@@ -296,6 +296,9 @@ function NoteBoard({ onOpenNote }) {
 
             {loading && <p>불러오는 중...</p>}
             {!loading && error && <p role="alert">{error}</p>}
+            {!loading && !error && totalElements === 0 && (
+                <div className="note-board-page__empty">등록된 노트가 없습니다.</div>
+            )}
             {!loading && !error && totalElements > 0 && (
                 <>
                     <div className="note-board-page__list">

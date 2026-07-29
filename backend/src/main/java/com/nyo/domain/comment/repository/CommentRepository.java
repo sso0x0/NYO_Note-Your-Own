@@ -12,12 +12,13 @@ import java.util.Optional;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
-    List<Comment> findByPostIdAndIsDeletedOrderByCreatedAtAsc(Long postId, Integer isDeleted);
-
     // 게시글 삭제·복구 시 해당 게시글에 연결된 원댓글과 답글을 함께 상태 변경한다.
     List<Comment> findByPostId(Long postId);
 
-    List<Comment> findByLectureIdAndIsDeletedOrderByCreatedAtAsc(Long lectureId, Integer isDeleted);
+    // 삭제된 댓글도 함께 조회해서, 답글이 남아있는 삭제된 댓글은 "삭제된 댓글입니다" 자리표시자로 보여준다.
+    List<Comment> findByPostIdOrderByCreatedAtAsc(Long postId);
+
+    List<Comment> findByLectureIdOrderByCreatedAtAsc(Long lectureId);
 
     Optional<Comment> findByIdAndIsDeleted(Long id, Integer isDeleted);
 

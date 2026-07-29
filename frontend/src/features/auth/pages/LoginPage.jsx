@@ -80,9 +80,9 @@ function LoginPage() {
         try {
             const response = await loginRequest(form);
             login(response);
-            const defaultPath = response.role === 'ADMIN' ? '/admin' : '/main';
-            const redirectTo = location.state?.from?.pathname || defaultPath;
-            navigate(redirectTo, { replace: true });
+            // 이전에 보던 페이지(location.state.from)로 돌아가지 않고,
+            // 역할에 따라 항상 메인/관리자 페이지로 고정 이동한다.
+            navigate(response.role === 'ADMIN' ? '/admin' : '/main', { replace: true });
         } catch (err) {
             setError(err.message);
         } finally {

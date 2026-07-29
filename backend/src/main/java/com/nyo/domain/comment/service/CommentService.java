@@ -67,16 +67,16 @@ public class CommentService {
     public List<CommentResponse> findByPost(Long postId) {
         validatePost(postId);
 
-        // 일반 사용자에게는 is_deleted=1인 댓글을 노출하지 않는다.
-        List<Comment> comments = commentRepository.findByPostIdAndIsDeletedOrderByCreatedAtAsc(postId, 0);
+        // 답글이 남아있는 삭제된 댓글은 "삭제된 댓글입니다"로 표시해야 하므로 삭제 여부와 관계없이 모두 조회한다.
+        List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
         return buildTree(comments);
     }
 
     public List<CommentResponse> findByLecture(Long lectureId) {
         validateLecture(lectureId);
 
-        // 일반 사용자에게는 is_deleted=1인 댓글을 노출하지 않는다.
-        List<Comment> comments = commentRepository.findByLectureIdAndIsDeletedOrderByCreatedAtAsc(lectureId, 0);
+        // 답글이 남아있는 삭제된 댓글은 "삭제된 댓글입니다"로 표시해야 하므로 삭제 여부와 관계없이 모두 조회한다.
+        List<Comment> comments = commentRepository.findByLectureIdOrderByCreatedAtAsc(lectureId);
         return buildTree(comments);
     }
 
@@ -172,8 +172,8 @@ public class CommentService {
                 comments.stream().map(Comment::getUserId).distinct().toList()
         );
 
+        // 삭제된 댓글은 원댓글이든 대댓글이든 목록에서 사라지지 않고, 자리표시자로 계속 보여준다.
         return comments.stream()
-                // 삭제된 부모 댓글은 숨기되, 남아 있는 답글은 최상위 댓글처럼 계속 보여준다.
                 .filter(comment -> comment.getParentCommentId() == null
                         || !visibleCommentIds.contains(comment.getParentCommentId()))
                 .map(comment -> toTreeResponse(comment, childrenByParentId, nicknames))

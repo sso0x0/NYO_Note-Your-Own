@@ -193,7 +193,9 @@ function LectureListPage() {
 
       {status === 'loading' && <p>불러오는 중...</p>}
       {status === 'error' && <p role="alert">목록을 불러오지 못했습니다: {error}</p>}
-      {status === 'success' && pageData?.content.length === 0 && <p>등록된 강의가 없습니다.</p>}
+      {status === 'success' && pageData?.content.length === 0 && (
+        <div className="lecture-list-page__empty">등록된 강의가 없습니다.</div>
+      )}
 
       {status === 'success' && pageData?.content.length > 0 && (
         <>

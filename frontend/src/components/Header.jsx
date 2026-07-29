@@ -8,11 +8,12 @@ import './Header.css';
 function Header() {
   const { auth, logout } = useAuth();
 
-  // ProtectedRoute redirects to /login as soon as auth clears, so we only
-  // need to clear it here — navigating manually races with that redirect
-  // and can leave the URL out of sync with the rendered page.
+  // router의 navigate()로 이동시키면 auth가 사라진 순간 ProtectedRoute가
+  // 옛 위치(/main) 기준으로 다시 렌더링되면서 /login으로 되돌리는 레이스가 생긴다.
+  // 그래서 로그아웃은 SPA 이동 대신 전체 페이지 이동으로 랜딩 페이지에 확실히 도착시킨다.
   const handleLogout = () => {
     logout();
+    window.location.href = '/';
   };
 
   return (
