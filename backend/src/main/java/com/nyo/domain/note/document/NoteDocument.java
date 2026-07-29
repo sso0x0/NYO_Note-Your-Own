@@ -29,6 +29,14 @@ public class NoteDocument {
     @Id
     private Long id;
 
+    // 챗봇 RAG 검색에서 "본인 노트만(및 선택적으로 특정 강의로)" 범위를 좁히기 위한 필터 전용 필드.
+    // 텍스트 분석 대상이 아니라 정확히 일치하는 값으로만 걸러야 하므로 Long 타입 그대로 색인한다.
+    @Field(type = FieldType.Long)
+    private Long userId;
+
+    @Field(type = FieldType.Long)
+    private Long lectureId;
+
     // 한글 형태소 분석을 위해 nori 분석기 사용 (Elasticsearch 컨테이너에 analysis-nori 플러그인 설치 필요)
     // .ngram 서브필드는 형태소 단위가 아닌 부분 문자열 일치 검색용
     @MultiField(
@@ -60,6 +68,8 @@ public class NoteDocument {
     public static NoteDocument from(Note note, List<String> tagNames, String authorNickname) {
         return NoteDocument.builder()
                 .id(note.getId())
+                .userId(note.getUserId())
+                .lectureId(note.getLectureId())
                 .title(note.getTitle())
                 .content(note.getContent())
                 .tags(tagNames)

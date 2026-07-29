@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import Timer from './Timer'
 import StatsAndHistory from './StatsAndHistory'
+import { detectStudyContext } from '../../utils/studyContext'
 import '../../components/widget.css'
 import './pomodoro.css'
 
@@ -17,20 +18,9 @@ function ClockIcon() {
   )
 }
 
-// 지금 보고 있는 페이지가 강의 시청/노트 상세면 그 ID를 뽑아낸다. 위젯이 모든 페이지에
-// 떠 있으니, "시작"을 누른 시점의 페이지를 곧 "지금 공부 중인 대상"으로 본다.
-function detectStudyContext(pathname) {
-  const watchMatch = pathname.match(/^\/main\/lectures\/(\d+)\/watch\/?$/)
-  if (watchMatch) return { lectureId: Number(watchMatch[1]), noteId: null }
-
-  const noteMatch = pathname.match(/^\/main\/notes\/(\d+)\/?$/)
-  if (noteMatch) return { lectureId: null, noteId: Number(noteMatch[1]) }
-
-  return { lectureId: null, noteId: null }
-}
-
-// 뽀모도로 아이콘 + 팝업창. ChatWidget과 같은 방식(WidgetDock)으로 모든 페이지에서
-// 접근할 수 있고, 타이머/통계 로직은 페이지였을 때 쓰던 Timer·StatsAndHistory를 그대로 재사용한다.
+// 뽀모도로 아이콘 + 팝업창. "시작"을 누른 시점의 페이지를 곧 "지금 공부 중인 대상"으로 본다.
+// ChatWidget과 같은 방식(WidgetDock)으로 모든 페이지에서 접근할 수 있고, 타이머/통계 로직은
+// 페이지였을 때 쓰던 Timer·StatsAndHistory를 그대로 재사용한다.
 export default function PomodoroWidget({ stacked = false, onOpenChange } = {}) {
   const [open, setOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)

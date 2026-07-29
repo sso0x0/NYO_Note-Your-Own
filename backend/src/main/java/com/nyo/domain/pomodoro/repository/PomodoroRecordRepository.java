@@ -9,10 +9,14 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface PomodoroRecordRepository extends JpaRepository<PomodoroRecord, Long> {
 
     Page<PomodoroRecord> findByUserId(Long userId, Pageable pageable);
+
+    // 타이머를 다시 열었을 때 이어서 할, 아직 끝나지 않은(endedAt이 비어있는) 가장 최근 기록을 찾는다.
+    Optional<PomodoroRecord> findFirstByUserIdAndEndedAtIsNullOrderByStartedAtDesc(Long userId);
 
     // 선택 삭제: 요청 id 목록 중 본인 소유가 아닌 id는 조건에 안 걸려 조용히 무시된다
     void deleteByIdInAndUserId(List<Long> ids, Long userId);

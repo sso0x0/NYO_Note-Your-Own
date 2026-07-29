@@ -8,7 +8,7 @@ import {
     deleteLectureComment,
 } from '../api/lectureComment';
 import { getNotesByLecture, createNote, updateNote } from '../../note/api/note';
-import { getNoteTags, generateAiTags } from '../../note/api/tag';
+import { addNoteTag, deleteNoteTag, getNoteTags, generateAiTags } from '../../note/api/tag';
 import { sendMessage } from '../../chat/api/chat';
 import { useAuth } from '../../../context/AuthContext';
 import { createPendingContentImage, uploadPendingContentImages } from '../../../utils/contentImages';
@@ -110,6 +110,8 @@ function LectureWatchPage() {
     const [tags, setTags] = useState([]);
     const [tagGenerating, setTagGenerating] = useState(false);
     const [tagError, setTagError] = useState(null);
+    const [newTagName, setNewTagName] = useState('');
+    const [tagSubmitting, setTagSubmitting] = useState(false);
 
     const [chatDrawerOpen, setChatDrawerOpen] = useState(true);
     const [chatMessages, setChatMessages] = useState([]);
@@ -198,6 +200,37 @@ function LectureWatchPage() {
             setTagError(err.message);
         } finally {
             setTagGenerating(false);
+        }
+    };
+
+    // 작성자가 태그명을 직접 입력해 추가. 이미 있는 이름이면 백엔드가 기존 태그에 매핑해준다.
+    const handleAddTag = async (event) => {
+        event.preventDefault();
+        const name = newTagName.trim();
+        if (!myNote || !name || tagSubmitting) return;
+
+        setTagSubmitting(true);
+        setTagError(null);
+        try {
+            await addNoteTag(myNote.id, name);
+            setNewTagName('');
+            await loadTags(myNote.id);
+        } catch (err) {
+            setTagError(err.message);
+        } finally {
+            setTagSubmitting(false);
+        }
+    };
+
+    // AI가 붙였든 직접 추가했든, 작성자 본인이면 태그를 뗄 수 있다.
+    const handleDeleteTag = async (tagId) => {
+        if (!myNote) return;
+        setTagError(null);
+        try {
+            await deleteNoteTag(myNote.id, tagId);
+            await loadTags(myNote.id);
+        } catch (err) {
+            setTagError(err.message);
         }
     };
 
@@ -590,17 +623,56 @@ function LectureWatchPage() {
                                             <span key={tag.tagId} className="note-tag-chip">
                         {tag.isAiGenerated && <span className="note-tag-chip__ai">AI</span>}
                                                 {tag.tagName}
+                                                {myNote && (
+                                                    <button
+                                                        type="button"
+                                                        className="note-tag-chip__remove"
+                                                        onClick={() => handleDeleteTag(tag.tagId)}
+                                                        aria-label={`'${tag.tagName}' 태그 삭제`}
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                )}
                       </span>
                                         ))}
                                         {myNote ? (
-                                            <button
-                                                type="button"
-                                                className="note-tag-generate"
-                                                onClick={handleGenerateTags}
-                                                disabled={tagGenerating}
-                                            >
-                                                {tagGenerating ? 'AI 태그 생성 중...' : (tags.length > 0 ? 'AI 태그 다시 생성' : 'AI 태그 생성')}
-                                            </button>
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    className="note-tag-generate"
+                                                    onClick={handleGenerateTags}
+                                                    disabled={tagGenerating}
+                                                >
+                                                    {tagGenerating ? 'AI 태그 생성 중...' : (tags.length > 0 ? 'AI 태그 다시 생성' : 'AI 태그 생성')}
+                                                </button>
+                                                {/* 이 태그 추가 영역은 노트 저장용 <form>(위 lecture-watch-page__note-form) 안에 있어
+                                                    <form>을 중첩할 수 없다. 그래서 <div>로 감싸고, Enter 입력 시 노트 저장 폼이
+                                                    같이 제출되지 않도록 keydown에서 직접 preventDefault + handleAddTag를 호출한다. */}
+                                                <div className="note-tag-add">
+                                                    <input
+                                                        type="text"
+                                                        className="note-tag-add__input"
+                                                        value={newTagName}
+                                                        onChange={(event) => setNewTagName(event.target.value)}
+                                                        onKeyDown={(event) => {
+                                                            if (event.key === 'Enter') {
+                                                                event.preventDefault();
+                                                                handleAddTag(event);
+                                                            }
+                                                        }}
+                                                        placeholder="태그 직접 추가"
+                                                        maxLength={50}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className="note-tag-add__submit"
+                                                        onClick={handleAddTag}
+                                                        disabled={tagSubmitting || !newTagName.trim()}
+                                                    >
+                                                        {tagSubmitting ? '추가 중...' : '+ 추가'}
+                                                    </button>
+                                                </div>
+                                            </>
                                         ) : (
                                             <span className="lecture-watch-page__note-tags-hint">노트를 먼저 저장하면 AI가 태그를 추천해줘요.</span>
                                         )}

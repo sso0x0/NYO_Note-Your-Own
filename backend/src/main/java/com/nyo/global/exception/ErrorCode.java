@@ -81,8 +81,11 @@ public enum ErrorCode {
     PASSWORD_RESET_CODE_INVALID(HttpStatus.BAD_REQUEST, "인증코드가 일치하지 않거나 만료되었습니다."),
     SMS_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "문자 발송에 실패했습니다. 잠시 후 다시 시도해주세요."),
 
-    // ai / pomodoro (장예지)
+    // ai / pomodoro / tag (장예지)
     AI_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "AI 응답 생성에 실패했습니다."),
+    TAG_NAME_INVALID(HttpStatus.BAD_REQUEST, "태그 이름은 1자 이상 50자 이하로 입력해주세요."),
+    TAG_ALREADY_ADDED(HttpStatus.CONFLICT, "이미 추가된 태그입니다."),
+    NOTE_TAG_NOT_FOUND(HttpStatus.NOT_FOUND, "노트에 연결되지 않은 태그입니다."),
     POMODORO_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 뽀모도로 기록입니다."),
     POMODORO_ACCESS_DENIED(HttpStatus.FORBIDDEN, "본인의 타이머 기록만 수정할 수 있습니다."),
     POMODORO_INVALID_TIME_RANGE(HttpStatus.BAD_REQUEST, "종료 시각은 시작 시각보다 빠를 수 없습니다."),

@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { sendMessage } from './api/chat'
 import ChatMessage, { SmileIcon } from './ChatMessage'
 import ChatInput from './ChatInput'
+import { detectStudyContext } from '../../utils/studyContext'
 import '../../components/widget.css'
 import './chat.css'
 
@@ -12,8 +13,11 @@ const WELCOME_SHOWN_KEY = 'nyo_chat_welcome_shown'
 const WELCOME_MESSAGE = '안녕하세요?'
 
 // 챗봇 아이콘 + 팝업창. WidgetDock을 통해 ProtectedLayout에 한 번만 마운트되어
-// 모든 /main/* 페이지에서 보인다. 대화 기록은 서버(chat_histories)에 계속 쌓이지만,
+// 대부분의 /main/* 페이지에서 보인다. 대화 기록은 서버(chat_histories)에 계속 쌓이지만,
 // 페이지를 이동하면 화면에는 이전 대화가 다시 뜨지 않도록 로컬 상태만 비운다.
+// 강의 시청 페이지·노트 상세 페이지는 이 위젯이 페이지 컨텍스트(lectureId/noteId)를
+// 몰라서 엉뚱한 답을 할 수 있어, 대신 그 자리에 컨텍스트를 아는 전용 학습 챗봇이 있다.
+// 그래서 같은 화면에 챗봇이 두 개 뜨지 않도록 이 두 페이지에서는 위젯 자체를 숨긴다.
 export default function ChatWidget({ stacked = false, onOpenChange } = {}) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([])
@@ -21,6 +25,8 @@ export default function ChatWidget({ stacked = false, onOpenChange } = {}) {
   const [error, setError] = useState(null)
   const bottomRef = useRef(null)
   const location = useLocation()
+  const { lectureId: watchingLectureId, noteId: viewingNoteId } = detectStudyContext(location.pathname)
+  const hasDedicatedChat = watchingLectureId !== null || viewingNoteId !== null
 
   // 다른 페이지로 이동하면 이전 페이지에서 열려 있던 대화창은 닫고 화면 상태만 초기화한다.
   // (서버에 저장된 대화 기록 자체는 지우지 않음 — 다시 불러오지 않을 뿐)
@@ -64,6 +70,9 @@ export default function ChatWidget({ stacked = false, onOpenChange } = {}) {
       setSending(false)
     }
   }
+
+  // 강의 시청/노트 상세 페이지는 전용 학습 챗봇이 대신하므로 이 위젯은 렌더링하지 않는다.
+  if (hasDedicatedChat) return null
 
   return (
       <div className="widget chat-widget">
