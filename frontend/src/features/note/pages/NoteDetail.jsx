@@ -7,6 +7,7 @@ import { sendMessage } from '../../chat/api/chat'
 import ChatMessage from '../../chat/ChatMessage'
 import ChatInput from '../../chat/ChatInput'
 import '../../chat/chat.css'
+import './NoteDetailDesign.css'
 
 const EMPTY_HEART_IMAGE = '/images/heart.png'
 const FILLED_HEART_IMAGE = '/images/hearts.png'
@@ -517,17 +518,22 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
   )
 
   return (
-      <>
-        <header className="note-header">
-          <div>
-            <h1>노트 상세</h1>
-          </div>
-          <div className="note-header-actions">
-            {note && <button type="button" onClick={exportNotePdf}>PDF 저장</button>}
-            {note && <button type="button" onClick={exportNoteMarkdown}>마크다운 저장</button>}
-            {canEdit && <button type="button" onClick={() => onEdit(note)}>수정</button>}
-            {canDelete && <button type="button" className="danger-button" onClick={deleteNote} disabled={loading}>삭제</button>}
-            <button type="button" onClick={onBack}>목록</button>
+      <section className="note-detail-page">
+        <nav className="note-detail-page__crumbs" aria-label="현재 위치">
+          <button type="button" onClick={onBack}>노트 목록</button>
+          <span>/</span>
+          <span className="is-current">{note?.title || '노트 상세'}</span>
+        </nav>
+
+        <header className="note-header note-detail-page__toolbar">
+          <div className="note-detail-page__toolbar-main">
+            <button type="button" className="note-detail-page__list-button" onClick={onBack}>목록</button>
+            <div className="note-header-actions">
+              {note && <button type="button" onClick={exportNotePdf}>PDF 저장</button>}
+              {note && <button type="button" onClick={exportNoteMarkdown}>마크다운 저장</button>}
+              {canEdit && <button type="button" onClick={() => onEdit(note)}>수정</button>}
+              {canDelete && <button type="button" className="danger-button" onClick={deleteNote} disabled={loading}>삭제</button>}
+            </div>
           </div>
         </header>
 
@@ -538,15 +544,18 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
                   {/* 게시판 상세처럼 제목 아래에 작성자·강의·수정일·조회수를 한 줄로 표시한다. */}
                   <h1 className="post-detail-title">{note.title}</h1>
                   <p className="post-detail-byline note-detail-byline">
-                    <strong>{note.authorNickname || '알 수 없는 사용자'}</strong>
-                    <span aria-hidden="true"> | </span>
-                    <span>{note.lectureTitle || '강의 정보 없음'}</span>
-                    <span aria-hidden="true"> | </span>
-                    <time dateTime={note.createdAt}>작성일 {formatDate(note.createdAt)}</time>
-                    <span aria-hidden="true"> | </span>
-                    <time dateTime={note.updatedAt}>수정일 {formatDate(note.updatedAt)}</time>
-                    <span aria-hidden="true"> | </span>
-                    <span>조회수 {note.viewCount ?? 0}</span>
+                    <span className="note-detail-byline__left">
+                      <strong>{note.authorNickname || '알 수 없는 사용자'}</strong>
+                      <span aria-hidden="true"> | </span>
+                      <span>{note.lectureTitle || '강의 정보 없음'}</span>
+                    </span>
+                    <span className="note-detail-byline__right">
+                      <time dateTime={note.createdAt}>작성일 {formatDate(note.createdAt)}</time>
+                      <span aria-hidden="true"> | </span>
+                      <time dateTime={note.updatedAt}>수정일 {formatDate(note.updatedAt)}</time>
+                      <span aria-hidden="true"> | </span>
+                      <span>조회수 {note.viewCount ?? 0}</span>
+                    </span>
                   </p>
 
                   <div className="note-tags">
@@ -648,7 +657,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
           </article>
           {note?.lectureId && <NoteDetailChat key={noteId} lectureId={note.lectureId} noteId={noteId} />}
         </div>
-      </>
+      </section>
   )
 }
 
