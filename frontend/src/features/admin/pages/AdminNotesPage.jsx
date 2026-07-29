@@ -1,4 +1,5 @@
 import { Fragment, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getAdminNoteList } from '../api/note';
 import { deleteNote } from '../../note/api/note';
 import { usePagedList } from '../hooks/usePagedList';
@@ -7,8 +8,10 @@ import './AdminNotesPage.css';
 const PAGE_SIZE = 10;
 
 function AdminNotesPage() {
-  const notes = usePagedList(getAdminNoteList);
-  const [expandedNoteId, setExpandedNoteId] = useState(null);
+  const location = useLocation();
+  const notes = usePagedList(getAdminNoteList, location.state?.focusPage ?? 0);
+  // 신고 관리에서 선택한 노트 ID가 있으면 해당 상세 행을 자동으로 연다.
+  const [expandedNoteId, setExpandedNoteId] = useState(location.state?.focusTargetId ?? null);
 
   const handleToggle = (noteId) => {
     setExpandedNoteId((prev) => (prev === noteId ? null : noteId));

@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getCommentList, deleteComment, restoreComment } from '../api/comment';
 import { usePagedList } from '../hooks/usePagedList';
 import './AdminCommentsPage.css';
@@ -11,9 +12,14 @@ const TARGET_TYPE_LABEL = {
 };
 
 function AdminCommentsPage() {
+  const location = useLocation();
   const [targetType, setTargetType] = useState('');
-  const comments = usePagedList(({ page, size }) => getCommentList({ page, size, targetType: targetType || undefined }));
-  const [expandedCommentId, setExpandedCommentId] = useState(null);
+  const comments = usePagedList(
+    ({ page, size }) => getCommentList({ page, size, targetType: targetType || undefined }),
+    location.state?.focusPage ?? 0,
+  );
+  // 신고 관리에서 선택한 댓글 ID가 있으면 해당 상세 행을 자동으로 연다.
+  const [expandedCommentId, setExpandedCommentId] = useState(location.state?.focusTargetId ?? null);
 
   // usePagedList는 page/reload 변경에만 반응하므로, 유형 필터를 바꾸면
   // 1페이지로 되돌리고 reload()로 최신 targetType을 반영해 다시 조회한다.
