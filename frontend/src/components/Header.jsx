@@ -33,6 +33,9 @@ function Header() {
         <NavLink to="/main/community" className={({ isActive }) => (isActive ? 'is-active' : '')}>
           커뮤니티
         </NavLink>
+        <NavLink to="/main/chat" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+          AI 챗봇
+        </NavLink>
         <NavLink to="/main/mypage" className={({ isActive }) => (isActive ? 'is-active' : '')}>
           마이페이지
         </NavLink>

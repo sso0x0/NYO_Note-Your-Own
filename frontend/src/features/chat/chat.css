@@ -136,6 +136,28 @@
   border-bottom-left-radius: 4px;
 }
 
+.chat-bubble__lectures {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.chat-bubble__lecture-link {
+  display: block;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  color: #6b3550;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.chat-bubble__lecture-link:hover {
+  background: #fff;
+}
+
 .chat-typing {
   display: flex;
   align-items: center;

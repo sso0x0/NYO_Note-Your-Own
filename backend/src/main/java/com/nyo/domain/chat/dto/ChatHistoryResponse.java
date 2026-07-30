@@ -1,5 +1,6 @@
 package com.nyo.domain.chat.dto;
 
+import com.nyo.domain.lecture.dto.LectureResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -8,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
@@ -37,5 +39,9 @@ public class ChatHistoryResponse {
     private Long postId;
 
     private String content;
+
+    @Schema(description = "이 답변에서 추천한 강의 목록 (추천 요청이 아니면 빈 배열). 실시간 응답에만 채워지고, 지난 대화 기록 조회 시에는 항상 빈 배열이다.")
+    @Builder.Default
+    private List<LectureResponse> recommendedLectures = List.of();
 
 }
