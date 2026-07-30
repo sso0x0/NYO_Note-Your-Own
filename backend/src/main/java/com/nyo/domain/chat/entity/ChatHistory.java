@@ -48,15 +48,21 @@ public class ChatHistory {
     @Column(name = "message", nullable = false)
     private String message;
 
+    // 강의 추천 답변일 때만 채워지는, 추천된 강의 id들을 콤마로 이어붙인 문자열 (예: "12,7,3").
+    // 답변마다 여러 개일 수 있어 FK 하나로는 못 담아서 이 컬럼 하나에 뭉쳐 저장하고, 조회 시 다시 나눠서 강의를 찾는다.
+    @Column(name = "recommended_lecture_ids", length = 200)
+    private String recommendedLectureIds;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @Builder
-    public ChatHistory(Long userId, Long lectureId, SenderRole senderRole, String message) {
+    public ChatHistory(Long userId, Long lectureId, SenderRole senderRole, String message, String recommendedLectureIds) {
         this.userId = userId;
         this.lectureId = lectureId;
         this.senderRole = senderRole;
         this.message = message;
+        this.recommendedLectureIds = recommendedLectureIds;
     }
 }

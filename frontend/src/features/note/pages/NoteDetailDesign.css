@@ -71,35 +71,25 @@
 }
 
 .note-detail-page .note-header-actions button,
-.note-detail-page__list-button {
+.note-detail-page .note-detail-page__list-button {
     padding: 8px 14px;
-    border: 1px solid var(--border);
+    border: 1px solid #e5e4e7;
     border-radius: 8px;
-    background: var(--bg);
-    color: var(--text-h);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.note-detail-page .note-header-actions button:hover,
-.note-detail-page__list-button:hover {
-    border-color: var(--nd-primary);
-    color: var(--nd-primary);
-}
-
-/* 커뮤니티 게시글 상세의 목록 버튼과 크기·글꼴·호버 효과를 동일하게 맞춘다. */
-.note-detail-page__list-button {
-    padding: 8px 16px;
+    background: #fff;
+    color: #08060d;
     font: inherit;
     font-size: 13px;
     font-weight: 600;
-    transition: border-color 0.15s ease, color 0.15s ease;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 
-.note-detail-page__list-button:hover {
-    border-color: #6065fb;
-    color: #6065fb;
+/* 메인 페이지 카테고리 칩처럼 hover 시 검은 배경과 흰 글자로 색상을 반전한다. */
+.note-detail-page .note-header-actions button:not(.danger-button):hover,
+.note-detail-page .note-detail-page__list-button:hover {
+    border-color: #000;
+    background: #000;
+    color: #fff;
 }
 
 .note-detail-page .note-header-actions .danger-button {
@@ -177,18 +167,44 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
-    margin: 0 0 20px;
+    margin: 0;
+}
+
+.note-detail-page .note-detail-footer {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+}
+
+/* 공용 태그 관리 래퍼의 보라색 스타일을 제거하고 노트 게시판 태그 모양으로 덮어쓴다. */
+.note-detail-page .note-tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.note-detail-page .note-tag-chip:hover {
+    background: #dbeafe;
+    color: #1d4ed8;
 }
 
 .note-detail-page__ai-tag {
     /* 노트 게시판 NoteCard의 AI 태그 디자인을 상세 페이지 전용 클래스로 재현한다. */
     display: inline-flex;
     align-items: center;
+    gap: 4px;
     padding: 2px 10px;
     appearance: none;
     border: none;
     border-radius: 999px;
-    background: #eff6ff;
+    background: transparent;
     box-shadow: none;
     color: #2563eb;
     font-family: inherit;
@@ -198,17 +214,35 @@
     cursor: pointer;
 }
 
-.note-detail-page__ai-tag:hover,
-.note-detail-page__ai-tag:focus,
-.note-detail-page__ai-tag:active {
-    background: #eff6ff;
-    box-shadow: none;
-    color: #2563eb;
+/* AI가 자동 생성한 태그에만 붙는 작은 배지이다. */
+.note-detail-page .note-tag-chip__ai {
+    padding: 1px 5px;
+    border-radius: 999px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.4;
 }
 
+.note-detail-page__ai-tag:hover,
 .note-detail-page__ai-tag:focus-visible {
-    outline: 2px solid rgba(37, 99, 235, 0.35);
-    outline-offset: 2px;
+    /* 노트 게시판 AI 태그와 동일한 hover·키보드 포커스 색상이다. */
+    background: transparent;
+    box-shadow: none;
+    color: #1d4ed8;
+    outline: none;
+}
+
+/* 작성자에게만 보이는 삭제 기능은 같은 태그 캡슐 안에서 작게 유지한다. */
+.note-detail-page .note-tag-chip__remove {
+    width: 18px;
+    height: 18px;
+    margin: 0 4px 0 -6px;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 10px;
 }
 
 .note-detail-page .note-thumbnail {
@@ -223,20 +257,28 @@
     padding: 24px;
     border: 1px solid var(--border);
     border-radius: 12px;
-    background: var(--nd-primary-bg);
+    /* 노트 본문 배경을 상세 페이지 배경과 같은 흰색으로 맞춘다. */
+    background: #fff;
     color: var(--text-h);
     line-height: 1.75;
+}
+
+/* 노트 상세의 모든 코드 블록 배경을 동일한 회색으로 통일한다. */
+.note-detail-page .note-code-block,
+.note-detail-page .note-code-block code {
+    background: #fafafa;
+    color: #1f2933;
 }
 
 .note-detail-page .note-like-summary {
     /* 좋아요 버튼은 페이지가 아닌 노트 내용 칸의 왼쪽 선에 맞춘다. */
     justify-content: flex-start;
-    margin-top: 20px;
-    padding-top: 18px;
-    border-top: 1px solid var(--border);
+    margin-top: 12px;
+    padding-top: 0;
+    border-top: 0;
 }
 
-/* 커뮤니티 상세의 좋아요 버튼과 동일한 캡슐형 디자인을 노트 상세에 적용한다. */
+/* 커뮤니티 상세 좋아요 버튼과 크기·간격·색상·상태 표현을 동일하게 적용한다. */
 .note-detail-page .note-like-summary .note-detail-like-button {
     display: inline-flex;
     align-items: center;
@@ -249,16 +291,13 @@
     font: inherit;
     font-size: 13px;
     font-weight: 700;
-    line-height: normal;
     cursor: pointer;
     transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
 .note-detail-page .note-like-summary .note-detail-like-button img {
-    display: block;
     width: 18px;
     height: 18px;
-    object-fit: contain;
 }
 
 .note-detail-page .note-like-summary .note-detail-like-button:hover:not(:disabled) {

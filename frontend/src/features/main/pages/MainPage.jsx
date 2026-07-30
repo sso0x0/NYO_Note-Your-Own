@@ -204,7 +204,8 @@ function MainPage() {
 
     const requests = appliedKeyword
       ? [
-          searchLectures({ keyword: appliedKeyword, searchType: appliedSearchType, size: LECTURE_HIGHLIGHT_SIZE }),
+          // 검색 상태에서는 이동 없는 한 화면에 맞춰 강의 결과를 최대 5개만 요청한다.
+          searchLectures({ keyword: appliedKeyword, searchType: appliedSearchType, size: HIGHLIGHT_SIZE }),
           searchNotes({ keyword: appliedKeyword, searchType: appliedSearchType, size: HIGHLIGHT_SIZE }),
           searchPosts({ keyword: appliedKeyword, searchType: appliedSearchType, size: HIGHLIGHT_SIZE }),
         ]
@@ -217,7 +218,8 @@ function MainPage() {
     Promise.all(requests)
       .then(([lectureData, noteData, postData]) => {
         if (cancelled) return;
-        setLectures((lectureData?.content ?? []).slice(0, LECTURE_HIGHLIGHT_SIZE));
+        const lectureLimit = appliedKeyword ? HIGHLIGHT_SIZE : LECTURE_HIGHLIGHT_SIZE;
+        setLectures((lectureData?.content ?? []).slice(0, lectureLimit));
         setNotes(noteData?.content ?? []);
         setPosts(postData?.content ?? []);
         setStatus('success');
@@ -248,8 +250,9 @@ function MainPage() {
 
   // 앞뒤로 원본 리스트를 하나씩 더 이어붙여서, 끝에 닿아도 반대편으로 튀지 않고 계속 이어지는 것처럼 보이게 한다.
   const extendedLectures = useMemo(
-    () => (lectures.length > 1 ? [...lectures, ...lectures, ...lectures] : lectures),
-    [lectures]
+    // 검색 결과는 복제하지 않고 최대 5개만 정지 상태로 표시한다.
+    () => (appliedKeyword || lectures.length <= 1 ? lectures : [...lectures, ...lectures, ...lectures]),
+    [lectures, appliedKeyword]
   );
 
   // 카드 한 장 + gap 만큼을 한 스텝으로 계산해서, 이동 속도/거리를 카드 크기 기준으로 맞춘다.
@@ -275,6 +278,10 @@ function MainPage() {
   useEffect(() => {
     const el = lectureScrollRef.current;
     const n = lectures.length;
+    if (appliedKeyword) {
+      if (el) el.scrollLeft = 0;
+      return undefined;
+    }
     if (!el || n <= 1) return undefined;
 
     const step = getLectureItemStep();
@@ -323,7 +330,7 @@ function MainPage() {
         lectureRafIdRef.current = null;
       }
     };
-  }, [lectures]);
+  }, [lectures, appliedKeyword]);
 
   // 창 크기가 바뀌면 카드 폭이 달라지므로 속도/주기 계산에 쓰는 값을 다시 재보정한다.
   useEffect(() => {
@@ -546,18 +553,20 @@ function MainPage() {
                 <p className="main-page__empty">결과가 없습니다.</p>
               ) : (
                 <div
-                  className="main-page__carousel"
+                  className={`main-page__carousel${appliedKeyword ? ' is-search-result' : ''}`}
                   onMouseEnter={pauseLectureAutoplay}
                   onMouseLeave={resumeLectureAutoplay}
                 >
-                  <button
-                    type="button"
-                    className="main-page__nav-btn main-page__nav-btn--prev"
-                    onClick={() => scrollLectures(-1)}
-                    aria-label="이전 강의"
-                  >
-                    ‹
-                  </button>
+                  {!appliedKeyword && (
+                    <button
+                      type="button"
+                      className="main-page__nav-btn main-page__nav-btn--prev"
+                      onClick={() => scrollLectures(-1)}
+                      aria-label="이전 강의"
+                    >
+                      ‹
+                    </button>
+                  )}
                   <div className="main-page__scroll" ref={lectureScrollRef}>
                     {extendedLectures.map((lecture, index) => (
                       <div className="main-page__scroll-item" key={`${lecture.id}-${index}`}>
@@ -565,14 +574,16 @@ function MainPage() {
                       </div>
                     ))}
                   </div>
-                  <button
-                    type="button"
-                    className="main-page__nav-btn main-page__nav-btn--next"
-                    onClick={() => scrollLectures(1)}
-                    aria-label="다음 강의"
-                  >
-                    ›
-                  </button>
+                  {!appliedKeyword && (
+                    <button
+                      type="button"
+                      className="main-page__nav-btn main-page__nav-btn--next"
+                      onClick={() => scrollLectures(1)}
+                      aria-label="다음 강의"
+                    >
+                      ›
+                    </button>
+                  )}
                 </div>
               )}
             </section>

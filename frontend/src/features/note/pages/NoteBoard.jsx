@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { getCategoryList } from '../../lecture/api/category'
+import BoardSearchBar from '../../../components/BoardSearchBar'
 import '../components/NoteCard.css'
 import './NoteBoard.css'
 
@@ -23,6 +24,7 @@ const readListStateFromUrl = () => {
         page: Number.isInteger(page) && page > 0 ? page : 1,
         sort: NOTE_SORT_VALUES.has(sort) ? sort : 'createdAt',
         keyword: params.get('keyword') ?? '',
+        searchType: params.get('searchType') ?? 'all',
         categoryId: params.get('categoryId') ?? '',
     }
 }
@@ -50,6 +52,14 @@ function NoteBoard({ onOpenNote }) {
     const [categoryId, setCategoryId] = useState(initialListState.categoryId)
     // 노트 상세의 태그 칩을 눌러 들어오면 URL의 keyword로 해당 태그가 붙은 노트만 검색해 보여준다.
     const [keyword, setKeyword] = useState(initialListState.keyword)
+    // 태그 필터 값은 검색창에 노출하지 않고, 사용자가 직접 입력한 일반 검색어만 보여준다.
+    const [searchInput, setSearchInput] = useState(
+        initialListState.searchType === 'tag' ? '' : initialListState.keyword
+    )
+    const [searchType, setSearchType] = useState(
+        initialListState.searchType === 'tag' ? 'all' : initialListState.searchType
+    )
+    const [appliedSearchType, setAppliedSearchType] = useState(initialListState.searchType)
     const [isSortOpen, setIsSortOpen] = useState(false)
     const sortRef = useRef(null)
     const [message, setMessage] = useState('노트를 불러오는 중입니다.')
@@ -68,10 +78,11 @@ function NoteBoard({ onOpenNote }) {
                 page: String(page - 1),
                 size: String(NOTES_PER_PAGE),
             })
-            // 태그 검색은 제목/본문/태그를 함께 보는 Elasticsearch 검색 API를 그대로 재사용한다 (관련도순 정렬).
+            // searchType=tag이면 백엔드가 제목·본문을 보지 않고 실제 태그 매핑이 같은 노트만 조회한다.
             let path = '/api/notes'
             if (tagKeyword) {
                 params.set('keyword', tagKeyword)
+                params.set('searchType', appliedSearchType)
                 path = '/api/notes/search'
             } else {
                 params.set('sort', `${sort},desc`)
@@ -108,7 +119,7 @@ function NoteBoard({ onOpenNote }) {
         } finally {
             setLoading(false)
         }
-    }, [auth])
+    }, [auth, appliedSearchType])
 
     const movePage = useCallback((page, sort = sortBy, category = categoryId) => {
         const safePage = Math.max(1, page)
@@ -130,22 +141,42 @@ function NoteBoard({ onOpenNote }) {
         // 태그 검색 결과에서 전체 노트 목록으로 되돌아간다.
         const params = new URLSearchParams(window.location.search)
         params.delete('keyword')
+        params.delete('searchType')
         params.set('page', '1')
         params.set('sort', sortBy)
         window.history.pushState(null, '', `${window.location.pathname}?${params}`)
         setKeyword('')
+        setSearchInput('')
         setCurrentPage(1)
     }, [sortBy])
+
+    const submitSearch = (event) => {
+        event.preventDefault()
+        const nextKeyword = searchInput.trim()
+        setAppliedSearchType(searchType)
+        setKeyword(nextKeyword)
+        setCategoryId('')
+        setCurrentPage(1)
+        const params = new URLSearchParams({ page: '1', sort: sortBy })
+        if (nextKeyword) {
+            params.set('keyword', nextKeyword)
+            params.set('searchType', searchType)
+        }
+        window.history.pushState(null, '', `${window.location.pathname}?${params}`)
+    }
 
     const openTagPage = useCallback((event, tagName) => {
         // 카드 클릭과 태그 클릭을 분리하고, 노트 상세의 태그 이동과 같은 검색 URL을 사용한다.
         event.stopPropagation()
         const params = new URLSearchParams()
         params.set('keyword', tagName)
+        params.set('searchType', 'tag')
         params.set('page', '1')
         params.set('sort', sortBy)
         window.history.pushState(null, '', `${window.location.pathname}?${params}`)
         setKeyword(tagName)
+        setSearchInput('')
+        setAppliedSearchType('tag')
         setCategoryId('')
         setCurrentPage(1)
     }, [sortBy])
@@ -165,6 +196,9 @@ function NoteBoard({ onOpenNote }) {
             setSortBy(restored.sort)
             setCategoryId(restored.categoryId)
             setKeyword(restored.keyword)
+            setSearchInput(restored.searchType === 'tag' ? '' : restored.keyword)
+            setAppliedSearchType(restored.searchType)
+            setSearchType(restored.searchType === 'tag' ? 'all' : restored.searchType)
         }
         window.addEventListener('popstate', restoreListState)
         return () => window.removeEventListener('popstate', restoreListState)
@@ -177,6 +211,7 @@ function NoteBoard({ onOpenNote }) {
         params.set('sort', sortBy)
         if (categoryId) params.set('categoryId', categoryId)
         if (keyword) params.set('keyword', keyword)
+        if (keyword) params.set('searchType', appliedSearchType)
         window.history.replaceState(null, '', `${window.location.pathname}?${params}`)
         // URL 초기화는 컴포넌트가 처음 열릴 때 한 번만 수행합니다.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -227,40 +262,17 @@ function NoteBoard({ onOpenNote }) {
                 <span className="is-current">노트 게시판</span>
             </nav>
             <h2>노트 게시판</h2>
-
-            <div className="note-board-page__toolbar">
-                {keyword ? (
-                    <div className="note-board-page__filters">
-                        <span>태그 <strong>{keyword}</strong> 검색 결과 (관련도순)</span>
-                        <button type="button" onClick={clearTagFilter}>전체 노트 보기</button>
-                    </div>
-                ) : (
-                    categories.length > 0 && (
-                        <div className="note-board-page__filters" role="group" aria-label="카테고리 필터">
-                            <button
-                                type="button"
-                                className={categoryId === '' ? 'is-active' : ''}
-                                onClick={() => changeCategory('')}
-                            >
-                                전체
-                            </button>
-                            {categories.map((category) => {
-                                const value = String(category.id)
-                                return (
-                                    <button
-                                        type="button"
-                                        key={category.id}
-                                        className={categoryId === value ? 'is-active' : ''}
-                                        onClick={() => changeCategory(value)}
-                                    >
-                                        {category.name}
-                                    </button>
-                                )
-                            })}
-                        </div>
-                    )
-                )}
-
+            <div className="note-board-page__search-row">
+                <BoardSearchBar
+                    value={searchInput}
+                    onChange={setSearchInput}
+                    searchType={searchType}
+                    onSearchTypeChange={setSearchType}
+                    onSubmit={submitSearch}
+                    onClear={clearTagFilter}
+                    placeholder="노트를 검색하세요"
+                />
+                {/* 노트 수와 정렬을 검색창 오른쪽 같은 줄에 배치한다. */}
                 <p className="note-board-page__summary">{message}</p>
 
                 {!keyword && (
@@ -307,6 +319,40 @@ function NoteBoard({ onOpenNote }) {
                 )}
             </div>
 
+            <div className="note-board-page__toolbar">
+                {keyword ? (
+                    <div className="note-board-page__filters">
+                        <button type="button" onClick={clearTagFilter}>전체 노트 보기</button>
+                    </div>
+                ) : (
+                    categories.length > 0 && (
+                        <div className="note-board-page__filters" role="group" aria-label="카테고리 필터">
+                            <button
+                                type="button"
+                                className={categoryId === '' ? 'is-active' : ''}
+                                onClick={() => changeCategory('')}
+                            >
+                                전체
+                            </button>
+                            {categories.map((category) => {
+                                const value = String(category.id)
+                                return (
+                                    <button
+                                        type="button"
+                                        key={category.id}
+                                        className={categoryId === value ? 'is-active' : ''}
+                                        onClick={() => changeCategory(value)}
+                                    >
+                                        {category.name}
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    )
+                )}
+
+            </div>
+
             {loading && <p>불러오는 중...</p>}
             {!loading && error && <p role="alert">{error}</p>}
             {!loading && !error && totalElements === 0 && (
@@ -317,10 +363,11 @@ function NoteBoard({ onOpenNote }) {
                     <div className="note-board-page__list">
                         {notes.map((note) => (
                             <article className="note-card" key={note.id}>
+                                {/* 패딩은 CSS에서 관리해 썸네일 좌우 여백이 동일하게 적용되도록 한다. */}
                                 <button
                                     type="button"
                                     className="note-card__link"
-                                    style={{ border: 'none', background: 'none', padding: 0, font: 'inherit', cursor: 'pointer', width: '100%', textAlign: 'left' }}
+                                    style={{ border: 'none', background: 'none', font: 'inherit', cursor: 'pointer', width: '100%', textAlign: 'left' }}
                                     onClick={() => onOpenNote(note.id)}
                                 >
                                     <div className="note-card__thumb">
@@ -363,6 +410,7 @@ function NoteBoard({ onOpenNote }) {
                                                             }
                                                         }}
                                                     >
+                                                        {tag.isAiGenerated && <span className="note-card__tag-ai">AI</span>}
                                                         #{tag.tagName}
                                                     </span>
                                                 ))}

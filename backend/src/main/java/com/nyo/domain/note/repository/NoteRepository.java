@@ -61,6 +61,27 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
             """)
     Page<Note> searchActiveByKeyword(@Param("keyword") String keyword, Pageable pageable);
 
+    // 태그 칩 조회는 제목·본문 검색과 섞지 않고, 실제 note_tags 매핑의 태그명이 정확히 같은 노트만 반환한다.
+    @Query(
+            value = """
+                    select n
+                    from Note n, NoteTag nt, Tag t
+                    where n.id = nt.id.noteId
+                      and nt.id.tagId = t.id
+                      and n.isDeleted = 0
+                      and lower(t.name) = lower(:tagName)
+                    """,
+            countQuery = """
+                    select count(n)
+                    from Note n, NoteTag nt, Tag t
+                    where n.id = nt.id.noteId
+                      and nt.id.tagId = t.id
+                      and n.isDeleted = 0
+                      and lower(t.name) = lower(:tagName)
+                    """
+    )
+    Page<Note> findActiveByExactTagName(@Param("tagName") String tagName, Pageable pageable);
+
     // 닉네임과 일치한 사용자 ID 목록으로 삭제되지 않은 노트를 조회한다.
     Page<Note> findByUserIdInAndIsDeleted(List<Long> userIds, Integer isDeleted, Pageable pageable);
 

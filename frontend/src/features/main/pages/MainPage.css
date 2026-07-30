@@ -484,6 +484,11 @@
   margin: -24px -32px -48px;
 }
 
+/* 검색 결과는 최대 5개를 한 화면에 고정하고 좌우 스크롤 이동을 막는다. */
+.main-page__carousel.is-search-result .main-page__scroll {
+  overflow-x: hidden;
+}
+
 .main-page__scroll::-webkit-scrollbar {
   display: none;
 }
@@ -583,10 +588,12 @@
 }
 
 .main-page__list .note-card__thumb {
-  width: 96px;
-  height: 96px;
+  /* 본문 높이만큼 과도하게 늘어나지 않도록 적당히 확대한 정사각형 크기로 고정한다. */
+  width: 112px;
+  height: 112px;
+  align-self: center;
   flex-shrink: 0;
-  aspect-ratio: auto;
+  aspect-ratio: 1 / 1;
   border-radius: 12px;
 }
 

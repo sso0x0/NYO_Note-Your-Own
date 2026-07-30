@@ -1,12 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getLectureList } from '../api/lecture';
+import { getLectureList, searchLectures } from '../api/lecture';
 import { getCategoryList } from '../api/category';
 import LectureCard from '../components/LectureCard';
 import './LectureListPage.css';
 
 const PAGE_SIZE = 18;
 const PAGE_WINDOW = 5;
+const SEARCH_TYPE_OPTIONS = [
+  { value: 'all', label: '통합검색' },
+  { value: 'title', label: '제목' },
+  { value: 'content', label: '내용' },
+  { value: 'author', label: '작성자' },
+];
 
 const SORT_OPTIONS = [
   { value: 'createdAt', label: '최신순' },
@@ -39,6 +45,12 @@ function LectureListPage() {
   const [pageData, setPageData] = useState(null);
   const [status, setStatus] = useState('idle'); // idle | loading | success | error
   const [error, setError] = useState(null);
+  const [keyword, setKeyword] = useState('');
+  const [appliedKeyword, setAppliedKeyword] = useState('');
+  const [searchType, setSearchType] = useState('all');
+  const [appliedSearchType, setAppliedSearchType] = useState('all');
+  const [isSearchTypeOpen, setIsSearchTypeOpen] = useState(false);
+  const searchTypeRef = useRef(null);
 
   useEffect(() => {
     getCategoryList()
@@ -54,12 +66,16 @@ function LectureListPage() {
     setStatus('loading');
     setError(null);
 
-    getLectureList({
-      page,
-      size: PAGE_SIZE,
-      categoryId: categoryId ?? undefined,
-      sort: `${sort},desc`,
-    })
+    const request = appliedKeyword
+      ? searchLectures({ keyword: appliedKeyword, searchType: appliedSearchType, page, size: PAGE_SIZE })
+      : getLectureList({
+          page,
+          size: PAGE_SIZE,
+          categoryId: categoryId ?? undefined,
+          sort: `${sort},desc`,
+        });
+
+    request
       .then((data) => {
         if (cancelled) return;
         setPageData(data);
@@ -74,7 +90,37 @@ function LectureListPage() {
     return () => {
       cancelled = true;
     };
-  }, [page, categoryId, sort]);
+  }, [page, categoryId, sort, appliedKeyword, appliedSearchType]);
+
+  const handleSearch = (event) => {
+    event.preventDefault();
+    setAppliedKeyword(keyword.trim());
+    setAppliedSearchType(searchType);
+    setPage(0);
+  };
+
+  const clearSearch = () => {
+    setKeyword('');
+    setAppliedKeyword('');
+    setPage(0);
+  };
+
+  useEffect(() => {
+    if (!isSearchTypeOpen) return undefined;
+
+    const closeSearchType = (event) => {
+      if (event.type === 'keydown' && event.key !== 'Escape') return;
+      if (event.type === 'mousedown' && searchTypeRef.current?.contains(event.target)) return;
+      setIsSearchTypeOpen(false);
+    };
+
+    document.addEventListener('mousedown', closeSearchType);
+    window.addEventListener('keydown', closeSearchType);
+    return () => {
+      document.removeEventListener('mousedown', closeSearchType);
+      window.removeEventListener('keydown', closeSearchType);
+    };
+  }, [isSearchTypeOpen]);
 
   const handleSelectCategory = (id) => {
     setCategoryId(id);
@@ -116,30 +162,62 @@ function LectureListPage() {
         <span className="is-current">강의 목록</span>
       </nav>
       <h2>강의 목록</h2>
-
-      <div className="lecture-list-page__toolbar">
-        {categories.length > 0 && (
-          <div className="lecture-list-page__filters" role="group" aria-label="카테고리 필터">
+      <div className="lecture-list-page__search-row">
+        {/* 메인 페이지 검색바를 강의 목록 제목과 같은 줄 가운데에 배치한다. */}
+        <form className="lecture-list-page__search" onSubmit={handleSearch}>
+          <div className="lecture-list-page__search-type" ref={searchTypeRef}>
             <button
               type="button"
-              className={categoryId === null ? 'is-active' : ''}
-              onClick={() => handleSelectCategory(null)}
+              className="lecture-list-page__search-type-btn"
+              aria-haspopup="listbox"
+              aria-expanded={isSearchTypeOpen}
+              onClick={() => setIsSearchTypeOpen((open) => !open)}
             >
-              전체
+              <span>{SEARCH_TYPE_OPTIONS.find((option) => option.value === searchType)?.label}</span>
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+                <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </button>
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                type="button"
-                className={categoryId === category.id ? 'is-active' : ''}
-                onClick={() => handleSelectCategory(category.id)}
-              >
-                {category.name}
-              </button>
-            ))}
+            {isSearchTypeOpen && (
+              <ul className="lecture-list-page__search-type-menu" role="listbox" aria-label="검색 종류">
+                {SEARCH_TYPE_OPTIONS.map((option) => (
+                  <li key={option.value}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={searchType === option.value}
+                      className={`lecture-list-page__search-type-option${searchType === option.value ? ' is-selected' : ''}`}
+                      onClick={() => {
+                        setSearchType(option.value);
+                        setIsSearchTypeOpen(false);
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-        )}
+          <div className="lecture-list-page__search-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+              <path d="m16 16 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            <input
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+              placeholder="강의를 검색하세요"
+              aria-label="강의 검색"
+            />
+            {(keyword || appliedKeyword) && (
+              <button type="button" className="lecture-list-page__search-clear" onClick={clearSearch} aria-label="검색 초기화">×</button>
+            )}
+          </div>
+          <button type="submit" className="lecture-list-page__search-submit">검색</button>
+        </form>
 
+        {/* 강의 수와 정렬을 노트 게시판처럼 검색창 오른쪽 같은 줄에 배치한다. */}
         <p className="lecture-list-page__summary">
           {status === 'loading' && '강의를 불러오는 중입니다.'}
           {status === 'success' && (
@@ -189,6 +267,31 @@ function LectureListPage() {
             </ul>
           )}
         </div>
+      </div>
+
+      <div className="lecture-list-page__toolbar">
+        {categories.length > 0 && (
+          <div className="lecture-list-page__filters" role="group" aria-label="카테고리 필터">
+            <button
+              type="button"
+              className={categoryId === null ? 'is-active' : ''}
+              onClick={() => handleSelectCategory(null)}
+            >
+              전체
+            </button>
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                type="button"
+                className={categoryId === category.id ? 'is-active' : ''}
+                onClick={() => handleSelectCategory(category.id)}
+              >
+                {category.name}
+              </button>
+            ))}
+          </div>
+        )}
+
       </div>
 
       {status === 'loading' && <p>불러오는 중...</p>}

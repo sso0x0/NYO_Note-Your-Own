@@ -54,6 +54,7 @@ function NoteCard({ note, onTagClick }) {
                     }
                   }}
                 >
+                  {tag.isAiGenerated && <span className="note-card__tag-ai">AI</span>}
                   #{tag.tagName}
                 </span>
               ))}
