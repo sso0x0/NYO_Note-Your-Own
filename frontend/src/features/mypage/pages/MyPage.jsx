@@ -4,7 +4,6 @@ import { getMyInfo, updateMyProfile, withdraw } from '../api/mypage';
 import { getMyNotes, getLikedNotes } from '../../note/api/note';
 import { getPostList, getMyComments } from '../../community/api/post';
 import { getLectureList, isEnrolled } from '../../lecture/api/lecture';
-import { deleteAllHistories, deleteHistories, getHistories } from '../../chat/api/chat';
 import { getRecordsByPeriod, getTodayStudyTime, getTotalStudyTime } from '../../pomodoro/api/pomodoro';
 import { toLocalDateString } from '../../pomodoro/dateUtil';
 import { useAuth } from '../../../context/AuthContext';
@@ -15,7 +14,6 @@ import './MyPage.css';
 const LIST_SIZE = 8;
 const POST_SCAN_SIZE = 50; // 내 글을 찾기 위해 넉넉히 훑어볼 최근 게시글 수
 const LECTURE_SCAN_SIZE = 30; // 수강신청 여부를 물어볼 최근 강의 수 (개별 API 호출 방식이라 너무 크게 잡지 않습니다)
-const CHAT_HISTORY_SIZE = 10; // 챗봇 대화 기록 한 페이지당 개수
 const POMODORO_PERIOD_SIZE = 100; // 기간별 조회 시 한 번에 가져올 기록 수
 
 function defaultPomodoroRange() {
@@ -58,15 +56,6 @@ function MyPage() {
     const [myLectures, setMyLectures] = useState([]);
     const [myComments, setMyComments] = useState([]);
 
-    const [chatHistories, setChatHistories] = useState([]);
-    const [chatHistoryPage, setChatHistoryPage] = useState(0);
-    const [chatHistoryHasMore, setChatHistoryHasMore] = useState(false);
-    const [chatHistoryLoadingMore, setChatHistoryLoadingMore] = useState(false);
-    const [chatHistoryError, setChatHistoryError] = useState(null);
-    const [selectedChatId, setSelectedChatId] = useState(null);
-    const [selectedChatPairIds, setSelectedChatPairIds] = useState([]);
-    const [chatHistoryDeleting, setChatHistoryDeleting] = useState(false);
-
     const [pomodoroToday, setPomodoroToday] = useState(0);
     const [pomodoroWeek, setPomodoroWeek] = useState(0);
     const [pomodoroMonth, setPomodoroMonth] = useState(0);
@@ -75,32 +64,6 @@ function MyPage() {
     const [pomodoroRecords, setPomodoroRecords] = useState([]);
     const [pomodoroStatus, setPomodoroStatus] = useState('idle'); // idle | loading | success | error
     const [pomodoroError, setPomodoroError] = useState(null);
-
-    // chatHistories는 id 내림차순(최신순)으로 온다. 답변은 항상 질문 바로 다음에 저장되므로
-    // id가 더 크고, 내림차순 목록에서는 질문 바로 앞자리에 온다 — 그 관계로 짝을 짓는다.
-    const chatPairs = useMemo(() => {
-        const pairs = [];
-        chatHistories.forEach((entry, index) => {
-            if (entry.senderRole !== 'USER') return;
-            const prev = chatHistories[index - 1];
-            const answer = prev && prev.senderRole === 'ASSISTANT' ? prev : null;
-            pairs.push({ question: entry, answer });
-        });
-        return pairs;
-    }, [chatHistories]);
-
-    const selectedChatPair = useMemo(
-        () => chatPairs.find((pair) => pair.question.id === selectedChatId) ?? null,
-        [chatPairs, selectedChatId]
-    );
-
-    // 선택돼 있던 질문이 삭제 등으로 목록에서 사라지면(혹은 아직 아무것도 안 골랐으면)
-    // 자동으로 첫 번째 질문을 대신 선택해, 상세 영역이 빈 채로 남지 않게 한다.
-    useEffect(() => {
-        if (chatPairs.length === 0) return;
-        const stillExists = chatPairs.some((pair) => pair.question.id === selectedChatId);
-        if (!stillExists) setSelectedChatId(chatPairs[0].question.id);
-    }, [chatPairs, selectedChatId]);
 
     const pomodoroChartData = useMemo(() => {
         const grouped = {};
@@ -138,20 +101,17 @@ function MyPage() {
             getLikedNotes({ size: LIST_SIZE }),
             getPostList({ size: POST_SCAN_SIZE, sort: 'createdAt' }),
             getLectureList({ size: LECTURE_SCAN_SIZE }),
-            getHistories({ size: CHAT_HISTORY_SIZE }),
             getTodayStudyTime(),
             getTotalStudyTime(),
             getRecordsByPeriod({ startDate: pomodoroRange.start, endDate: pomodoroRange.end, size: POMODORO_PERIOD_SIZE }).catch(() => ({ content: [] })),
             getMyComments({ size: LIST_SIZE }).catch(() => ({ content: [] })),
         ])
-            .then(async ([me, mine, liked, posts, lectures, chatHistoryPage0, todayStudyTime, totalStudyTime, initialPomodoroRecords, comments]) => {
+            .then(async ([me, mine, liked, posts, lectures, todayStudyTime, totalStudyTime, initialPomodoroRecords, comments]) => {
                 if (cancelled) return;
                 setProfile(me);
                 setForm({ name: me.name ?? '', nickname: me.nickname ?? '', phone: me.phone ?? '', currentPassword: '', newPassword: '' });
                 setMyNotes(mine?.content ?? []);
                 setLikedNotes(liked?.content ?? []);
-                setChatHistories(chatHistoryPage0?.content ?? []);
-                setChatHistoryHasMore(!(chatHistoryPage0?.last ?? true));
                 setPomodoroToday(todayStudyTime?.totalFocusMinutes ?? 0);
                 setPomodoroTotal(totalStudyTime?.totalFocusMinutes ?? 0);
                 setPomodoroRecords(initialPomodoroRecords?.content ?? []);
@@ -244,80 +204,6 @@ function MyPage() {
     const handlePomodoroFilterSubmit = (e) => {
         e.preventDefault();
         fetchPomodoroRecords(pomodoroRange);
-    };
-
-    const toggleChatPairSelected = (questionId) => {
-        setSelectedChatPairIds((prev) =>
-            prev.includes(questionId) ? prev.filter((id) => id !== questionId) : [...prev, questionId]
-        );
-    };
-
-    const toggleAllChatPairsSelected = () => {
-        setSelectedChatPairIds((prev) =>
-            prev.length === chatPairs.length ? [] : chatPairs.map((pair) => pair.question.id)
-        );
-    };
-
-    // 현재 불러온 목록에서 삭제된 id를 걷어내고, 선택 목록에서도 같이 지운다.
-    const removeChatHistoryEntries = (deletedIds) => {
-        const deletedSet = new Set(deletedIds);
-        setChatHistories((prev) => prev.filter((entry) => !deletedSet.has(entry.id)));
-        setSelectedChatPairIds((prev) => prev.filter((id) => !deletedSet.has(id)));
-    };
-
-    const handleDeleteSelectedChatHistory = async () => {
-        if (selectedChatPairIds.length === 0) return;
-        if (!window.confirm(`선택한 ${selectedChatPairIds.length}개 질문(답변 포함)을 삭제할까요?`)) return;
-
-        setChatHistoryDeleting(true);
-        setChatHistoryError(null);
-        try {
-            const idsToDelete = chatPairs
-                .filter((pair) => selectedChatPairIds.includes(pair.question.id))
-                .flatMap((pair) => (pair.answer ? [pair.question.id, pair.answer.id] : [pair.question.id]));
-            await deleteHistories(idsToDelete);
-            removeChatHistoryEntries(idsToDelete);
-        } catch (err) {
-            setChatHistoryError(err.message);
-        } finally {
-            setChatHistoryDeleting(false);
-        }
-    };
-
-    const handleDeleteAllChatHistory = async () => {
-        if (chatHistories.length === 0) return;
-        if (!window.confirm('전체 대화 기록을 삭제할까요? 되돌릴 수 없어요.')) return;
-
-        setChatHistoryDeleting(true);
-        setChatHistoryError(null);
-        try {
-            await deleteAllHistories();
-            setChatHistories([]);
-            setChatHistoryPage(0);
-            setChatHistoryHasMore(false);
-            setSelectedChatPairIds([]);
-            setSelectedChatId(null);
-        } catch (err) {
-            setChatHistoryError(err.message);
-        } finally {
-            setChatHistoryDeleting(false);
-        }
-    };
-
-    const handleLoadMoreChatHistory = async () => {
-        setChatHistoryLoadingMore(true);
-        setChatHistoryError(null);
-        try {
-            const nextPage = chatHistoryPage + 1;
-            const res = await getHistories({ page: nextPage, size: CHAT_HISTORY_SIZE });
-            setChatHistories((prev) => [...prev, ...(res?.content ?? [])]);
-            setChatHistoryPage(nextPage);
-            setChatHistoryHasMore(!(res?.last ?? true));
-        } catch (err) {
-            setChatHistoryError(err.message);
-        } finally {
-            setChatHistoryLoadingMore(false);
-        }
     };
 
     const isSocialAccount = profile?.oauthProvider && profile.oauthProvider !== 'NONE';
@@ -580,110 +466,6 @@ function MyPage() {
                                     <NoteCard key={note.id} note={note} />
                                 ))}
                             </div>
-                        )}
-                    </section>
-
-                    <section className="mypage__section">
-                        <h3>챗봇 대화 기록</h3>
-                        {chatHistoryError && <p role="alert">불러오지 못했습니다: {chatHistoryError}</p>}
-                        {chatPairs.length === 0 ? (
-                            <p>아직 챗봇과 나눈 대화가 없습니다.</p>
-                        ) : (
-                            <>
-                                <div className="mypage__chat-history-header">
-                                    <label className="mypage__chat-select-all">
-                                        <input
-                                            type="checkbox"
-                                            checked={chatPairs.length > 0 && selectedChatPairIds.length === chatPairs.length}
-                                            disabled={chatHistoryDeleting}
-                                            onChange={toggleAllChatPairsSelected}
-                                        />
-                                        전체 선택
-                                    </label>
-                                    <div className="mypage__chat-history-actions">
-                                        <button
-                                            type="button"
-                                            className="mypage__chat-select-delete-btn"
-                                            disabled={selectedChatPairIds.length === 0 || chatHistoryDeleting}
-                                            onClick={handleDeleteSelectedChatHistory}
-                                        >
-                                            선택 삭제{selectedChatPairIds.length > 0 ? ` (${selectedChatPairIds.length})` : ''}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="mypage__chat-delete-all-btn"
-                                            disabled={chatHistories.length === 0 || chatHistoryDeleting}
-                                            onClick={handleDeleteAllChatHistory}
-                                        >
-                                            전체 삭제
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="mypage__chat-layout">
-                                    <ul className="mypage__chat-question-list">
-                                        {chatPairs.map((pair) => (
-                                            <li key={pair.question.id} className="mypage__chat-question-item">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedChatPairIds.includes(pair.question.id)}
-                                                    disabled={chatHistoryDeleting}
-                                                    onChange={() => toggleChatPairSelected(pair.question.id)}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className={
-                                                        'mypage__chat-question-btn' +
-                                                        (pair.question.id === selectedChatId ? ' mypage__chat-question-btn--active' : '')
-                                                    }
-                                                    onClick={() => setSelectedChatId(pair.question.id)}
-                                                >
-                                                    <span className="mypage__chat-question-text">{pair.question.message}</span>
-                                                    <span className="mypage__chat-question-meta">
-                                                        {pair.question.lectureId && `강의 #${pair.question.lectureId} · `}
-                                                        {pair.question.createdAt && pair.question.createdAt.replace('T', ' ').slice(0, 16)}
-                                                    </span>
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-
-                                    <div className="mypage__chat-detail">
-                                        {selectedChatPair ? (
-                                            <>
-                                                <div className="mypage__chat-item">
-                                                    <div className="mypage__chat-item-header">
-                                                        <span className="mypage__chat-role mypage__chat-role--user">나</span>
-                                                    </div>
-                                                    <p className="mypage__chat-message">{selectedChatPair.question.message}</p>
-                                                </div>
-                                                <div className="mypage__chat-item">
-                                                    <div className="mypage__chat-item-header">
-                                                        <span className="mypage__chat-role mypage__chat-role--assistant">AI</span>
-                                                    </div>
-                                                    {selectedChatPair.answer ? (
-                                                        <p className="mypage__chat-message">{selectedChatPair.answer.message}</p>
-                                                    ) : (
-                                                        <p className="mypage__chat-message mypage__chat-message--pending">아직 답변이 없습니다.</p>
-                                                    )}
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <p>왼쪽 목록에서 질문을 선택해주세요.</p>
-                                        )}
-                                    </div>
-                                </div>
-                                {chatHistoryHasMore && (
-                                    <button
-                                        type="button"
-                                        className="mypage__chat-load-more"
-                                        onClick={handleLoadMoreChatHistory}
-                                        disabled={chatHistoryLoadingMore || chatHistoryDeleting}
-                                    >
-                                        {chatHistoryLoadingMore ? '불러오는 중...' : '더 보기'}
-                                    </button>
-                                )}
-                            </>
                         )}
                     </section>
 

@@ -160,6 +160,7 @@ function NoteDetailChat({ lectureId, noteId }) {
                       <ChatMessage
                           senderRole={chatMessage.senderRole}
                           message={chatMessage.message}
+                          recommendedLectures={chatMessage.recommendedLectures}
                       />
                     </div>
                 ))}

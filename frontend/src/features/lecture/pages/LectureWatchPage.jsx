@@ -840,7 +840,7 @@ function LectureWatchPage() {
                                 <div className="chat-messages">
                                     {chatMessages.map((message) => (
                                         <div key={message.id} id={`lecture-chat-message-${message.id}`}>
-                                            <ChatMessage senderRole={message.senderRole} message={message.message} />
+                                            <ChatMessage senderRole={message.senderRole} message={message.message} recommendedLectures={message.recommendedLectures} />
                                         </div>
                                     ))}
                                     <div ref={chatBottomRef} />

@@ -14,6 +14,7 @@ import MyPage from './features/mypage/pages/MyPage';
 import AdminSectionRoutes from './features/admin/AdminSectionRoutes';
 import NoteSectionRoutes from './features/note/pages/NoteSectionRoutes';
 import CommunitySectionRoutes from './features/community/pages/CommunitySectionRoutes';
+import ChatPage from './features/chat/pages/ChatPage';
 import './App.css';
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
                     {/* 기존 노트와 커뮤니티 기능을 로그인 후 /main 하위 주소에 연결합니다. */}
                     <Route path="notes/*" element={<NoteSectionRoutes />} />
                     <Route path="community/*" element={<CommunitySectionRoutes />} />
+                    <Route path="chat" element={<ChatPage />} />
                     <Route path="mypage" element={<MyPage />} />
                 </Route>
 
