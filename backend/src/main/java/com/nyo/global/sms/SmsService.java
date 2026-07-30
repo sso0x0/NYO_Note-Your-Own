@@ -4,6 +4,7 @@ import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import net.nurigo.sdk.NurigoApp;
 
 import net.nurigo.sdk.message.model.Message;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /** 비밀번호 재설정 인증코드 등 회원에게 보내는 SMS 발송을 담당한다. */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class SmsService {
@@ -30,6 +32,10 @@ public class SmsService {
 
     @PostConstruct
     void init() {
+        // 설정값이 실제로 채워졌는지부터 확인 (yml 경로가 틀리면 여기서 null/빈값이 찍힘)
+        log.info("Solapi init - apiKey={}, senderPhone={}",
+                apiKey == null ? "NULL" : "***" + apiKey.substring(Math.max(0, apiKey.length() - 4)),
+                senderPhone);
         this.messageService = NurigoApp.INSTANCE.initialize(
                 apiKey, apiSecret, "https://api.solapi.com"
         );
@@ -43,6 +49,7 @@ public class SmsService {
         try {
             messageService.sendOne(new SingleMessageSendingRequest(message));
         } catch (Exception e) {
+            log.error("SMS 발송 실패: to={}, from={}", to, senderPhone, e);
             throw new BusinessException(ErrorCode.SMS_SEND_FAILED);
         }
     }

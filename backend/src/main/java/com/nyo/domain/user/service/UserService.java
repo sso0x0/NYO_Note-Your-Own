@@ -122,15 +122,10 @@ public class UserService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_FIND_ID_NOT_FOUND));
 
         return FindLoginIdResponse.builder()
-                .maskedLoginId(maskLoginId(user.getLoginId()))
+                .maskedLoginId(user.getLoginId())   // ← maskLoginId(user.getLoginId()) 였던 걸 이렇게 변경
                 .build();
     }
 
-    // 앞부분 일부만 남기고 나머지를 마스킹. loginId는 4자 이상이 보장되어 있어(UserRequest 검증) 항상 1자 이상은 마스킹된다.
-    private String maskLoginId(String loginId) {
-        int visibleLength = Math.max(1, loginId.length() / 3);
-        return loginId.substring(0, visibleLength) + "*".repeat(loginId.length() - visibleLength);
-    }
 
 
 
@@ -159,7 +154,7 @@ public class UserService {
                 .filter(u -> u.getPhone() != null && u.getPhone().equals(request.getPhone()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.PASSWORD_RESET_TARGET_NOT_FOUND));
 
-        passwordResetCodeStore.verify(request.getLoginId(), request.getCode());
+        passwordResetCodeStore.verifyOnly(request.getLoginId(), request.getCode()); // ← verify() → verifyOnly()로 변경
     }
 
     // 비밀번호 재설정 2단계: 발송된 인증코드를 검증한 뒤 새 비밀번호로 교체.

@@ -281,13 +281,26 @@
   padding-right: 42px; /* 눈 아이콘 자리 확보 */
 }
 
+/* 브라우저(Edge 등)가 자체 제공하는 비밀번호 표시/지우기 아이콘을 끄고
+   커스텀 눈 아이콘만 보이도록 한다. 그대로 두면 두 아이콘이 겹쳐 잘려 보인다. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input[type="text"]::-ms-reveal,
+input[type="text"]::-ms-clear {
+  display: none !important;
+}
+
 .auth-page__password-toggle {
   position: absolute;
+  top: 50%;
   right: 10px;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border: none;
   background: transparent;
   color: var(--text);
@@ -379,4 +392,30 @@
 .auth-page__code-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+.auth-page__password-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-page__password-row input {
+  width: 100%;
+  padding-right: 40px; /* 아이콘 자리 확보 */
+}
+
+.auth-page__eye-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: #999;
+  padding: 0;
+}
+
+.auth-page__eye-btn:hover {
+  color: #333;
 }
