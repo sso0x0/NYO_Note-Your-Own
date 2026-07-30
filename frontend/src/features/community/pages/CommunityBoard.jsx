@@ -8,7 +8,7 @@ const sortOptions = [
     { value: 'createdAt', label: '최신순' },
     { value: 'likeCount', label: '인기순' },
     { value: 'viewCount', label: '조회수순' },
-    { value: 'notice', label: '공지만' },
+    { value: 'notice', label: '공지' },
 ]
 
 const POSTS_PER_PAGE = 10
@@ -180,6 +180,12 @@ function CommunityBoard({ onCreate, onOpenPost }) {
                     <div className="post-card__col post-card__col--date">{formatShortDate(post.notice ? post.updatedAt : post.createdAt)}</div>
                 </div>
             </button>
+            {post.thumbnailUrl && (
+                /* 목록 행에 마우스를 올렸을 때만 본문의 첫 이미지로 만든 썸네일을 보여준다. */
+                <div className="post-card__hover-thumb" aria-hidden="true">
+                    <img src={post.thumbnailUrl} alt="" loading="lazy" draggable={false} />
+                </div>
+            )}
         </article>
     )
 

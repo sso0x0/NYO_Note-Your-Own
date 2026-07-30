@@ -195,19 +195,15 @@
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: #ff4f4f;
+  color: #1c1c1a;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
 }
 
-.post-detail-page__like-row .community-report-button::before {
-  content: "⚠️";
-  margin-right: 5px;
-}
-
-.post-detail-page__like-row .community-report-button:hover {
+.post-detail-page__like-row .community-report-button:hover,
+.post-detail-page__like-row .community-report-button:focus-visible {
   background: transparent;
   color: #ff4f4f;
   text-decoration: underline;
@@ -486,12 +482,7 @@
 }
 
 .post-detail-page .comment-body__actions .comment-report-button {
-  color: #ff4f4f;
-}
-
-.post-detail-page .comment-body__actions .comment-report-button::before {
-  content: "⚠️";
-  margin-right: 4px;
+  color: #1c1c1a;
 }
 
 .post-detail-page .comment-body__actions .comment-report-button:hover,

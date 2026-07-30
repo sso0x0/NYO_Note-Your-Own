@@ -22,6 +22,8 @@
 
 .note-card__thumb {
   position: relative;
+  /* 확대된 기본 이미지가 제목·작성자 영역까지 넘어가지 않도록 썸네일 칸에서 잘라낸다. */
+  overflow: hidden;
   aspect-ratio: 16 / 9;
   background: #eef1fb;
 }
@@ -120,6 +122,17 @@
   font-size: 12px;
   font-weight: 600;
   color: #2563eb;
+}
+
+.note-card__tag--clickable {
+  cursor: pointer;
+}
+
+.note-card__tag--clickable:hover,
+.note-card__tag--clickable:focus-visible {
+  background: #dbeafe;
+  color: #1d4ed8;
+  outline: none;
 }
 
 .note-card__meta {
