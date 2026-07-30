@@ -28,6 +28,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,17 +51,22 @@ public class ChatService {
             너는 NYO 학습 플랫폼의 복습 챗봇이다. 사용자가 자기가 쓴 강의 노트를 복습하도록 돕는 게 목적이다.
             아래 [사용자 노트 발췌]에는 사용자가 직접 작성한 노트가 [### 제목] 형식(마크다운 제목 문법)으로 구분되어 최대 3개까지 주어진다.
             이 "###" 기호는 너에게 노트 구간을 구분해주기 위한 표시일 뿐이니, 답변에서 노트를 언급할 때는 "###"를 빼고 제목 텍스트만 자연스럽게 말해라.
+            노트 내용 뒤에 (※ 노트 내용이 길어 이 뒷부분은 발췌에서 생략됨)이라고 적혀 있으면, 그 노트는 너무 길어서 일부만 잘려 온 것이다. 그걸 노트의 전부인 것처럼 단정하지 말고, 생략된 뒷부분에 대해 물으면 지금 발췌로는 알 수 없다고 밝혀라.
             노트 제목 뒤에 (태그: ...)가 붙어있으면 그건 AI가 그 노트 내용을 분석해 자동으로 추천/등록한 핵심 키워드 태그다. 사용자가 태그가 왜 붙었는지, 무엇을 근거로 뽑혔는지 물으면 노트 본문에서 그 태그와 관련된 구체적인 내용을 찾아 근거로 설명해라.
             노트 안에 코드블럭(```)이 있으면 그 코드 내용도 빠짐없이 정확히 읽고 답변에 반영해라.
 
             - 너는 프로그래밍/컴퓨터공학 개념 설명, 사용자 노트 복습, AI 추천 태그 관련 질문에만 답한다. "노트 안에 관련 내용이 있는가"가 먼저다 — 노트에 있는 내용이면 과목을 가리지 않고 그 노트를 근거로 답해라. 노트에 없고 프로그래밍/컴퓨터공학·태그와도 무관한 질문(일상 대화, 시사, 감정 상담, 다른 과목 일반 지식 등)에는 "저는 노트 복습이나 프로그래밍 관련 질문에 답하는 챗봇이에요. 그 질문에는 답하기 어려워요."라고만 짧게 답하고 끝내라.
             - 질문과 관련된 내용이 노트 안에 있으면 그 내용을 근거로 구체적으로 답변해라. 여러 노트 중 어떤 노트를 참고했는지 언급할 때는 제목을 【 】로 감싸서 표기해라 (예: "노트 【리액트 정리】에 따르면...").
+            - 여러 노트에 서로 다르거나 모순되는 내용이 있으면, 어느 노트에 뭐라고 적혀 있는지 각각 제목을 밝혀 차이를 설명해라. 임의로 하나만 맞다고 단정하지 마라.
+            - 태그에는 두 종류가 있다: [사용자 노트 발췌]의 노트 제목 옆 (태그: ...)는 그 노트 하나에 등록된 개별 태그고, [강의 정보]의 "주요 주제"는 이 강의에 달린 모든 사용자 노트를 모아 빈도순으로 뽑은 강의 전체 집계다. 질문이 어느 쪽을 묻는지 구분해서 맞는 출처로 답해라.
+            - 노트 내용에 잘못된 개념 설명이나 버그가 있는 코드가 보이면, 그걸 그대로 따라 답하지 말고 어디가 왜 잘못됐는지 짚어주고 올바른 방향을 알려줘라. 복습을 돕는 챗봇이니 오류를 그냥 넘어가기보다 정정해주는 쪽이 학습에 도움이 된다.
             - "노트에 없는 내용"이라는 말은 노트를 다 살펴봐도 정말 관련 내용이 없을 때만, 그것도 딱 한 번만 짧게 언급해라. 노트에 관련 내용이 조금이라도 있으면 이 표현을 쓰지 말고 그 내용부터 근거로 답변해라.
             - 노트 발췌가 (작성된 노트가 없습니다)이면, 질문이 프로그래밍/컴퓨터공학 관련일 때만 노트가 아직 없다는 걸 알리고 일반 지식으로 답한 뒤 관련 내용을 노트로 남겨보라고 권해라. 프로그래밍과 무관한 질문이면 위 범위 제한 규칙대로 답하기 어렵다고 짧게 답해라.
             - 굵게(**), 글머리 기호(-) 같은 마크다운 문법을 쓰지 말고 평범한 문장으로 간결하게 답변해라. 답변 화면이 마크다운을 그림으로 바꿔주지 않아서 기호가 글자 그대로 보인다.
             - 답변에서 인용부호가 필요한 모든 경우(변수명·메서드명 강조, 노트 원문 인용 등)에 큰따옴표(")나 백틱(`)은 절대 쓰지 말고 반드시 작은따옴표(')만 써라. 예를 들어 "getUsers"나 `getUsers`가 아니라 'getUsers'라고 써라.
             - 다만 여러 줄짜리 코드를 보여줄 때는 예외로 코드블럭(```)은 그대로 사용해라.
             - 불필요하게 길게 늘어놓지 마라.
+            - 답변은 항상 존댓말(-습니다/-해요체)로 해라. 반말을 쓰지 마라.
             - [강의 정보]에는 지금 사용자가 보고 있는 강의의 제목·강사·설명과, 그 강의에 달린 노트들의 태그를 모아 뽑은 주요 주제 목록이 담긴다. "이 강의 뭐에 관한 거야", "어떤 주제들을 다뤄" 같은 강의 전체를 묻는 질문에는 이 정보를 근거로 답해라. 영상 원본 내용까지는 알 수 없으니, 모르는 세부 내용을 지어내지 말고 아는 범위(제목·설명·주제 태그)에서만 답해라.
 
             [강의 정보]
@@ -98,7 +105,9 @@ public class ChatService {
         String answer = openAiClient.chat(messages);
         // AI가 프롬프트 지시를 안 지키고 큰따옴표/백틱을 섞어 쓰는 경우가 있어, 화면에 보이기 전에
         // 코드로 확실하게 전부 작은따옴표로 바꿔버린다 (프롬프트만으로는 100% 보장이 안 됨).
-        answer = answer.replace('"', '\'').replace('`', '\'');
+        // 단, 코드블럭(```...```)은 펜스 자체가 백틱이라 통째로 치환하면 코드블럭 렌더링이 깨지므로
+        // 코드블럭 바깥 텍스트에만 적용한다.
+        answer = sanitizeQuotesOutsideCodeBlocks(answer);
 
         ChatHistory saved = chatHistoryRepository.save(ChatHistory.builder()
                 .userId(userId)
@@ -108,6 +117,26 @@ public class ChatService {
                 .build());
 
         return toResponse(saved);
+    }
+
+    // 코드블럭(```...```) 안쪽은 그대로 두고 바깥 텍스트의 큰따옴표/백틱만 작은따옴표로 바꾼다.
+    private static final Pattern CODE_BLOCK = Pattern.compile("```.*?```", Pattern.DOTALL);
+
+    private String sanitizeQuotesOutsideCodeBlocks(String answer) {
+        Matcher matcher = CODE_BLOCK.matcher(answer);
+        StringBuilder result = new StringBuilder();
+        int lastEnd = 0;
+        while (matcher.find()) {
+            result.append(sanitizeQuotes(answer.substring(lastEnd, matcher.start())));
+            result.append(matcher.group());
+            lastEnd = matcher.end();
+        }
+        result.append(sanitizeQuotes(answer.substring(lastEnd)));
+        return result.toString();
+    }
+
+    private String sanitizeQuotes(String text) {
+        return text.replace('"', '\'').replace('`', '\'');
     }
 
     // 선택 삭제. ids에 남의 기록이 섞여 있어도 본인 것만 지워지고 나머지는 조용히 무시된다.
@@ -217,15 +246,18 @@ public class ChatService {
 
         StringBuilder context = new StringBuilder();
         for (NoteSnippet note : notes) {
-            String content = note.content().length() > MAX_NOTE_LENGTH
-                    ? note.content().substring(0, MAX_NOTE_LENGTH)
-                    : note.content();
+            boolean truncated = note.content().length() > MAX_NOTE_LENGTH;
+            String content = truncated ? note.content().substring(0, MAX_NOTE_LENGTH) : note.content();
             List<String> tagNames = noteTagRepository.findTagNamesByNoteId(note.id());
             context.append("### ").append(note.title());
             if (!tagNames.isEmpty()) {
                 context.append(" (태그: ").append(String.join(", ", tagNames)).append(")");
             }
-            context.append("\n").append(content).append("\n\n");
+            context.append("\n").append(content);
+            if (truncated) {
+                context.append("\n(※ 노트 내용이 길어 이 뒷부분은 발췌에서 생략됨)");
+            }
+            context.append("\n\n");
         }
         return context.toString();
     }
