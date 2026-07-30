@@ -388,6 +388,117 @@
     box-sizing: border-box;
 }
 
+/* ===== 오른쪽 칸: 뽀모도로(실험적으로 임베드) + 아래 챗봇을 세로로 쌓는다 ===== */
+.lecture-watch-page__side {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: none;
+}
+
+/* 챗봇 헤더(배지 + flex:1 제목 + 아이콘 버튼)와 같은 방식 — justify-content: space-between을
+   쓰면 가운데 항목(제목)이 배지에서 멀어져 화면 중앙 쪽으로 밀려 보이므로, 대신 제목에
+   flex: 1을 줘서 남은 공간을 제목이 채우고 아이콘 버튼만 오른쪽 끝으로 밀리게 한다. */
+.lecture-watch-page__pomodoro-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.lecture-watch-page__pomodoro-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    background: rgba(183, 154, 236, 0.15);
+    color: #9b7fd4;
+    flex-shrink: 0;
+}
+
+.lecture-watch-page__pomodoro-badge svg {
+    width: 13px;
+    height: 13px;
+}
+
+.lecture-watch-page__pomodoro-title {
+    flex: 1;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--lw-ink);
+}
+
+/* "기록 보기" 아이콘 + 팝오버. 학습용 챗봇의 질문 목록 아이콘/팝오버와 같은 패턴이다. */
+.lecture-watch-page__pomodoro-history-toggle {
+    border: none;
+    background: none;
+    padding: 4px;
+    color: var(--text-h);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    opacity: 0.7;
+}
+
+.lecture-watch-page__pomodoro-history-toggle:hover {
+    opacity: 1;
+}
+
+.lecture-watch-page__pomodoro-history-toggle svg {
+    width: 20px;
+    height: 20px;
+}
+
+.lecture-watch-page__pomodoro-history-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    width: 280px;
+    max-height: 360px;
+    /* auto면 안쪽 목록이 "더보기"로 늘어나 스크롤이 생길 때만 스크롤바 폭만큼 내용이
+       좁아져 보인다. 늘 스크롤바 자리를 확보해두면 폭이 흔들리지 않는다. */
+    overflow-y: scroll;
+    border: 1px solid var(--lw-line);
+    border-radius: 12px;
+    background: var(--bg);
+    box-shadow: var(--card-shadow, 0 8px 24px rgba(0, 0, 0, 0.15));
+    z-index: 5;
+    padding: 14px;
+    box-sizing: border-box;
+}
+
+/* 스크롤은 유지하되 스크롤바 자체는 배경색과 같게 만들어 최대한 눈에 띄지 않게 한다. */
+.lecture-watch-page__pomodoro-history-popover {
+    scrollbar-width: thin;
+    scrollbar-color: var(--bg) var(--bg);
+}
+
+.lecture-watch-page__pomodoro-history-popover::-webkit-scrollbar {
+    width: 6px;
+}
+
+.lecture-watch-page__pomodoro-history-popover::-webkit-scrollbar-track {
+    background: var(--bg);
+}
+
+.lecture-watch-page__pomodoro-history-popover::-webkit-scrollbar-thumb {
+    background: var(--bg);
+    border-radius: 4px;
+}
+
+.lecture-watch-page__pomodoro {
+    width: 320px;
+    padding: 20px;
+    border: 1px solid var(--lw-line);
+    border-radius: 20px;
+    background: var(--bg);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
+    box-sizing: border-box;
+}
+
 /* ===== 오른쪽: 접이식 AI 챗봇 드로어 (2a안) ===== */
 .lecture-watch-page__chat {
     width: 320px;
@@ -604,6 +715,10 @@
     }
 
     .lecture-watch-page__pip {
+        width: 100%;
+    }
+
+    .lecture-watch-page__pomodoro {
         width: 100%;
     }
 

@@ -53,23 +53,22 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--border, #e5e4e7);
+  gap: 0.6rem;
 }
 
 .pomodoro-clock {
-  font-size: 2.2rem;
+  font-size: 1.5rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--text-h, #08060d);
 }
 
-/* 원형 진행 링. 남은 시간만큼 채워진(사실은 "덜어낸") 원이 안쪽 시계 숫자를 감싼다. */
+/* 원형 진행 링. 남은 시간만큼 채워진(사실은 "덜어낸") 원이 안쪽 시계 숫자를 감싼다.
+   임베드된 강의/노트 페이지 사이드 칸에 들어가면서 크기를 줄였다(기존 200px). */
 .pomodoro-ring {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 140px;
+  height: 140px;
 }
 
 .pomodoro-ring svg {
@@ -159,7 +158,7 @@
 }
 
 .pomodoro-timer button {
-  padding: 0.6rem 1.4rem;
+  padding: 0.5rem 1.1rem;
   border: none;
   border-radius: 999px;
   background: linear-gradient(135deg, #cbb6f2 0%, #f2c9e0 100%);
@@ -192,8 +191,7 @@
 }
 
 .pomodoro-stats-row {
-  text-align: center;
-  margin: 0 0 5mm;
+  margin: 0 0 0.8rem;
   font-size: 0.76rem;
   color: var(--text, #6b6375);
   opacity: 0.8;
@@ -201,7 +199,7 @@
 
 .pomodoro-stats-row strong {
   margin-left: 0.3rem;
-  font-size: 1.4rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--text-h, #08060d);
 }
@@ -212,6 +210,7 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding-top: 0.9rem;
+  margin-bottom: 3mm;
   border-top: 1px solid var(--border, #e5e4e7);
 }
 
@@ -287,7 +286,9 @@
   display: flex;
   flex-direction: column;
   max-height: 240px;
-  overflow-y: auto;
+  /* auto면 "더보기"로 항목이 늘어나 스크롤이 생길 때만 스크롤바 폭만큼 내용이 좁아져 보인다.
+     늘 스크롤바 자리를 확보해두면 접었을 때/펼쳤을 때 폭이 흔들리지 않는다. */
+  overflow-y: scroll;
   border-top: 1px solid var(--border, #e5e4e7);
 }
 
@@ -365,19 +366,4 @@
 .pomodoro-error {
   color: #d33;
   font-size: 0.82rem;
-}
-
-.pomodoro-context {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--text, #6b6375);
-  font-size: 0.78rem;
-  margin: -0.4rem 0 0.4rem;
-  cursor: pointer;
-}
-
-.pomodoro-context--readonly {
-  cursor: default;
-  margin: 0 0 0.4rem;
 }
