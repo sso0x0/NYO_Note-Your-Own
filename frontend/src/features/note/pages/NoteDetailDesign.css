@@ -50,8 +50,7 @@
   box-sizing: border-box;
 }
 
-.note-detail-page:has(.note-detail-chat.is-collapsed) .note-detail-page__toolbar,
-.note-detail-page:has(.note-detail-chat.is-collapsed) .note-detail-layout {
+.note-detail-page:has(.note-detail-chat.is-collapsed) .note-detail-page__toolbar {
   grid-template-columns: minmax(0, 1fr) 48px;
 }
 
@@ -89,6 +88,20 @@
   color: var(--nd-primary);
 }
 
+/* 커뮤니티 상세와 같은 목록 버튼 디자인을 노트 상세 전용 선택자로 유지한다. */
+.note-detail-page__list-button {
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.note-detail-page__list-button:hover {
+  border-color: #6065fb;
+  color: #6065fb;
+}
+
 .note-detail-page .note-header-actions .danger-button {
   border-color: #ff4f4f;
   color: #ff4f4f;
@@ -100,12 +113,25 @@
   color: #fff;
 }
 
+/* 강의 시청 페이지와 동일하게, 오른쪽 칸(뽀모도로+챗봇)이 세로로 쌓이는 flex 레이아웃으로 바꾼다.
+   그리드였을 때는 챗봇 접힘 시 오른쪽 칸 전체를 48px로 줄이는 :has() 트릭이 필요했지만,
+   flex에서는 뽀모도로가 항상 320px를 차지하고 있어서 챗봇만 접혀도 칸 너비가 저절로 유지된다. */
 .note-detail-page .note-detail-layout {
-  grid-template-columns: minmax(0, 1fr) 320px;
+  display: flex;
+  align-items: flex-start;
   gap: 28px;
 }
 
+.note-detail-page .note-detail-side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: none;
+}
+
 .note-detail-page .note-detail-panel {
+  flex: 1;
+  min-width: 0;
   padding: 28px;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -183,39 +209,143 @@
 }
 
 .note-detail-page .note-like-summary .note-report-button {
-  /* 좋아요는 왼쪽에 두고 신고 버튼만 노트 칸의 오른쪽 끝으로 보낸다. */
+  /* 좋아요는 왼쪽에 유지하고 신고는 오른쪽 끝에 배치한다. */
   margin-left: auto;
   padding: 4px 0;
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: #ff4f4f;
+  color: #1c1c1a;
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
 }
 
-.note-detail-page .note-like-summary .note-report-button::before {
-  content: "⚠️";
-  margin-right: 5px;
-}
-
-.note-detail-page .note-like-summary .note-report-button:hover {
+.note-detail-page .note-like-summary .note-report-button:hover,
+.note-detail-page .note-like-summary .note-report-button:focus-visible {
   background: transparent;
   color: #ff4f4f;
   text-decoration: underline;
 }
 
 .note-detail-page .note-detail-chat {
+  width: 320px;
+  flex: none;
   position: sticky;
   top: 24px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
 }
 
+/* ===== 뽀모도로 타이머 (강의 시청 페이지 임베드와 동일한 구성) ===== */
+.note-detail-page .note-detail-pomodoro {
+  width: 320px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+}
+
+.note-detail-page .note-detail-pomodoro__header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.note-detail-page .note-detail-pomodoro__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--nd-primary-bg);
+  color: var(--nd-primary);
+  flex-shrink: 0;
+}
+
+.note-detail-page .note-detail-pomodoro__badge svg {
+  width: 13px;
+  height: 13px;
+}
+
+.note-detail-page .note-detail-pomodoro__title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-h);
+}
+
+.note-detail-page .note-detail-pomodoro__history-toggle {
+  border: none;
+  background: none;
+  padding: 4px;
+  color: var(--text-h);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  opacity: 0.7;
+}
+
+.note-detail-page .note-detail-pomodoro__history-toggle:hover {
+  opacity: 1;
+}
+
+.note-detail-page .note-detail-pomodoro__history-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.note-detail-page .note-detail-pomodoro__history-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 280px;
+  max-height: 360px;
+  overflow-y: scroll;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: var(--card-shadow, 0 8px 24px rgba(0, 0, 0, 0.15));
+  z-index: 5;
+  padding: 14px;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg) var(--bg);
+}
+
+.note-detail-page .note-detail-pomodoro__history-popover::-webkit-scrollbar {
+  width: 6px;
+}
+
+.note-detail-page .note-detail-pomodoro__history-popover::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+.note-detail-page .note-detail-pomodoro__history-popover::-webkit-scrollbar-thumb {
+  background: var(--bg);
+  border-radius: 4px;
+}
+
 @media (max-width: 900px) {
-  .note-detail-page .note-detail-page__toolbar,
-  .note-detail-page .note-detail-layout {
+  .note-detail-page .note-detail-page__toolbar {
     grid-template-columns: 1fr;
+  }
+
+  .note-detail-page .note-detail-layout {
+    flex-direction: column;
+  }
+
+  .note-detail-page .note-detail-side {
+    width: 100%;
+  }
+
+  .note-detail-page .note-detail-pomodoro,
+  .note-detail-page .note-detail-chat {
+    width: 100%;
   }
 
   .note-detail-page .note-detail-chat {

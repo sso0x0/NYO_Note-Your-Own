@@ -1,17 +1,12 @@
 // 백엔드 PomodoroController(com.nyo.domain.pomodoro)에 대응하는 API 래퍼.
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../../api/client'
 
-// endedAt 없이 호출 = 타이머 시작(진행 중 기록 생성)
+// 타이머가 끝났을 때(시작~종료를 한 번에 담아) 완성된 기록을 저장한다.
 export function createRecord(payload) {
   return apiPost('/api/pomodoros', payload)
 }
 
-// 이어서 할 진행 중 기록(endedAt이 비어있는 가장 최근 것) 조회. 없으면 null.
-export function getActiveRecord() {
-  return apiGet('/api/pomodoros/active')
-}
-
-// endedAt을 채워서 호출 = 타이머 종료(같은 기록을 완료 상태로 갱신)
+// 기록 수정 (관리자/마이페이지 등에서 이미 저장된 기록을 고칠 때 사용).
 export function updateRecord(id, payload) {
   return apiPatch(`/api/pomodoros/${id}`, payload)
 }
