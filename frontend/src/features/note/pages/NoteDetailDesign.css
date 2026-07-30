@@ -1,0 +1,343 @@
+/* sh 디자인을 유지하면서 노트 상세에만 적용하는 별도 레이아웃입니다. */
+.note-detail-page {
+  --nd-primary: #6065fb;
+  --nd-primary-bg: #eef0fe;
+  width: 100%;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 24px 32px 56px;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.note-detail-page__crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.note-detail-page__crumbs button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.note-detail-page__crumbs button:hover {
+  color: var(--nd-primary);
+}
+
+.note-detail-page__crumbs .is-current {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-h);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-detail-page .note-detail-page__toolbar {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 28px;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+}
+
+.note-detail-page:has(.note-detail-chat.is-collapsed) .note-detail-page__toolbar {
+  grid-template-columns: minmax(0, 1fr) 48px;
+}
+
+.note-detail-page__toolbar-main {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  grid-column: 1;
+  justify-self: stretch;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.note-detail-page__toolbar-main .note-header-actions {
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.note-detail-page .note-header-actions button,
+.note-detail-page__list-button {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.note-detail-page .note-header-actions button:hover,
+.note-detail-page__list-button:hover {
+  border-color: var(--nd-primary);
+  color: var(--nd-primary);
+}
+
+.note-detail-page .note-header-actions .danger-button {
+  border-color: #ff4f4f;
+  color: #ff4f4f;
+}
+
+.note-detail-page .note-header-actions .danger-button:hover {
+  border-color: #ff4f4f;
+  background: #ff4f4f;
+  color: #fff;
+}
+
+/* 강의 시청 페이지와 동일하게, 오른쪽 칸(뽀모도로+챗봇)이 세로로 쌓이는 flex 레이아웃으로 바꾼다.
+   그리드였을 때는 챗봇 접힘 시 오른쪽 칸 전체를 48px로 줄이는 :has() 트릭이 필요했지만,
+   flex에서는 뽀모도로가 항상 320px를 차지하고 있어서 챗봇만 접혀도 칸 너비가 저절로 유지된다. */
+.note-detail-page .note-detail-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+}
+
+.note-detail-page .note-detail-side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: none;
+}
+
+.note-detail-page .note-detail-panel {
+  flex: 1;
+  min-width: 0;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.note-detail-page .post-detail-title {
+  margin: 0;
+  color: var(--text-h);
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.5px;
+}
+
+.note-detail-page .note-detail-byline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 10px 0 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.note-detail-byline__left,
+.note-detail-byline__right {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.note-detail-byline__right {
+  margin-left: auto;
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.note-detail-page .note-tags {
+  margin: 0 0 20px;
+}
+
+.note-detail-page .note-tag-chip {
+  border-color: var(--nd-primary-bg);
+  background: var(--nd-primary-bg);
+  color: var(--nd-primary);
+}
+
+.note-detail-page .note-thumbnail {
+  display: block;
+  max-width: 100%;
+  margin: 4px auto 20px;
+  border-radius: 12px;
+}
+
+.note-detail-page .note-content {
+  min-height: 240px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--nd-primary-bg);
+  color: var(--text-h);
+  line-height: 1.75;
+}
+
+.note-detail-page .note-like-summary {
+  /* 좋아요 버튼은 페이지가 아닌 노트 내용 칸의 왼쪽 선에 맞춘다. */
+  justify-content: flex-start;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.note-detail-page .note-detail-chat {
+  width: 320px;
+  flex: none;
+  position: sticky;
+  top: 24px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
+}
+
+/* ===== 뽀모도로 타이머 (강의 시청 페이지 임베드와 동일한 구성) ===== */
+.note-detail-page .note-detail-pomodoro {
+  width: 320px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+}
+
+.note-detail-page .note-detail-pomodoro__header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.note-detail-page .note-detail-pomodoro__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--nd-primary-bg);
+  color: var(--nd-primary);
+  flex-shrink: 0;
+}
+
+.note-detail-page .note-detail-pomodoro__badge svg {
+  width: 13px;
+  height: 13px;
+}
+
+.note-detail-page .note-detail-pomodoro__title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-h);
+}
+
+.note-detail-page .note-detail-pomodoro__history-toggle {
+  border: none;
+  background: none;
+  padding: 4px;
+  color: var(--text-h);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  opacity: 0.7;
+}
+
+.note-detail-page .note-detail-pomodoro__history-toggle:hover {
+  opacity: 1;
+}
+
+.note-detail-page .note-detail-pomodoro__history-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.note-detail-page .note-detail-pomodoro__history-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 280px;
+  max-height: 360px;
+  overflow-y: scroll;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: var(--card-shadow, 0 8px 24px rgba(0, 0, 0, 0.15));
+  z-index: 5;
+  padding: 14px;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg) var(--bg);
+}
+
+.note-detail-page .note-detail-pomodoro__history-popover::-webkit-scrollbar {
+  width: 6px;
+}
+
+.note-detail-page .note-detail-pomodoro__history-popover::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+.note-detail-page .note-detail-pomodoro__history-popover::-webkit-scrollbar-thumb {
+  background: var(--bg);
+  border-radius: 4px;
+}
+
+@media (max-width: 900px) {
+  .note-detail-page .note-detail-page__toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .note-detail-page .note-detail-layout {
+    flex-direction: column;
+  }
+
+  .note-detail-page .note-detail-side {
+    width: 100%;
+  }
+
+  .note-detail-page .note-detail-pomodoro,
+  .note-detail-page .note-detail-chat {
+    width: 100%;
+  }
+
+  .note-detail-page .note-detail-chat {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .note-detail-page {
+    padding: 18px 14px 40px;
+  }
+
+  .note-detail-page__toolbar-main {
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .note-detail-page .note-header-actions {
+    width: 100%;
+  }
+
+  .note-detail-page .note-detail-panel {
+    padding: 20px 16px;
+  }
+
+  .note-detail-page .note-content {
+    padding: 18px 14px;
+  }
+}

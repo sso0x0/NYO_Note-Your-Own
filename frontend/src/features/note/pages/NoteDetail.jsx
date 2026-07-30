@@ -6,7 +6,10 @@ import { addNoteTag, deleteNoteTag, generateAiTags, getNoteTags } from '../api/t
 import { sendMessage } from '../../chat/api/chat'
 import ChatMessage from '../../chat/ChatMessage'
 import ChatInput from '../../chat/ChatInput'
+import Timer from '../../pomodoro/Timer'
+import StatsAndHistory from '../../pomodoro/StatsAndHistory'
 import '../../chat/chat.css'
+import '../../pomodoro/pomodoro.css'
 import './NoteDetailDesign.css'
 
 const EMPTY_HEART_IMAGE = '/images/heart.png'
@@ -22,6 +25,17 @@ function QuestionListIcon() {
         <circle cx="4.5" cy="12" r="0.8" fill="currentColor" />
         <circle cx="4.5" cy="18" r="0.8" fill="currentColor" />
         <path d="M8.5 6h11M8.5 12h11M8.5 18h11" />
+      </svg>
+  )
+}
+
+// 타이머 헤더의 배지 아이콘. 강의 시청 페이지의 임베드 뽀모도로와 톤을 맞춘 단색 아웃라인 시계.
+function ClockBadgeIcon() {
+  return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3.5 2" />
       </svg>
   )
 }
@@ -180,6 +194,8 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
   const [tagError, setTagError] = useState(null)
   const [newTagName, setNewTagName] = useState('')
   const [tagSubmitting, setTagSubmitting] = useState(false)
+  const [pomodoroRefreshKey, setPomodoroRefreshKey] = useState(0)
+  const [showPomodoroHistory, setShowPomodoroHistory] = useState(false)
   const userId = auth?.userId
 
   const loadTags = async () => {
@@ -717,7 +733,35 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
                 <p>{loading ? '불러오는 중입니다.' : message}</p>
             )}
           </article>
-          {note && <NoteDetailChat key={noteId} lectureId={note.lectureId ?? null} noteId={noteId} />}
+          {note && (
+              <div className="note-detail-side">
+                <div className="note-detail-pomodoro">
+                  <div className="note-detail-pomodoro__header">
+                    <span className="note-detail-pomodoro__badge"><ClockBadgeIcon /></span>
+                    <span className="note-detail-pomodoro__title">타이머</span>
+                    <button
+                        type="button"
+                        className="note-detail-pomodoro__history-toggle"
+                        onClick={() => setShowPomodoroHistory((v) => !v)}
+                        aria-label={showPomodoroHistory ? '기록 닫기' : '기록 보기'}
+                    >
+                      <QuestionListIcon />
+                    </button>
+                    {showPomodoroHistory && (
+                        <div className="note-detail-pomodoro__history-popover">
+                          <StatsAndHistory refreshKey={pomodoroRefreshKey} />
+                        </div>
+                    )}
+                  </div>
+                  <Timer
+                      lectureId={note.lectureId ?? null}
+                      noteId={noteId}
+                      onFinished={() => setPomodoroRefreshKey((k) => k + 1)}
+                  />
+                </div>
+                <NoteDetailChat key={noteId} lectureId={note.lectureId ?? null} noteId={noteId} />
+              </div>
+          )}
         </div>
       </section>
   )
