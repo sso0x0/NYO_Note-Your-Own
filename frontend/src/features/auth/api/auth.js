@@ -19,3 +19,6 @@ export function sendPasswordResetCode(request) {
 export function resetPassword(request) {
   return apiPost('/api/users/password/reset', request);
 }
+export function verifyPasswordResetCode(request) {
+  return apiPost('/api/users/password/verify-code', request);
+}

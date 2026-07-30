@@ -3,22 +3,13 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { login as loginRequest } from '../api/auth';
 import { useAuth } from '../../../context/AuthContext';
 import nyoLogo from '../../../assets/images/nyo_logo.png';
+import eyeOpenIcon from '../../../assets/images/eye.png';
+import eyeCloseIcon from '../../../assets/images/eye_close.png';
 
 import './AuthPage.css';
 
 function EyeIcon({ open }) {
-    return open ? (
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-    ) : (
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M3 3l18 18" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M10.58 10.58a3 3 0 1 0 4.24 4.24" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M6.1 6.1C3.4 7.9 1 12 1 12s4 7 11 7c2.05 0 3.83-.55 5.32-1.35M17.9 17.9C20.6 16.1 23 12 23 12s-1.6-2.8-4.32-4.9" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-    );
+    return <img src={open ? eyeOpenIcon : eyeCloseIcon} alt="" width="20" height="20" />;
 }
 
 // 필드별 실시간 검증 규칙: 값이 바뀔 때마다 이 함수들로 즉시 재검사합니다.
