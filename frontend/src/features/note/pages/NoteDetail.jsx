@@ -48,7 +48,6 @@ function NoteDetailChat({ lectureId, noteId }) {
   const [chatMessages, setChatMessages] = useState([])
   const [chatSending, setChatSending] = useState(false)
   const [chatError, setChatError] = useState(null)
-  const chatBottomRef = useRef(null)
 
   const [chatDrawerOpen, setChatDrawerOpen] = useState(true)
   const [showQuestionList, setShowQuestionList] = useState(false)
@@ -66,13 +65,6 @@ function NoteDetailChat({ lectureId, noteId }) {
   // 서버에서 지난 질문을 다시 불러오지 않고, 위 chatMessages에서 사용자 질문만 걸러서 보여준다
   // (마이페이지 챗봇 기록과는 별개).
   const askedQuestions = chatMessages.filter((message) => message.senderRole === 'USER')
-
-  useEffect(() => {
-    // 상세 첫 진입에는 화면을 움직이지 않고 실제 메시지가 생긴 뒤에만 마지막 대화로 이동한다.
-    if (chatMessages.length > 0) {
-      chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [chatMessages])
 
   // 질문 목록에서 항목을 누르면 대화창에서 그 질문이 있는 위치로 스크롤해서 보여주고, 팝오버는 닫는다.
   const scrollToQuestion = (questionId) => {
@@ -168,7 +160,6 @@ function NoteDetailChat({ lectureId, noteId }) {
                       />
                     </div>
                 ))}
-                <div ref={chatBottomRef} />
               </div>
               {chatError && <p className="chat-error">{chatError}</p>}
               <ChatInput sending={chatSending} onSend={handleChatSend} />
