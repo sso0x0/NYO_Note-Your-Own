@@ -1,8 +1,16 @@
 import { Link } from 'react-router-dom';
 import './NoteCard.css';
 
-function NoteCard({ note }) {
+function NoteCard({ note, onTagClick }) {
   const { id, title, authorNickname, lectureTitle, categoryName, thumbnailUrl, viewCount, likeCount, createdAt, tags } = note;
+
+  const handleTagClick = (event, tagName) => {
+    if (!onTagClick) return;
+    // 태그를 누를 때 부모 카드 링크가 실행되어 노트 상세로 이동하는 것을 막는다.
+    event.preventDefault();
+    event.stopPropagation();
+    onTagClick(tagName);
+  };
 
   return (
     <article className="note-card">
@@ -11,7 +19,13 @@ function NoteCard({ note }) {
           {thumbnailUrl ? (
             <img src={thumbnailUrl} alt={title} loading="lazy" />
           ) : (
-            <div className="note-card__thumb-fallback" aria-hidden="true" />
+            /* 메인 페이지 인기 노트도 게시판과 같은 기본 썸네일을 사용한다. */
+            <img
+              className="note-card__thumb-fallback-image"
+              src="/images/note-empty.png"
+              alt=""
+              draggable={false}
+            />
           )}
         </div>
 
@@ -28,7 +42,18 @@ function NoteCard({ note }) {
           {tags?.length > 0 && (
             <div className="note-card__tags">
               {tags.map((tag) => (
-                <span key={tag.tagId} className="note-card__tag">
+                <span
+                  key={tag.tagId}
+                  className={`note-card__tag${onTagClick ? ' note-card__tag--clickable' : ''}`}
+                  role={onTagClick ? 'link' : undefined}
+                  tabIndex={onTagClick ? 0 : undefined}
+                  onClick={(event) => handleTagClick(event, tag.tagName)}
+                  onKeyDown={(event) => {
+                    if (onTagClick && (event.key === 'Enter' || event.key === ' ')) {
+                      handleTagClick(event, tag.tagName);
+                    }
+                  }}
+                >
                   #{tag.tagName}
                 </span>
               ))}

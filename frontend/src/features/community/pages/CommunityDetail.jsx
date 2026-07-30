@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../../context/AuthContext'
-import { parseMainImage } from '../../../utils/mainImage'
 import ReportButton from '../../report/components/ReportButton'
 import './CommunityDetail.css'
 
@@ -276,7 +275,6 @@ function CommunityDetail({ postId, onBack, onEdit }) {
   )
   // 수정은 관리자 권한과 관계없이 게시글을 작성한 로그인 사용자 본인에게만 허용합니다.
   const canEdit = post && auth && String(post.userId) === String(auth.userId)
-  const mainImage = parseMainImage(post?.thumbnailUrl)
 
   const selectReplyTarget = (comment) => {
     setCommentForm((prev) => ({
@@ -432,17 +430,6 @@ function CommunityDetail({ postId, onBack, onEdit }) {
                   <span className="post-detail-page__dot" aria-hidden="true">·</span>
                   <span>조회수 {post.viewCount ?? 0}</span>
                 </p>
-
-                {mainImage.url && (
-                    <div className="post-detail-page__thumb">
-                      <img
-                          src={mainImage.url}
-                          style={{ width: `${mainImage.width}px` }}
-                          alt="게시글 이미지"
-                          draggable={false}
-                      />
-                    </div>
-                )}
 
                 <div className="post-detail-page__content">{renderPostContent(post.content)}</div>
 

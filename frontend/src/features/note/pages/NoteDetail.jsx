@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { parseTextColors } from '../../../utils/textColor'
 import { useAuth } from '../../../context/AuthContext'
 import { parseMainImage } from '../../../utils/mainImage'
+import ReportButton from '../../report/components/ReportButton'
 import { addNoteTag, deleteNoteTag, generateAiTags, getNoteTags } from '../api/tag'
 import { sendMessage } from '../../chat/api/chat'
 import ChatMessage from '../../chat/ChatMessage'
@@ -575,7 +576,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
 
             <header className="note-header note-detail-page__toolbar">
                 <div className="note-detail-page__toolbar-main">
-                    <button type="button" className="note-detail-page__list-button" onClick={onBack}>목록</button>
+                    <button type="button" className="note-detail-page__list-button" onClick={onBack}>← 목록</button>
                     <div className="note-header-actions">
                         {note && <button type="button" onClick={exportNotePdf}>PDF 저장</button>}
                         {note && <button type="button" onClick={exportNoteMarkdown}>마크다운 저장</button>}
@@ -608,27 +609,15 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
 
                             <div className="note-tags">
                                 {tags.map((tag) => (
-                                    <span key={tag.tagId} className="note-tag-chip">
-                          <button
-                              type="button"
-                              className="note-tag-chip__label"
-                              onClick={() => onTagClick?.(tag.tagName)}
-                              title={`'${tag.tagName}' 태그가 붙은 다른 노트 보기`}
-                          >
-                            {tag.isAiGenerated && <span className="note-tag-chip__ai">AI</span>}
-                              {tag.tagName}
-                          </button>
-                                        {canEdit && (
-                                            <button
-                                                type="button"
-                                                className="note-tag-chip__remove"
-                                                onClick={() => handleDeleteTag(tag.tagId)}
-                                                aria-label={`'${tag.tagName}' 태그 삭제`}
-                                            >
-                                                ✕
-                                            </button>
-                                        )}
-                        </span>
+                                    <button
+                                        key={tag.tagId}
+                                        type="button"
+                                        className="note-detail-page__ai-tag"
+                                        onClick={() => onTagClick?.(tag.tagName)}
+                                        title={`'${tag.tagName}' 태그가 붙은 다른 노트 보기`}
+                                    >
+                                        #{tag.tagName}
+                                    </button>
                                 ))}
                                 {canEdit && (
                                     <button
@@ -639,25 +628,6 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
                                     >
                                         {tagGenerating ? 'AI 태그 생성 중...' : (tags.length > 0 ? 'AI 태그 다시 생성' : 'AI 태그 생성')}
                                     </button>
-                                )}
-                                {canEdit && (
-                                    <form className="note-tag-add" onSubmit={handleAddTag}>
-                                        <input
-                                            type="text"
-                                            className="note-tag-add__input"
-                                            value={newTagName}
-                                            onChange={(event) => setNewTagName(event.target.value)}
-                                            placeholder="태그 직접 추가"
-                                            maxLength={50}
-                                        />
-                                        <button
-                                            type="submit"
-                                            className="note-tag-add__submit"
-                                            disabled={tagSubmitting || !newTagName.trim()}
-                                        >
-                                            {tagSubmitting ? '추가 중...' : '+ 추가'}
-                                        </button>
-                                    </form>
                                 )}
                             </div>
                             {tagError && <p className="note-tag-error">{tagError}</p>}
@@ -718,15 +688,19 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
                             <div className="note-like-summary">
                                 <button
                                     type="button"
-                                    className="like-icon-button"
+                                    className="note-detail-like-button"
                                     onClick={toggleLike}
                                     disabled={likeLoading}
                                     aria-label={liked ? '좋아요 취소' : '좋아요'}
                                     aria-pressed={liked}
                                 >
                                     <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" draggable={false} />
+                                    <span>좋아요 {note.likeCount ?? 0}</span>
                                 </button>
-                                <span>좋아요 {note.likeCount ?? 0}</span>
+                                {/* 본인이 작성하지 않은 노트에만 신고 버튼을 표시한다. */}
+                                {!canEdit && (
+                                    <ReportButton targetType="NOTE" targetId={note.id} className="note-report-button" />
+                                )}
                             </div>
                         </>
                     ) : (
