@@ -52,12 +52,13 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
 
 .community-write-page__back:hover {
-  border-color: #6065fb;
-  color: #6065fb;
+  border-color: #000;
+  background: #000;
+  color: #fff;
 }
 
 .community-write-page__form {
@@ -116,18 +117,21 @@
 .community-write-page__submit {
   flex: none;
   padding: 10px 22px;
-  border: 0;
+  border: 1px solid var(--cw-line);
   border-radius: 10px;
-  background: var(--cw-ink);
-  color: #fff;
+  background: #fff;
+  color: var(--cw-ink);
   font: inherit;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
 
 .community-write-page__submit:hover:not(:disabled) {
-  background: var(--cw-accent);
+  border-color: #000;
+  background: #000;
+  color: #fff;
 }
 
 .community-write-page__submit:disabled {

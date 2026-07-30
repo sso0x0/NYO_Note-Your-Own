@@ -104,6 +104,28 @@ public class NoteService {
             return PageResponse.of(Page.empty(pageable));
         }
 
+        // 태그 칩 클릭은 Elasticsearch의 제목·본문 전문 검색을 거치지 않고 DB의 태그 매핑만 정확히 조회한다.
+        if ("tag".equals(searchType)) {
+            Page<Note> tagPage = noteRepository.findActiveByExactTagName(keyword.trim(), pageable);
+            List<Note> notes = tagPage.getContent();
+            Map<Long, String> nicknames = userService.getDisplayNicknames(
+                    notes.stream().map(Note::getUserId).distinct().toList()
+            );
+            Map<Long, List<NoteTagResponse>> tagsByNoteId = getTagsByNoteIds(
+                    notes.stream().map(Note::getId).toList()
+            );
+            Map<Long, Lecture> lecturesById = getLecturesByIds(
+                    notes.stream().map(Note::getLectureId).toList()
+            );
+
+            return PageResponse.of(tagPage.map(note -> toResponse(
+                    note,
+                    nicknames.getOrDefault(note.getUserId(), "알 수 없는 사용자"),
+                    lecturesById.get(note.getLectureId()),
+                    tagsByNoteId.getOrDefault(note.getId(), List.of())
+            )));
+        }
+
         // 검색 결과는 ES 관련도 점수순으로 정렬되므로 요청에 담긴 정렬 조건(sort)은 무시한다.
         Pageable searchPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
 
@@ -320,9 +342,25 @@ public class NoteService {
     }
 
     public List<NoteResponse> findByLecture(Long lectureId) {
-        return noteRepository.findByLectureIdAndIsDeletedOrderByCreatedAtDesc(lectureId, 0)
-                .stream()
-                .map(this::toResponse)
+        List<Note> notes = noteRepository.findByLectureIdAndIsDeletedOrderByCreatedAtDesc(lectureId, 0);
+        Map<Long, String> nicknames = userService.getDisplayNicknames(
+                notes.stream().map(Note::getUserId).distinct().toList()
+        );
+        Map<Long, List<NoteTagResponse>> tagsByNoteId = getTagsByNoteIds(
+                notes.stream().map(Note::getId).toList()
+        );
+        Map<Long, Lecture> lecturesById = getLecturesByIds(
+                notes.stream().map(Note::getLectureId).toList()
+        );
+
+        // 강의 안의 다른 학습자 노트 목록에서도 AI 여부를 포함한 태그 목록을 함께 내려준다.
+        return notes.stream()
+                .map(note -> toResponse(
+                        note,
+                        nicknames.getOrDefault(note.getUserId(), "알 수 없는 사용자"),
+                        lecturesById.get(note.getLectureId()),
+                        tagsByNoteId.getOrDefault(note.getId(), List.of())
+                ))
                 .toList();
     }
 

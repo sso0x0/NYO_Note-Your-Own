@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { parseTextColors } from '../../../utils/textColor'
 import { useAuth } from '../../../context/AuthContext'
 import { parseMainImage } from '../../../utils/mainImage'
+import ReportButton from '../../report/components/ReportButton'
 import { addNoteTag, deleteNoteTag, generateAiTags, getNoteTags } from '../api/tag'
 import { sendMessage } from '../../chat/api/chat'
 import ChatMessage from '../../chat/ChatMessage'
@@ -67,7 +68,10 @@ function NoteDetailChat({ lectureId, noteId }) {
   const askedQuestions = chatMessages.filter((message) => message.senderRole === 'USER')
 
   useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    // 상세 첫 진입에는 화면을 움직이지 않고 실제 메시지가 생긴 뒤에만 마지막 대화로 이동한다.
+    if (chatMessages.length > 0) {
+      chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [chatMessages])
 
   // 질문 목록에서 항목을 누르면 대화창에서 그 질문이 있는 위치로 스크롤해서 보여주고, 팝오버는 닫는다.
@@ -430,6 +434,12 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
   )
   // 수정은 관리자 권한과 관계없이 노트를 작성한 로그인 사용자 본인에게만 허용합니다.
   const canEdit = note && auth && String(note.userId) === String(auth.userId)
+  // 생성 이후 실제로 수정된 경우에만 날짜 대신 "수정됨"을 표시한다.
+  const isModified = Boolean(
+      note?.createdAt
+      && note?.updatedAt
+      && new Date(note.updatedAt).getTime() > new Date(note.createdAt).getTime()
+  )
   const mainImage = parseMainImage(note?.thumbnailUrl)
   const mainImageAlreadyInContent = mainImage.url
       ? [...String(note?.content ?? '').matchAll(/!\[[^\]]*]\((https?:\/\/[^)]+)\)/g)]
@@ -576,7 +586,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
 
         <header className="note-header note-detail-page__toolbar">
           <div className="note-detail-page__toolbar-main">
-            <button type="button" className="note-detail-page__list-button" onClick={onBack}>목록</button>
+            <button type="button" className="note-detail-page__list-button" onClick={onBack}>← 목록</button>
             <div className="note-header-actions">
               {note && <button type="button" onClick={exportNotePdf}>PDF 저장</button>}
               {note && <button type="button" onClick={exportNoteMarkdown}>마크다운 저장</button>}
@@ -600,68 +610,16 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
                     </span>
                     <span className="note-detail-byline__right">
                       <time dateTime={note.createdAt}>작성일 {formatDate(note.createdAt)}</time>
-                      <span aria-hidden="true"> | </span>
-                      <time dateTime={note.updatedAt}>수정일 {formatDate(note.updatedAt)}</time>
+                      {isModified && (
+                        <>
+                          <span aria-hidden="true"> | </span>
+                          <span>수정됨</span>
+                        </>
+                      )}
                       <span aria-hidden="true"> | </span>
                       <span>조회수 {note.viewCount ?? 0}</span>
                     </span>
                   </p>
-
-                  <div className="note-tags">
-                    {tags.map((tag) => (
-                        <span key={tag.tagId} className="note-tag-chip">
-                          <button
-                              type="button"
-                              className="note-tag-chip__label"
-                              onClick={() => onTagClick?.(tag.tagName)}
-                              title={`'${tag.tagName}' 태그가 붙은 다른 노트 보기`}
-                          >
-                            {tag.isAiGenerated && <span className="note-tag-chip__ai">AI</span>}
-                            {tag.tagName}
-                          </button>
-                          {canEdit && (
-                              <button
-                                  type="button"
-                                  className="note-tag-chip__remove"
-                                  onClick={() => handleDeleteTag(tag.tagId)}
-                                  aria-label={`'${tag.tagName}' 태그 삭제`}
-                              >
-                                ✕
-                              </button>
-                          )}
-                        </span>
-                    ))}
-                    {canEdit && (
-                        <button
-                            type="button"
-                            className="note-tag-generate"
-                            onClick={handleGenerateTags}
-                            disabled={tagGenerating}
-                        >
-                          {tagGenerating ? 'AI 태그 생성 중...' : (tags.length > 0 ? 'AI 태그 다시 생성' : 'AI 태그 생성')}
-                        </button>
-                    )}
-                    {canEdit && (
-                        <form className="note-tag-add" onSubmit={handleAddTag}>
-                          <input
-                              type="text"
-                              className="note-tag-add__input"
-                              value={newTagName}
-                              onChange={(event) => setNewTagName(event.target.value)}
-                              placeholder="태그 직접 추가"
-                              maxLength={50}
-                          />
-                          <button
-                              type="submit"
-                              className="note-tag-add__submit"
-                              disabled={tagSubmitting || !newTagName.trim()}
-                          >
-                            {tagSubmitting ? '추가 중...' : '+ 추가'}
-                          </button>
-                        </form>
-                    )}
-                  </div>
-                  {tagError && <p className="note-tag-error">{tagError}</p>}
 
                   <dl className="note-meta">
                     <div>
@@ -715,19 +673,80 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
                   )}
                   <div className="note-content">{renderNoteContent(note.content)}</div>
 
-                  {/* 본문 아래에서 좋아요 버튼과 현재 좋아요 수를 함께 보여준다. */}
-                  <div className="note-like-summary">
-                    <button
-                        type="button"
-                        className="like-icon-button"
-                        onClick={toggleLike}
-                        disabled={likeLoading}
-                        aria-label={liked ? '좋아요 취소' : '좋아요'}
-                        aria-pressed={liked}
-                    >
-                      <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" draggable={false} />
-                    </button>
-                    <span>좋아요 {note.likeCount ?? 0}</span>
+                  {/* mia의 AI 태그 기능은 유지하고 사용자 디자인대로 본문과 구분선 아래에 배치한다. */}
+                  <div className="note-detail-footer">
+                    {tagError && <p className="note-tag-error">{tagError}</p>}
+                    <div className="note-tags">
+                      {tags.map((tag) => (
+                          <span key={tag.tagId} className="note-tag-chip">
+                            <button
+                                type="button"
+                                className="note-detail-page__ai-tag"
+                                onClick={() => onTagClick?.(tag.tagName)}
+                                title={`'${tag.tagName}' 태그가 붙은 다른 노트 보기`}
+                            >
+                              {tag.isAiGenerated && <span className="note-tag-chip__ai">AI</span>}
+                              #{tag.tagName}
+                            </button>
+                            {canEdit && (
+                                <button
+                                    type="button"
+                                    className="note-tag-chip__remove"
+                                    onClick={() => handleDeleteTag(tag.tagId)}
+                                    aria-label={`'${tag.tagName}' 태그 삭제`}
+                                >
+                                  ✕
+                                </button>
+                            )}
+                          </span>
+                      ))}
+                      {canEdit && (
+                          <button
+                              type="button"
+                              className="note-tag-generate"
+                              onClick={handleGenerateTags}
+                              disabled={tagGenerating}
+                          >
+                            {tagGenerating ? 'AI 태그 생성 중...' : (tags.length > 0 ? 'AI 태그 다시 생성' : 'AI 태그 생성')}
+                          </button>
+                      )}
+                      {canEdit && (
+                          <form className="note-tag-add" onSubmit={handleAddTag}>
+                            <input
+                                type="text"
+                                className="note-tag-add__input"
+                                value={newTagName}
+                                onChange={(event) => setNewTagName(event.target.value)}
+                                placeholder="태그 직접 추가"
+                                maxLength={50}
+                            />
+                            <button
+                                type="submit"
+                                className="note-tag-add__submit"
+                                disabled={tagSubmitting || !newTagName.trim()}
+                            >
+                              {tagSubmitting ? '추가 중...' : '+ 추가'}
+                            </button>
+                          </form>
+                      )}
+                    </div>
+
+                    <div className="note-like-summary">
+                      <button
+                          type="button"
+                          className={`note-detail-like-button${liked ? ' is-liked' : ''}`}
+                          onClick={toggleLike}
+                          disabled={likeLoading}
+                          aria-label={liked ? '좋아요 취소' : '좋아요'}
+                          aria-pressed={liked}
+                      >
+                        <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" draggable={false} />
+                        <span>{note.likeCount ?? 0}</span>
+                      </button>
+                      {!canEdit && (
+                          <ReportButton targetType="NOTE" targetId={note.id} className="note-report-button" />
+                      )}
+                    </div>
                   </div>
                 </>
             ) : (

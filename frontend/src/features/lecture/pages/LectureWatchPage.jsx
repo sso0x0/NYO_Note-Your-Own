@@ -715,6 +715,18 @@ function LectureWatchPage() {
                                     >
                                         <strong>{note.title}</strong>
                                         <span className="lecture-watch-page__other-note-author">{note.authorNickname}</span>
+                                        {note.tags?.length > 0 && (
+                                            <span className="lecture-watch-page__other-note-tags">
+                                                {note.tags.map((tag) => (
+                                                    <span className="lecture-watch-page__other-note-tag" key={tag.tagId}>
+                                                        {tag.isAiGenerated && (
+                                                            <span className="lecture-watch-page__other-note-tag-ai">AI</span>
+                                                        )}
+                                                        #{tag.tagName}
+                                                    </span>
+                                                ))}
+                                            </span>
+                                        )}
                                         <span className="lecture-watch-page__other-note-meta">
                       ♡ {note.likeCount ?? 0} · 조회 {note.viewCount ?? 0}
                     </span>
