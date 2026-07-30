@@ -3,7 +3,7 @@
   --auth-text: #6b6375;
   --auth-border: #e5e4e7;
   --auth-input-bg: #f8f8fa;
-  --auth-accent: var(--accent);
+  --auth-accent: #e57391;
   --auth-soft-blue: #eef4fd;
   --auth-soft-pink: #fdf1f5;
   --auth-card-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
@@ -235,10 +235,9 @@
 
 /* 마우스 호버 및 클릭 시 반응형 효과 */
 .auth-page__google:hover {
-  background-color: var(--light-gray); /* 호버 시 기존 input 배경색과 통일 */
-  border-color: var(--nyo-accent); /* 호버 시 프로젝트 포인트 컬러로 테두리 변경 */
+  background-color: var(--auth-input-bg);
+  border-color: var(--auth-accent);
 }
-
 .auth-page__google:active {
   transform: scale(0.98); /* 클릭 시 살짝 눌리는 애니메이션 추가 */
 }

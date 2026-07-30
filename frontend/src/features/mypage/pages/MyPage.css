@@ -1,4 +1,4 @@
-gi.mypage {
+.mypage {
   /* 강의/노트/커뮤니티 목록과 같은 팔레트 변수 구성을 사용해 톤을 통일한다. */
   --mp-accent: #e57391;
   --mp-accent-bg: #fdeef2;
@@ -335,11 +335,6 @@ gi.mypage {
   padding: 0;
   flex: 1;
   min-width: 0;
-}
-
-/* 강의 목록 페이지(LectureListPage)와 동일한 인기 배지 색상으로 통일한다. */
-.mypage__lecture-list .lecture-card__badge {
-  background: #ff4f4f;
 }
 
 .mypage__lecture-list .lecture-card__category {
@@ -949,4 +944,118 @@ gi.mypage {
     height: auto;
     max-height: 360px;
   }
+}
+.mypage__password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.mypage__password-field input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.mypage__password-toggle {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  padding: 4px;
+}
+
+.mypage__password-toggle:hover {
+  color: #555;
+}
+
+.mypage__password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.mypage__password-field input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.mypage__password-toggle {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: #999;
+  padding: 0;
+}
+
+.mypage__password-toggle:hover {
+  color: #333;
+}
+
+/* 입력 그룹 래퍼 */
+.mypage__input-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.5rem;
+}
+
+.mypage__input-group label {
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+/* 비밀번호 입력 & 눈 아이콘 감싸는 래퍼 */
+.mypage__password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.mypage__password-wrapper input {
+  width: 100%;
+  padding-right: 40px; /* 눈 모양 아이콘이 들어갈 공간 확보 */
+}
+
+/* 눈 모양 아이콘 버튼 */
+.mypage__eye-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.mypage__eye-btn:hover {
+  color: #333;
+}
+
+/* 유효성 검사 에러 상태 (입력창 빨간 테두리) */
+input.input-error {
+  border: 1px solid #ff4d4f;
+  outline: none;
+}
+
+input.input-error:focus {
+  border-color: #ff4d4f;
+  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2);
+}
+
+/* 하단 빨간색 경고 텍스트 */
+.mypage__warning-text {
+  color: #ff4d4f;
+  font-size: 0.85rem;
+  margin-top: 0.4rem;
 }
