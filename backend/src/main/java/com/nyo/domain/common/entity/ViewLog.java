@@ -11,7 +11,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-// 조회수 중복 방지 로그 (노트/게시글/강의 공용, 로그인 필수 서비스라 user는 항상 존재)
+// 조회 로그 (노트/게시글/강의 공용, 로그인 필수 서비스라 user는 항상 존재)
 @Entity
 @Table(name = "view_logs")
 @Getter
@@ -38,7 +38,7 @@ public class ViewLog {
     @Column(name = "target_id", nullable = false)
     private Long targetId;
 
-    // 조회한 날짜 (하루 1회 중복 방지 기준)
+    // 조회한 날짜
     @Column(name = "viewed_date", nullable = false)
     private LocalDate viewedDate;
 

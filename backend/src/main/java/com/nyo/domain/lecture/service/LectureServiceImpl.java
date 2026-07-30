@@ -245,7 +245,7 @@ public class LectureServiceImpl implements LectureService {
 
     // ===== 조회수 / 좋아요 / 수강신청 =====
 
-    // 조회수 증가 (하루 1회 제한)
+    // 조회수 증가 (조회할 때마다 증가)
     @Override
     @Transactional
     public void increaseViewCount(Long id, Long userId) {
@@ -257,7 +257,7 @@ public class LectureServiceImpl implements LectureService {
                 .build());
 
         if (isNewView) {
-            lectureRepository.increaseViewCount(id); // 오늘 처음 본 경우에만 캐시된 조회수 원자 증가
+            lectureRepository.increaseViewCount(id); // 캐시된 조회수 원자 증가
         }
     }
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getLecture, isEnrolled as fetchIsEnrolled } from '../api/lecture';
+import { getLecture, increaseLectureViewCount, isEnrolled as fetchIsEnrolled } from '../api/lecture';
 import {
     getLectureComments,
     createLectureComment,
@@ -152,7 +152,10 @@ function LectureWatchPage() {
         setError(null);
         setIsPlaying(false);
 
-        Promise.all([getLecture(id), fetchIsEnrolled(id)])
+        // 조회수 증가를 먼저 처리한 뒤 상세 정보를 조회해야 갱신된 숫자가 바로 표시된다.
+        increaseLectureViewCount(id)
+            .catch(() => {})
+            .then(() => Promise.all([getLecture(id), fetchIsEnrolled(id)]))
             .then(([data, enrolled]) => {
                 if (cancelled) return;
                 setLecture(data);

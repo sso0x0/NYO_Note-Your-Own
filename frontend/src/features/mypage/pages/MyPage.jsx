@@ -569,6 +569,13 @@ function MyPage() {
                     </div>
 
                     <div className="mypage__danger-zone">
+                        <button
+                            type="button"
+                            className="mypage__instructor-apply-btn"
+                            onClick={() => navigate('/main/instructor/apply')}
+                        >
+                            강사 신청
+                        </button>
                         <button type="button" className="mypage__withdraw-btn" onClick={handleWithdraw}>
                             회원 탈퇴
                         </button>

@@ -11,6 +11,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ProtectedLayout from './components/ProtectedLayout';
 import MainPage from './features/main/pages/MainPage';
 import MyPage from './features/mypage/pages/MyPage';
+import InstructorApplyPage from './features/instructor/pages/InstructorApplyPage';
 import AdminSectionRoutes from './features/admin/AdminSectionRoutes';
 import NoteSectionRoutes from './features/note/pages/NoteSectionRoutes';
 import CommunitySectionRoutes from './features/community/pages/CommunitySectionRoutes';
@@ -37,6 +38,7 @@ function App() {
                     <Route path="community/*" element={<CommunitySectionRoutes />} />
                     <Route path="chat" element={<ChatPage />} />
                     <Route path="mypage" element={<MyPage />} />
+                    <Route path="instructor/apply" element={<InstructorApplyPage />} />
                 </Route>
 
                 {/* 관리자 화면은 일반 회원용 헤더/레이아웃을 공유하지 않는 완전히 별도의 콘솔입니다. */}

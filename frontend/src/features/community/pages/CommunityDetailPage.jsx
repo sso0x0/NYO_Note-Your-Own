@@ -22,12 +22,14 @@ function CommunityDetailPage() {
     setError(null);
     setLiked(false);
 
-    getPost(id)
+    // 조회수 증가를 먼저 처리한 뒤 상세 정보를 조회해야 갱신된 숫자가 바로 표시된다.
+    increasePostViewCount(id)
+      .catch(() => {})
+      .then(() => getPost(id))
       .then((data) => {
         if (cancelled) return;
         setPost(data);
         setStatus('success');
-        increasePostViewCount(id).catch(() => {});
         isPostLiked(id)
           .then((value) => {
             if (!cancelled) setLiked(!!value);
