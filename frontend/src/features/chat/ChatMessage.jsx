@@ -12,6 +12,36 @@ export function SmileIcon() {
   )
 }
 
+// 메시지 안의 ```코드블럭```만 골라 <pre><code>로 감싸고, 나머지 일반 텍스트는
+// 그대로 둔다. 서버가 백틱 펜스를 지켜서 보내주므로(ChatService.sanitizeQuotesOutsideCodeBlocks)
+// 여기서는 그 펜스를 찾아 렌더링만 바꿔주면 된다. 닫는 ```가 없어도(끊긴 응답 등) 깨지지 않도록
+// 마지막 코드블럭은 파일 끝까지로 처리한다.
+function renderMessageContent(message) {
+  const CODE_BLOCK = /```(\w+)?\n?([\s\S]*?)(?:```|$)/g
+  const nodes = []
+  let lastIndex = 0
+  let match
+
+  while ((match = CODE_BLOCK.exec(message)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(<span key={nodes.length}>{message.slice(lastIndex, match.index)}</span>)
+    }
+    const lang = match[1] || ''
+    const code = match[2].replace(/\n$/, '')
+    nodes.push(
+        <pre key={nodes.length} className="chat-bubble__code">
+          {lang && <span className="chat-bubble__code-lang">{lang}</span>}
+          <code>{code}</code>
+        </pre>
+    )
+    lastIndex = CODE_BLOCK.lastIndex
+  }
+  if (lastIndex < message.length) {
+    nodes.push(<span key={nodes.length}>{message.slice(lastIndex)}</span>)
+  }
+  return nodes
+}
+
 // 말풍선 하나. senderRole은 백엔드 ChatHistoryResponse의 "USER" | "ASSISTANT" 값을 그대로 받아
 // 정렬/색/아바타만 다르게 준다.
 // recommendedLectures: 강의 추천 답변일 때만 백엔드가 채워 보내는 실제 강의 목록(id·제목 등).
@@ -23,7 +53,7 @@ export default function ChatMessage({ senderRole, message, recommendedLectures }
       <div className={`chat-row ${isUser ? 'chat-row-user' : 'chat-row-assistant'}`}>
         {!isUser && <span className="chat-avatar" aria-hidden="true"><SmileIcon /></span>}
         <div className={`chat-bubble ${isUser ? 'chat-bubble-user' : 'chat-bubble-assistant'}`}>
-          {message}
+          {message.includes('```') ? renderMessageContent(message) : message}
           {recommendedLectures?.length > 0 && (
               <div className="chat-bubble__lectures">
                 {recommendedLectures.map((lecture) => (

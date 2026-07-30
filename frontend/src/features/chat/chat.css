@@ -136,6 +136,40 @@
   border-bottom-left-radius: 4px;
 }
 
+.chat-bubble__code {
+  display: block;
+  margin: 0.5rem 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #f1f1f1;
+  font-family: 'Fira Code', 'D2Coding', Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: auto;
+}
+
+.chat-bubble__code:first-child {
+  margin-top: 0;
+}
+
+.chat-bubble__code:last-child {
+  margin-bottom: 0;
+}
+
+.chat-bubble__code-lang {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
 .chat-bubble__lectures {
   display: flex;
   flex-direction: column;
