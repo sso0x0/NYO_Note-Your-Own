@@ -5,7 +5,10 @@ import ChatInput from '../ChatInput';
 import '../chat.css';
 import './ChatPage.css';
 
-const CHAT_HISTORY_SIZE = 10; // 지난 대화 기록 한 페이지당 개수
+// 지난 대화 기록 한 페이지당 개수. 질문+답변이 원시 행 2개라 실제로 보이는 "쌍"은 이 절반 정도다.
+// 넉넉하게 잡아서 어지간한 사용자는 첫 로드에 전체가 다 보이게 하고, 그보다 많으면 스크롤이
+// 바닥에 닿을 때 다음 페이지를 이어 불러온다 (핸들러: handleQuestionListScroll).
+const CHAT_HISTORY_SIZE = 100;
 
 // 강의 시청/노트 상세 페이지의 학습 챗봇은 그 강의·노트로 컨텍스트가 좁혀지지만,
 // 이 페이지는 lectureId/noteId를 아예 넘기지 않아 사용자가 지금까지 쓴 모든 노트를
@@ -178,6 +181,14 @@ export default function ChatPage() {
         }
     };
 
+    // "더 보기" 버튼 대신, 목록을 아래로 스크롤해서 바닥 근처에 닿으면 다음 페이지를 이어 불러온다.
+    const handleQuestionListScroll = (e) => {
+        if (chatHistoryLoadingMore || !chatHistoryHasMore) return;
+        const el = e.currentTarget;
+        const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+        if (nearBottom) handleLoadMoreChatHistory();
+    };
+
     return (
         <section className="chat-page">
             <header className="chat-page__header">
@@ -237,46 +248,41 @@ export default function ChatPage() {
                                 </button>
                             </div>
 
-                            <ul className="chat-page__question-list">
+                            <ul className="chat-page__question-list" onScroll={handleQuestionListScroll}>
                                 {filteredChatPairs.length === 0 ? (
                                     <li className="chat-page__sidebar-empty">검색 결과가 없습니다.</li>
                                 ) : (
-                                    filteredChatPairs.map((pair) => (
-                                        <li key={pair.question.id} className="chat-page__question-item">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedChatPairIds.includes(pair.question.id)}
-                                                disabled={chatHistoryDeleting || (!pair.answer && sending && selectedChatId === pair.question.id)}
-                                                onChange={() => toggleChatPairSelected(pair.question.id)}
-                                            />
-                                            <button
-                                                type="button"
-                                                className={
-                                                    'chat-page__question-btn' +
-                                                    (pair.question.id === selectedChatId ? ' chat-page__question-btn--active' : '')
-                                                }
-                                                onClick={() => setSelectedChatId(pair.question.id)}
-                                            >
-                                                <span className="chat-page__question-text">{pair.question.message}</span>
-                                                <span className="chat-page__question-meta">
-                                                    {pair.question.lectureId && `강의 #${pair.question.lectureId} · `}
-                                                    {pair.question.createdAt && pair.question.createdAt.replace('T', ' ').slice(0, 16)}
-                                                </span>
-                                            </button>
-                                        </li>
-                                    ))
+                                    <>
+                                        {filteredChatPairs.map((pair) => (
+                                            <li key={pair.question.id} className="chat-page__question-item">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedChatPairIds.includes(pair.question.id)}
+                                                    disabled={chatHistoryDeleting || (!pair.answer && sending && selectedChatId === pair.question.id)}
+                                                    onChange={() => toggleChatPairSelected(pair.question.id)}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className={
+                                                        'chat-page__question-btn' +
+                                                        (pair.question.id === selectedChatId ? ' chat-page__question-btn--active' : '')
+                                                    }
+                                                    onClick={() => setSelectedChatId(pair.question.id)}
+                                                >
+                                                    <span className="chat-page__question-text">{pair.question.message}</span>
+                                                    <span className="chat-page__question-meta">
+                                                        {pair.question.lectureId && `강의 #${pair.question.lectureId} · `}
+                                                        {pair.question.createdAt && pair.question.createdAt.replace('T', ' ').slice(0, 16)}
+                                                    </span>
+                                                </button>
+                                            </li>
+                                        ))}
+                                        {chatHistoryLoadingMore && (
+                                            <li className="chat-page__sidebar-empty">불러오는 중...</li>
+                                        )}
+                                    </>
                                 )}
                             </ul>
-                            {chatHistoryHasMore && (
-                                <button
-                                    type="button"
-                                    className="chat-page__history-load-more"
-                                    onClick={handleLoadMoreChatHistory}
-                                    disabled={chatHistoryLoadingMore || chatHistoryDeleting}
-                                >
-                                    {chatHistoryLoadingMore ? '불러오는 중...' : '더 보기'}
-                                </button>
-                            )}
                         </>
                     )}
                 </aside>

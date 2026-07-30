@@ -27,9 +27,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -54,6 +56,10 @@ public class ChatService {
     // 이 중 하나라도 메시지에 있으면 강의 추천 요청으로 본다.
     private static final List<String> RECOMMEND_TRIGGER_KEYWORDS =
             List.of("추천", "들을만한", "들을 만한", "강의 알려줘");
+    // 스코프 제한 규칙에 쓰인 고정 거절 문구와 동일. "추천"이 메시지에 있어도 AI가 실제로는
+    // 범위 밖이라 거절한 경우엔, 추천 강의 목록/링크를 붙이지 않기 위해 이 문구와 비교한다.
+    private static final String SCOPE_REJECTION_MESSAGE =
+            "저는 노트 복습이나 프로그래밍 관련 질문에 답하는 챗봇이에요. 그 질문에는 답하기 어려워요.";
 
     private static final String SYSTEM_PROMPT = """
             너는 NYO 학습 플랫폼의 복습 챗봇이다. 사용자가 자기가 쓴 강의 노트를 복습하도록 돕는 게 목적이다.
@@ -122,12 +128,18 @@ public class ChatService {
         // 단, 코드블럭(```...```)은 펜스 자체가 백틱이라 통째로 치환하면 코드블럭 렌더링이 깨지므로
         // 코드블럭 바깥 텍스트에만 적용한다.
         answer = sanitizeQuotesOutsideCodeBlocks(answer);
+        // 질문에 "추천" 등 트리거 키워드가 있어도 AI가 범위 밖이라 거절한 경우엔
+        // 추천 강의를 붙이지 않는다 (거절 문구에 링크가 달리는 건 앞뒤가 안 맞는다).
+        if (SCOPE_REJECTION_MESSAGE.equals(answer.trim())) {
+            recommendedLectures = List.of();
+        }
 
         ChatHistory saved = chatHistoryRepository.save(ChatHistory.builder()
                 .userId(userId)
                 .lectureId(request.getLectureId())
                 .senderRole(SenderRole.ASSISTANT)
                 .message(answer)
+                .recommendedLectureIds(joinLectureIds(recommendedLectures))
                 .build());
 
         return toResponse(saved, recommendedLectures);
@@ -250,6 +262,33 @@ public class ChatService {
                 : lectureRepository.findByIsDeletedFalseOrderByLikeCountDescViewCountDesc(pageable);
     }
 
+    // ChatHistory.recommendedLectureIds에 저장할 콤마 구분 문자열로 바꾼다. 추천이 없었으면 null.
+    private String joinLectureIds(List<Lecture> lectures) {
+        if (lectures.isEmpty()) {
+            return null;
+        }
+        return lectures.stream().map(Lecture::getId).map(String::valueOf).collect(Collectors.joining(","));
+    }
+
+    // joinLectureIds로 저장해둔 문자열을 다시 강의 목록으로 되돌린다 (지난 대화 기록 조회용).
+    // findAllByIdInAndIsDeletedFalse는 순서를 보장하지 않아, 원래 추천 순서(id 문자열 순서)대로 재정렬한다.
+    private List<Lecture> resolveRecommendedLectures(String lectureIdsCsv) {
+        if (!StringUtils.hasText(lectureIdsCsv)) {
+            return List.of();
+        }
+        List<Long> ids = Arrays.stream(lectureIdsCsv.split(","))
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .map(Long::valueOf)
+                .toList();
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Lecture> byId = lectureRepository.findAllByIdInAndIsDeletedFalse(ids).stream()
+                .collect(Collectors.toMap(Lecture::getId, lecture -> lecture));
+        return ids.stream().map(byId::get).filter(Objects::nonNull).toList();
+    }
+
     // findRecommendedLectures 결과를 프롬프트에 얹을 텍스트로 바꾼다. 빈 리스트면 빈 문자열(섹션 없음).
     private String buildLectureRecommendationContext(List<Lecture> lectures) {
         if (lectures.isEmpty()) {
@@ -345,12 +384,12 @@ public class ChatService {
         return page.getContent().stream().map(NoteSnippet::from).toList();
     }
 
+    // 지난 대화 기록을 다시 불러올 때는, 저장해둔 recommendedLectureIds를 다시 강의로 풀어서
+    // 실시간 응답과 똑같이 추천 링크 버튼이 그대로 남아있게 한다.
     private ChatHistoryResponse toResponse(ChatHistory history) {
-        return toResponse(history, List.of());
+        return toResponse(history, resolveRecommendedLectures(history.getRecommendedLectureIds()));
     }
 
-    // recommendedLectures는 방금 생성한 실시간 응답에만 채워준다 (ChatHistory에 저장되는 값이 아니라서
-    // 지난 대화 기록을 다시 불러올 때는 항상 빈 리스트로 나간다).
     private ChatHistoryResponse toResponse(ChatHistory history, List<Lecture> recommendedLectures) {
         return ChatHistoryResponse.builder()
                 .id(history.getId())

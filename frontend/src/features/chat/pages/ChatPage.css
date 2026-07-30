@@ -165,6 +165,26 @@
     gap: 4px;
 }
 
+/* 스크롤은 유지하되, 스크롤바 자체는 배경색과 같게 만들어 눈에 띄지 않게 한다
+   (기존 챗봇 위젯 .chat-messages 스크롤바와 동일한 방식). */
+.chat-page__question-list {
+    scrollbar-width: thin;
+    scrollbar-color: var(--bg) var(--bg);
+}
+
+.chat-page__question-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-page__question-list::-webkit-scrollbar-track {
+    background: var(--bg);
+}
+
+.chat-page__question-list::-webkit-scrollbar-thumb {
+    background: var(--bg);
+    border-radius: 4px;
+}
+
 .chat-page__question-item {
     display: flex;
     align-items: center;
@@ -210,26 +230,6 @@
     color: var(--text);
 }
 
-.chat-page__history-load-more {
-    flex: 0 0 auto;
-    padding: 8px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-h);
-    font-size: 12px;
-    cursor: pointer;
-}
-
-.chat-page__history-load-more:hover {
-    border-color: #e57391;
-    color: #e57391;
-}
-
-.chat-page__history-load-more:disabled {
-    opacity: 0.6;
-    cursor: default;
-}
 
 /* ===== 오른쪽: 선택한 대화 / 새 질문 작성 ===== */
 .chat-page__main {
@@ -256,6 +256,24 @@
     border: 1px solid var(--border);
     border-radius: 16px;
     background: var(--code-bg);
+}
+
+.chat-page__messages {
+    scrollbar-width: thin;
+    scrollbar-color: var(--code-bg) var(--code-bg);
+}
+
+.chat-page__messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-page__messages::-webkit-scrollbar-track {
+    background: var(--code-bg);
+}
+
+.chat-page__messages::-webkit-scrollbar-thumb {
+    background: var(--code-bg);
+    border-radius: 4px;
 }
 
 .chat-page__empty {
