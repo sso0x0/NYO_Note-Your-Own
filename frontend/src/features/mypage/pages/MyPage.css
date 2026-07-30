@@ -1,5 +1,4 @@
 .mypage {
-  /* 강의/노트/커뮤니티 목록과 같은 팔레트 변수 구성을 사용해 톤을 통일한다. */
   --mp-accent: #e57391;
   --mp-accent-bg: #fdeef2;
   --mp-ink: #1c1c1a;
@@ -13,8 +12,6 @@
   padding: 24px 32px 56px;
   text-align: left;
   box-sizing: border-box;
-  /* 강의/노트/커뮤니티 목록 제목과 같은 Pretendard 계열로 통일한다.
-     index.css의 전역 h1,h2,h3 규칙이 system-ui로 되돌려놓기 때문에 명시적으로 다시 지정해야 한다. */
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
@@ -174,9 +171,7 @@
   border-bottom: 1px dashed var(--mp-line);
 }
 
-/* ===== 메뉴바(탭) =====
-   관리자 페이지 사이드 내비게이션처럼, 버튼들이 따로 떨어지지 않고
-   하나의 띠 안에 이어 붙은 형태로 만든다 (경계는 구분선으로만 표시). */
+/* ===== 메뉴바(탭) ===== */
 .mypage__tabs {
   display: flex;
   flex-wrap: wrap;
@@ -239,8 +234,6 @@
   margin-top: 12px;
 }
 
-/* 노트 목록 페이지(NoteBoard)와 같은 가로형(썸네일 + 본문) 카드 레이아웃으로
-   공용 NoteCard를 덮어써서, 마이페이지의 노트 목록도 같은 형식으로 통일한다. */
 .mypage__note-list {
   display: flex;
   flex-direction: column;
@@ -283,17 +276,9 @@
 }
 
 .mypage__note-list .note-card__category {
-  /* 노트 목록 페이지와 동일한 카테고리 강조색(파란 계열)을 그대로 사용한다. */
   color: #6065fb;
 }
 
-@media (max-width: 720px) {
-  .mypage__note-list .note-card__link {
-    align-items: flex-start;
-  }
-}
-
-/* 강의도 노트 목록과 같은 가로형(썸네일 + 본문) 카드 형식으로 통일한다. */
 .mypage__lecture-list {
   display: flex;
   flex-direction: column;
@@ -321,8 +306,6 @@
 }
 
 .mypage__lecture-list .lecture-card__thumb {
-  /* 강의 썸네일은 유튜브 썸네일 등 가로로 넓은 16:9 비율이라, 노트처럼 정사각형으로
-     자르지 않고 원본 비율 그대로 옆으로 넓게 보여준다. */
   width: 220px;
   aspect-ratio: 16 / 9;
   height: auto;
@@ -338,7 +321,6 @@
 }
 
 .mypage__lecture-list .lecture-card__category {
-  /* 노트 카드와 동일한 카테고리 강조색(파란 계열)을 그대로 사용한다. */
   color: #6065fb;
 }
 
@@ -346,13 +328,6 @@
   margin-top: 4px;
 }
 
-@media (max-width: 720px) {
-  .mypage__lecture-list .lecture-card__link {
-    align-items: flex-start;
-  }
-}
-
-/* ===== 이전/다음 페이지 네비게이션 ===== */
 .mypage__pager {
   display: flex;
   align-items: center;
@@ -391,7 +366,6 @@
   color: var(--text);
 }
 
-/* ===== 뽀모도로 학습 기록 ===== */
 .mypage__pomodoro-summary {
   display: flex;
   flex-wrap: wrap;
@@ -508,7 +482,6 @@
   font-size: 12px;
 }
 
-/* ===== 게시글/강의/댓글 리스트 ===== */
 .mypage__post-list {
   list-style: none;
   margin: 14px 0 0;
@@ -569,7 +542,6 @@
   flex-shrink: 0;
 }
 
-/* ===== 챗봇 대화 기록 ===== */
 .mypage__chat-history-header {
   display: flex;
   align-items: center;
@@ -636,10 +608,6 @@
   cursor: default;
 }
 
-/* 질문 목록과 대화 상세가 따로 떨어진 두 개의 박스처럼 보이지 않도록,
-   하나의 테두리 안에 세로 구분선만 두고 한 화면(채팅창)처럼 묶는다.
-   높이는 질문 목록이 대략 5개까지 보이는 정도로 고정해, 그보다 많으면
-   목록 안에서만 스크롤되고 "더 보기"로 불러온 항목도 이 안에서 스크롤해 본다. */
 .mypage__chat-layout {
   display: flex;
   align-items: stretch;
@@ -660,7 +628,6 @@
   background: var(--bg);
 }
 
-/* 대화끼리는 카드로 띄우지 않고 실선 구분선으로만 나눈다. */
 .mypage__chat-question-list {
   list-style: none;
   margin: 0;
@@ -672,7 +639,6 @@
   flex-direction: column;
 }
 
-/* 스크롤바를 얇고 둥글게, 카드 톤과 어울리는 은은한 색으로 바꾼다. */
 .mypage__chat-question-list,
 .mypage__chat-detail {
   scrollbar-width: thin;
@@ -733,7 +699,6 @@
 }
 
 .mypage__chat-question-btn--active {
-  /* 회색 배경(hover)과 겹쳐 보이지 않도록, 선택 표시도 핑크 대신 조금 더 짙은 회색만 쓴다. */
   background: rgba(0, 0, 0, 0.08);
 }
 
@@ -756,7 +721,6 @@
   white-space: nowrap;
 }
 
-/* 체크박스는 기본 브라우저 모양보다 살짝 키우되, 핑크 대신 회색 톤만 쓴다. */
 .mypage__chat-checkbox {
   width: 16px;
   height: 16px;
@@ -765,7 +729,6 @@
   cursor: pointer;
 }
 
-/* 실제 챗봇 위젯(chat.css)과 같은 파스텔 말풍선 톤으로 대화 상세를 보여준다. */
 .mypage__chat-detail {
   flex: 1;
   min-width: 0;
@@ -846,8 +809,6 @@
   font-size: 13px;
 }
 
-/* 사이드바 하단에 붙어, 질문 목록을 늘려도 카드 전체가 아니라 목록 안에서만
-   스크롤로 이어지게 하는 푸터 버튼. */
 .mypage__chat-load-more {
   flex: 0 0 auto;
   margin: 0;
@@ -873,7 +834,6 @@
   cursor: default;
 }
 
-/* ===== 위험 구역(탈퇴) ===== */
 .mypage__danger-zone {
   margin-top: 40px;
   padding-top: 20px;
@@ -913,7 +873,62 @@
   background: rgba(217, 45, 32, 0.08);
 }
 
-/* ===== 모바일 ===== */
+/* ===== 입력 그룹 및 에러 스타일 ===== */
+.mypage__input-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.5rem;
+}
+
+.mypage__input-group label {
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+.mypage__password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.mypage__password-wrapper input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.mypage__eye-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.mypage__eye-btn:hover {
+  color: #333;
+}
+
+input.input-error {
+  border: 1px solid #ff4d4f;
+  outline: none;
+}
+
+input.input-error:focus {
+  border-color: #ff4d4f;
+  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2);
+}
+
+.mypage__warning-text {
+  color: #ff4d4f;
+  font-size: 0.85rem;
+  margin-top: 0.4rem;
+}
+
 @media (max-width: 720px) {
   .mypage {
     padding: 20px 16px 48px;
@@ -944,118 +959,4 @@
     height: auto;
     max-height: 360px;
   }
-}
-.mypage__password-field {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.mypage__password-field input {
-  width: 100%;
-  padding-right: 40px;
-}
-
-.mypage__password-toggle {
-  position: absolute;
-  right: 8px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #999;
-  padding: 4px;
-}
-
-.mypage__password-toggle:hover {
-  color: #555;
-}
-
-.mypage__password-field {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.mypage__password-field input {
-  width: 100%;
-  padding-right: 40px;
-}
-
-.mypage__password-toggle {
-  position: absolute;
-  right: 10px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  color: #999;
-  padding: 0;
-}
-
-.mypage__password-toggle:hover {
-  color: #333;
-}
-
-/* 입력 그룹 래퍼 */
-.mypage__input-group {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 1.5rem;
-}
-
-.mypage__input-group label {
-  margin-bottom: 0.5rem;
-  font-weight: bold;
-}
-
-/* 비밀번호 입력 & 눈 아이콘 감싸는 래퍼 */
-.mypage__password-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.mypage__password-wrapper input {
-  width: 100%;
-  padding-right: 40px; /* 눈 모양 아이콘이 들어갈 공간 확보 */
-}
-
-/* 눈 모양 아이콘 버튼 */
-.mypage__eye-btn {
-  position: absolute;
-  right: 10px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #888;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
-
-.mypage__eye-btn:hover {
-  color: #333;
-}
-
-/* 유효성 검사 에러 상태 (입력창 빨간 테두리) */
-input.input-error {
-  border: 1px solid #ff4d4f;
-  outline: none;
-}
-
-input.input-error:focus {
-  border-color: #ff4d4f;
-  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2);
-}
-
-/* 하단 빨간색 경고 텍스트 */
-.mypage__warning-text {
-  color: #ff4d4f;
-  font-size: 0.85rem;
-  margin-top: 0.4rem;
 }
