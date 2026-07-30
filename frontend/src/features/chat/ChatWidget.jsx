@@ -17,7 +17,9 @@ const WELCOME_MESSAGE = '안녕하세요?'
 // 페이지를 이동하면 화면에는 이전 대화가 다시 뜨지 않도록 로컬 상태만 비운다.
 // 강의 시청 페이지·노트 상세 페이지는 이 위젯이 페이지 컨텍스트(lectureId/noteId)를
 // 몰라서 엉뚱한 답을 할 수 있어, 대신 그 자리에 컨텍스트를 아는 전용 학습 챗봇이 있다.
-// 그래서 같은 화면에 챗봇이 두 개 뜨지 않도록 이 두 페이지에서는 위젯 자체를 숨긴다.
+// /main/chat 페이지는 이 위젯과 똑같이 컨텍스트 없이 전체 노트를 대상으로 답하지만
+// 화면 전체를 쓰는 전용 페이지라 작은 팝업 위젯과 나란히 뜰 이유가 없다.
+// 그래서 같은 화면에 챗봇이 두 개 뜨지 않도록 이 페이지들에서는 위젯 자체를 숨긴다.
 export default function ChatWidget({ stacked = false, onOpenChange } = {}) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([])
@@ -26,7 +28,8 @@ export default function ChatWidget({ stacked = false, onOpenChange } = {}) {
   const bottomRef = useRef(null)
   const location = useLocation()
   const { lectureId: watchingLectureId, noteId: viewingNoteId } = detectStudyContext(location.pathname)
-  const hasDedicatedChat = watchingLectureId !== null || viewingNoteId !== null
+  const onChatPage = location.pathname.startsWith('/main/chat')
+  const hasDedicatedChat = watchingLectureId !== null || viewingNoteId !== null || onChatPage
 
   // 다른 페이지로 이동하면 이전 페이지에서 열려 있던 대화창은 닫고 화면 상태만 초기화한다.
   // (서버에 저장된 대화 기록 자체는 지우지 않음 — 다시 불러오지 않을 뿐)
@@ -71,7 +74,7 @@ export default function ChatWidget({ stacked = false, onOpenChange } = {}) {
     }
   }
 
-  // 강의 시청/노트 상세 페이지는 전용 학습 챗봇이 대신하므로 이 위젯은 렌더링하지 않는다.
+  // 강의 시청/노트 상세 페이지는 전용 학습 챗봇이, /main/chat은 전용 페이지가 대신하므로 이 위젯은 렌더링하지 않는다.
   if (hasDedicatedChat) return null
 
   return (
@@ -85,7 +88,7 @@ export default function ChatWidget({ stacked = false, onOpenChange } = {}) {
               </div>
               <div className="chat-messages">
                 {messages.map((m) => (
-                    <ChatMessage key={m.id} senderRole={m.senderRole} message={m.message} />
+                    <ChatMessage key={m.id} senderRole={m.senderRole} message={m.message} recommendedLectures={m.recommendedLectures} />
                 ))}
                 {sending && (
                     <div className="chat-row chat-row-assistant">

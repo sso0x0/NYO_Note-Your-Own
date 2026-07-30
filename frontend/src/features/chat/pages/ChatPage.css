@@ -1,0 +1,306 @@
+.chat-page {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 16px 40px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.chat-page__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.chat-page__header .chat-header__avatar {
+    width: 40px;
+    height: 40px;
+}
+
+.chat-page__title {
+    flex: 1;
+}
+
+.chat-page__title h1 {
+    margin: 0;
+    font-size: 20px;
+    color: var(--text-h);
+}
+
+.chat-page__title p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--text);
+}
+
+/* ===== 새 대화 + 지난 기록을 합친 2단 레이아웃 ===== */
+.chat-page__body {
+    display: flex;
+    gap: 16px;
+    align-items: stretch;
+    height: 70vh;
+    min-height: 480px;
+    max-height: 70vh;
+}
+
+.chat-page__sidebar {
+    flex: 0 0 280px;
+    height: 100%;
+    min-height: 0; /* flex 자식은 기본적으로 min-height:auto라 내용이 많으면 부모 높이를 넘어 늘어난다 —
+                      0으로 눌러줘야 검색 결과 수와 무관하게 이 박스 높이가 고정되고 안쪽만 스크롤된다. */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 12px;
+    overflow: hidden;
+}
+
+.chat-page__new-chat-btn {
+    flex: 0 0 auto;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-h);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: left;
+}
+
+.chat-page__new-chat-btn:hover {
+    border-color: #d98cae;
+    color: #6b3550;
+}
+
+.chat-page__search {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--code-bg);
+    font-size: 13px;
+    color: var(--text-h);
+}
+
+.chat-page__search:focus {
+    outline: none;
+    border-color: #ffb3d1;
+}
+
+.chat-page__sidebar-empty {
+    padding: 12px 4px;
+    font-size: 13px;
+    color: var(--text);
+    text-align: center;
+}
+
+.chat-page__history-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.chat-page__history-select-all {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.chat-page__history-select-delete-btn,
+.chat-page__history-delete-all-btn {
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.chat-page__history-select-delete-btn {
+    border-color: var(--border);
+    color: var(--text-h);
+}
+
+.chat-page__history-select-delete-btn:hover:not(:disabled) {
+    border-color: #e57391;
+    color: #e57391;
+}
+
+.chat-page__history-select-delete-btn:disabled,
+.chat-page__history-delete-all-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.chat-page__history-delete-all-btn {
+    color: #d92d20;
+}
+
+.chat-page__history-delete-all-btn:hover:not(:disabled) {
+    background: rgba(217, 45, 32, 0.08);
+}
+
+.chat-page__question-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* 스크롤은 유지하되, 스크롤바 자체는 배경색과 같게 만들어 눈에 띄지 않게 한다
+   (기존 챗봇 위젯 .chat-messages 스크롤바와 동일한 방식). */
+.chat-page__question-list {
+    scrollbar-width: thin;
+    scrollbar-color: var(--bg) var(--bg);
+}
+
+.chat-page__question-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-page__question-list::-webkit-scrollbar-track {
+    background: var(--bg);
+}
+
+.chat-page__question-list::-webkit-scrollbar-thumb {
+    background: var(--bg);
+    border-radius: 4px;
+}
+
+.chat-page__question-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.chat-page__question-btn {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+
+.chat-page__question-btn:hover {
+    background: rgba(229, 115, 145, 0.08);
+}
+
+.chat-page__question-btn--active {
+    background: rgba(229, 115, 145, 0.14);
+}
+
+.chat-page__question-text {
+    width: 100%;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-h);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chat-page__question-meta {
+    font-size: 11px;
+    color: var(--text);
+}
+
+
+/* ===== 오른쪽: 선택한 대화 / 새 질문 작성 ===== */
+.chat-page__main {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chat-page__messages {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    /* 답변이 짧을 땐 스크롤바가 없다가 길어지면 생기면서 그만큼 내용 폭이 줄어드는 게
+       "박스 크기가 바뀐다"처럼 보였다 — 스크롤 여부와 무관하게 항상 그 자리를 비워둔다. */
+    scrollbar-gutter: stable;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--code-bg);
+}
+
+.chat-page__messages {
+    scrollbar-width: thin;
+    scrollbar-color: var(--code-bg) var(--code-bg);
+}
+
+.chat-page__messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-page__messages::-webkit-scrollbar-track {
+    background: var(--code-bg);
+}
+
+.chat-page__messages::-webkit-scrollbar-thumb {
+    background: var(--code-bg);
+    border-radius: 4px;
+}
+
+.chat-page__empty {
+    margin: auto;
+    max-width: 320px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text);
+    opacity: 0.8;
+}
+
+.chat-page .chat-bubble {
+    max-width: 85%;
+}
+
+@media (max-width: 720px) {
+    .chat-page__body {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .chat-page__sidebar {
+        flex: none;
+        max-height: 260px;
+    }
+
+    .chat-page__messages {
+        min-height: 320px;
+    }
+}
