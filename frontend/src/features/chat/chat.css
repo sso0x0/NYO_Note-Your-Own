@@ -119,6 +119,7 @@
   padding: 0.55rem 0.85rem;
   border-radius: 16px;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
   font-size: 0.9rem;
   line-height: 1.45;
 }
