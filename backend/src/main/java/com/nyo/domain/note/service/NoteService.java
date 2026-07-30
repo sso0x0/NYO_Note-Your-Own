@@ -343,7 +343,7 @@ public class NoteService {
     public void increaseViewCount(Long noteId, Long userId) {
         getNote(noteId);
 
-        // common의 view_logs에 오늘 조회 기록이 없을 때만 notes.view_count를 증가시킨다.
+        // 조회할 때마다 notes.view_count를 증가시킨다.
         boolean isNewView = viewService.recordView(userId, ViewRequest.builder()
                 .targetType("NOTE")
                 .targetId(noteId)

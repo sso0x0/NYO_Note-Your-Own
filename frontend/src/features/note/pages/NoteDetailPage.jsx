@@ -22,12 +22,14 @@ function NoteDetailPage() {
     setError(null);
     setLiked(false);
 
-    getNote(id)
+    // 조회수 증가를 먼저 처리한 뒤 상세 정보를 조회해야 갱신된 숫자가 바로 표시된다.
+    increaseNoteViewCount(id)
+      .catch(() => {})
+      .then(() => getNote(id))
       .then((data) => {
         if (cancelled) return;
         setNote(data);
         setStatus('success');
-        increaseNoteViewCount(id).catch(() => {});
         isNoteLiked(id)
           .then((value) => {
             if (!cancelled) setLiked(!!value);
