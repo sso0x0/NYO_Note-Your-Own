@@ -22,14 +22,8 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
   const [remainingSeconds, setRemainingSeconds] = useState(DEFAULT_FOCUS_MINUTES * 60)
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState(null)
-  // 자동 감지된 강의/노트를 실제로 연결할지는 사용자가 체크박스로 직접 고른다 (기본은 연결).
-  const [linkEnabled, setLinkEnabled] = useState(true)
   const intervalRef = useRef(null)
 
-  // 감지된 대상이 바뀌면(다른 강의/노트 페이지로 이동) 다시 기본값(연결)으로 초기화한다.
-  useEffect(() => {
-    setLinkEnabled(true)
-  }, [lectureId, noteId])
   // 시작 시점의 집중 분을 세션에 고정해둔다. 카운트다운 도중 설정 입력을 다시
   // 보여주지 않기 때문에 값이 바뀔 일은 없지만, state 대신 ref로 들고 있어야
   // setInterval 콜백(클로저)이 항상 이 세션의 값을 참조하게 된다.
@@ -61,7 +55,7 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
   // 이미 화면을 보고 있는 상태라 알림이 필요 없다. 소리는 의도적으로 넣지 않는다.
   const notifyFinished = () => {
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
-    new Notification('뽀모도로 타이머 종료', { body: '설정한 집중 시간이 끝났어요.' })
+    new Notification('뽀모도로 타이머 종료', { body: '설정한 시간이 끝났어요.' })
   }
 
   // 타이머 종료 처리: 자동 만료(카운트다운 0)와 수동 "종료" 클릭이 공유한다.
@@ -106,9 +100,7 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
       Notification.requestPermission()
     }
     const startedAt = new Date()
-    const linkedLectureId = linkEnabled ? lectureId : null
-    const linkedNoteId = linkEnabled ? noteId : null
-    sessionRef.current = { startedAt, durationSeconds, lectureId: linkedLectureId, noteId: linkedNoteId }
+    sessionRef.current = { startedAt, durationSeconds, lectureId, noteId }
     anchorRef.current = { time: startedAt, remaining: durationSeconds }
     setRemainingSeconds(durationSeconds)
     setStatus('running')
@@ -139,8 +131,8 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
   const totalSeconds = status === 'idle'
       ? focusMinutes * 60 + focusSeconds
       : sessionRef.current?.durationSeconds ?? focusMinutes * 60 + focusSeconds
-  const ringSize = 200
-  const ringStroke = 10
+  const ringSize = 140
+  const ringStroke = 8
   const ringRadius = (ringSize - ringStroke) / 2
   const ringCircumference = 2 * Math.PI * ringRadius
   const progress = totalSeconds > 0 ? Math.min(1, Math.max(0, remainingSeconds / totalSeconds)) : 0
@@ -180,23 +172,6 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
                 </div>
               </label>
             </div>
-        )}
-        {status === 'idle' && (lectureId || noteId) && (
-            <label className="pomodoro-context">
-              <input
-                  type="checkbox"
-                  checked={linkEnabled}
-                  onChange={(e) => setLinkEnabled(e.target.checked)}
-              />
-              {lectureId ? `강의 #${lectureId}` : `노트 #${noteId}`}와(과) 연결하기
-            </label>
-        )}
-        {/* 실행/일시정지 중에는 시작할 때 확정된 연결 값(sessionRef)을 그대로 보여준다 — 체크박스는
-            시작 전에만 바꿀 수 있고, 일시정지해도 이 값은 바뀌지 않는다. */}
-        {status !== 'idle' && (sessionRef.current?.lectureId || sessionRef.current?.noteId) && (
-            <p className="pomodoro-context pomodoro-context--readonly">
-              {sessionRef.current.lectureId ? `강의 #${sessionRef.current.lectureId}` : `노트 #${sessionRef.current.noteId}`}와(과) 연결됨
-            </p>
         )}
         <div className={`pomodoro-ring${status === 'paused' ? ' pomodoro-ring--paused' : ''}${status === 'running' ? ' pomodoro-ring--running' : ''}`}>
           <svg width={ringSize} height={ringSize} viewBox={`0 0 ${ringSize} ${ringSize}`}>
