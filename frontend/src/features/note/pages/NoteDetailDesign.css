@@ -50,7 +50,12 @@
   box-sizing: border-box;
 }
 
+<<<<<<< HEAD
+.note-detail-page:has(.note-detail-chat.is-collapsed) .note-detail-page__toolbar,
+.note-detail-page:has(.note-detail-chat.is-collapsed) .note-detail-layout {
+=======
 .note-detail-page:has(.note-detail-chat.is-collapsed) .note-detail-page__toolbar {
+>>>>>>> a5e7bf31c3095de917581515f39723e3a8a24352
   grid-template-columns: minmax(0, 1fr) 48px;
 }
 
@@ -88,20 +93,6 @@
   color: var(--nd-primary);
 }
 
-/* 커뮤니티 상세와 같은 목록 버튼 디자인을 노트 상세 전용 선택자로 유지한다. */
-.note-detail-page__list-button {
-  padding: 8px 16px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  transition: border-color 0.15s ease, color 0.15s ease;
-}
-
-.note-detail-page__list-button:hover {
-  border-color: #6065fb;
-  color: #6065fb;
-}
-
 .note-detail-page .note-header-actions .danger-button {
   border-color: #ff4f4f;
   color: #ff4f4f;
@@ -113,6 +104,14 @@
   color: #fff;
 }
 
+<<<<<<< HEAD
+.note-detail-page .note-detail-layout {
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 28px;
+}
+
+.note-detail-page .note-detail-panel {
+=======
 /* 강의 시청 페이지와 동일하게, 오른쪽 칸(뽀모도로+챗봇)이 세로로 쌓이는 flex 레이아웃으로 바꾼다.
    그리드였을 때는 챗봇 접힘 시 오른쪽 칸 전체를 48px로 줄이는 :has() 트릭이 필요했지만,
    flex에서는 뽀모도로가 항상 320px를 차지하고 있어서 챗봇만 접혀도 칸 너비가 저절로 유지된다. */
@@ -132,6 +131,7 @@
 .note-detail-page .note-detail-panel {
   flex: 1;
   min-width: 0;
+>>>>>>> a5e7bf31c3095de917581515f39723e3a8a24352
   padding: 28px;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -208,34 +208,50 @@
   border-top: 1px solid var(--border);
 }
 
+<<<<<<< HEAD
 .note-detail-page .note-like-summary .note-report-button {
-  /* 좋아요는 왼쪽에 유지하고 신고는 오른쪽 끝에 배치한다. */
+  /* 좋아요는 왼쪽에 두고 신고 버튼만 노트 칸의 오른쪽 끝으로 보낸다. */
   margin-left: auto;
   padding: 4px 0;
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: #1c1c1a;
+  color: #ff4f4f;
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
 }
 
-.note-detail-page .note-like-summary .note-report-button:hover,
-.note-detail-page .note-like-summary .note-report-button:focus-visible {
+.note-detail-page .note-like-summary .note-report-button::before {
+  content: "⚠️";
+  margin-right: 5px;
+}
+
+.note-detail-page .note-like-summary .note-report-button:hover {
   background: transparent;
   color: #ff4f4f;
   text-decoration: underline;
 }
 
 .note-detail-page .note-detail-chat {
+=======
+.note-detail-page .note-detail-chat {
   width: 320px;
   flex: none;
+>>>>>>> a5e7bf31c3095de917581515f39723e3a8a24352
   position: sticky;
   top: 24px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
 }
 
+<<<<<<< HEAD
+@media (max-width: 900px) {
+  .note-detail-page .note-detail-page__toolbar,
+  .note-detail-page .note-detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+=======
 /* ===== 뽀모도로 타이머 (강의 시청 페이지 임베드와 동일한 구성) ===== */
 .note-detail-page .note-detail-pomodoro {
   width: 320px;
@@ -348,6 +364,7 @@
     width: 100%;
   }
 
+>>>>>>> a5e7bf31c3095de917581515f39723e3a8a24352
   .note-detail-page .note-detail-chat {
     position: static;
   }
