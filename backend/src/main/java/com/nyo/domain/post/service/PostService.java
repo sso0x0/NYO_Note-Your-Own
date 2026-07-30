@@ -212,7 +212,7 @@ public class PostService {
     public void increaseViewCount(Long postId, Long userId) {
         getPost(postId);
 
-        // common의 view_logs에 오늘 조회 기록이 없을 때만 posts.view_count를 증가시킨다.
+        // 조회할 때마다 posts.view_count를 증가시킨다.
         boolean isNewView = viewService.recordView(userId, ViewRequest.builder()
                 .targetType("POST")
                 .targetId(postId)

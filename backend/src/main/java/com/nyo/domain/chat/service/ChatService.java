@@ -6,10 +6,13 @@ import com.nyo.domain.chat.entity.SenderRole;
 import com.nyo.domain.chat.repository.ChatHistoryRepository;
 import com.nyo.domain.chat.dto.ChatHistoryRequest ;
 import com.nyo.domain.chat.dto.ChatHistoryResponse;
+import com.nyo.domain.lecture.entity.Lecture;
+import com.nyo.domain.lecture.repository.LectureRepository;
 import com.nyo.domain.note.document.NoteDocument;
 import com.nyo.domain.note.entity.Note;
 import com.nyo.domain.note.repository.NoteRepository;
 import com.nyo.domain.note.repository.NoteSearchRepository;
+import com.nyo.domain.tag.repository.NoteTagRepository;
 import com.nyo.global.response.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,23 +38,32 @@ public class ChatService {
     private final OpenAiClient openAiClient;
     private final NoteRepository noteRepository;
     private final NoteSearchRepository noteSearchRepository;
+    private final NoteTagRepository noteTagRepository;
+    private final LectureRepository lectureRepository;
 
     private static final int MAX_NOTES = 3;              // 프롬프트에 넣을 노트 수
     private static final int MAX_NOTE_LENGTH = 8000;     // 노트당 본문 발췌 길이
+    private static final int MAX_TOPIC_TAGS = 10;        // 강의 주제 요약에 쓸 태그 수
 
     private static final String SYSTEM_PROMPT = """
             너는 NYO 학습 플랫폼의 복습 챗봇이다. 사용자가 자기가 쓴 강의 노트를 복습하도록 돕는 게 목적이다.
             아래 [사용자 노트 발췌]에는 사용자가 직접 작성한 노트가 [### 제목] 형식(마크다운 제목 문법)으로 구분되어 최대 3개까지 주어진다.
             이 "###" 기호는 너에게 노트 구간을 구분해주기 위한 표시일 뿐이니, 답변에서 노트를 언급할 때는 "###"를 빼고 제목 텍스트만 자연스럽게 말해라.
+            노트 제목 뒤에 (태그: ...)가 붙어있으면 그건 AI가 그 노트 내용을 분석해 자동으로 추천/등록한 핵심 키워드 태그다. 사용자가 태그가 왜 붙었는지, 무엇을 근거로 뽑혔는지 물으면 노트 본문에서 그 태그와 관련된 구체적인 내용을 찾아 근거로 설명해라.
             노트 안에 코드블럭(```)이 있으면 그 코드 내용도 빠짐없이 정확히 읽고 답변에 반영해라.
 
+            - 너는 프로그래밍/컴퓨터공학 개념 설명, 사용자 노트 복습, AI 추천 태그 관련 질문에만 답한다. "노트 안에 관련 내용이 있는가"가 먼저다 — 노트에 있는 내용이면 과목을 가리지 않고 그 노트를 근거로 답해라. 노트에 없고 프로그래밍/컴퓨터공학·태그와도 무관한 질문(일상 대화, 시사, 감정 상담, 다른 과목 일반 지식 등)에는 "저는 노트 복습이나 프로그래밍 관련 질문에 답하는 챗봇이에요. 그 질문에는 답하기 어려워요."라고만 짧게 답하고 끝내라.
             - 질문과 관련된 내용이 노트 안에 있으면 그 내용을 근거로 구체적으로 답변해라. 여러 노트 중 어떤 노트를 참고했는지 언급할 때는 제목을 【 】로 감싸서 표기해라 (예: "노트 【리액트 정리】에 따르면...").
             - "노트에 없는 내용"이라는 말은 노트를 다 살펴봐도 정말 관련 내용이 없을 때만, 그것도 딱 한 번만 짧게 언급해라. 노트에 관련 내용이 조금이라도 있으면 이 표현을 쓰지 말고 그 내용부터 근거로 답변해라.
-            - 노트 발췌가 (작성된 노트가 없습니다)이면 노트가 아직 없다는 걸 알리고 일반 지식으로 답한 뒤, 관련 내용을 노트로 남겨보라고 자연스럽게 권해라.
+            - 노트 발췌가 (작성된 노트가 없습니다)이면, 질문이 프로그래밍/컴퓨터공학 관련일 때만 노트가 아직 없다는 걸 알리고 일반 지식으로 답한 뒤 관련 내용을 노트로 남겨보라고 권해라. 프로그래밍과 무관한 질문이면 위 범위 제한 규칙대로 답하기 어렵다고 짧게 답해라.
             - 굵게(**), 글머리 기호(-) 같은 마크다운 문법을 쓰지 말고 평범한 문장으로 간결하게 답변해라. 답변 화면이 마크다운을 그림으로 바꿔주지 않아서 기호가 글자 그대로 보인다.
             - 답변에서 인용부호가 필요한 모든 경우(변수명·메서드명 강조, 노트 원문 인용 등)에 큰따옴표(")나 백틱(`)은 절대 쓰지 말고 반드시 작은따옴표(')만 써라. 예를 들어 "getUsers"나 `getUsers`가 아니라 'getUsers'라고 써라.
             - 다만 여러 줄짜리 코드를 보여줄 때는 예외로 코드블럭(```)은 그대로 사용해라.
             - 불필요하게 길게 늘어놓지 마라.
+            - [강의 정보]에는 지금 사용자가 보고 있는 강의의 제목·강사·설명과, 그 강의에 달린 노트들의 태그를 모아 뽑은 주요 주제 목록이 담긴다. "이 강의 뭐에 관한 거야", "어떤 주제들을 다뤄" 같은 강의 전체를 묻는 질문에는 이 정보를 근거로 답해라. 영상 원본 내용까지는 알 수 없으니, 모르는 세부 내용을 지어내지 말고 아는 범위(제목·설명·주제 태그)에서만 답해라.
+
+            [강의 정보]
+            %s
 
             [사용자 노트 발췌]
             %s""";
@@ -71,10 +84,11 @@ public class ChatService {
                 .message(request.getMessage())
                 .build());
 
+        String lectureContext = buildLectureContext(request.getLectureId());
         String noteContext = buildNoteContext(userId, request.getLectureId(), request.getNoteId(), request.getMessage());
 
         List<Map<String, String>> messages = new ArrayList<>();
-        messages.add(Map.of("role", "system", "content", SYSTEM_PROMPT.formatted(noteContext)));
+        messages.add(Map.of("role", "system", "content", SYSTEM_PROMPT.formatted(lectureContext, noteContext)));
         for (ChatHistory history : recentHistory) {
             String role = history.getSenderRole() == SenderRole.USER ? "user" : "assistant";
             messages.add(Map.of("role", role, "content", history.getMessage()));
@@ -122,6 +136,57 @@ public class ChatService {
         return recent;
     }
 
+    // 강의 제목/강사/설명과, 그 강의에 달린 노트들의 태그로 뽑은 주요 주제를 컨텍스트로 만든다.
+    // lectureId가 없으면(강의와 연결 안 된 대화) 챗봇이 "강의 정보 없음"으로 알고 넘어가게 한다.
+    private String buildLectureContext(Long lectureId) {
+        if (lectureId == null) {
+            return "(강의와 연결되지 않은 대화입니다)";
+        }
+
+        Optional<Lecture> lectureOpt = lectureRepository.findByIdAndIsDeletedFalse(lectureId);
+        if (lectureOpt.isEmpty()) {
+            return "(강의 정보를 찾을 수 없습니다)";
+        }
+        Lecture lecture = lectureOpt.get();
+
+        StringBuilder context = new StringBuilder();
+        context.append("제목: ").append(lecture.getTitle()).append("\n");
+        if (StringUtils.hasText(lecture.getInstructor())) {
+            context.append("강사: ").append(lecture.getInstructor()).append("\n");
+        }
+        if (StringUtils.hasText(lecture.getDescription())) {
+            context.append("설명: ").append(lecture.getDescription()).append("\n");
+        }
+
+        String topics = topTopicTags(lectureId);
+        if (topics != null) {
+            context.append("학생들이 노트에 남긴 태그로 본 주요 주제: ").append(topics).append("\n");
+        }
+        return context.toString();
+    }
+
+    // 이 강의에 달린 모든 학습자의 노트(어차피 전체 공개 게시물)에서 태그를 모아 빈도순 상위 N개를 뽑는다.
+    // 영상 스크립트가 없어 "이 강의 전체적으로 뭘 다루는지" 물었을 때 학생들이 정리한 태그가
+    // 사실상 유일한 주제 신호라, 질문자 본인 노트로 범위를 좁히지 않고 전체 노트를 본다.
+    private String topTopicTags(Long lectureId) {
+        List<Note> notes = noteRepository.findByLectureIdAndIsDeletedOrderByCreatedAtDesc(lectureId, 0);
+        if (notes.isEmpty()) {
+            return null;
+        }
+        List<Long> noteIds = notes.stream().map(Note::getId).toList();
+        List<NoteTagRepository.NoteIdTagName> tagRows = noteTagRepository.findTagNamesByNoteIdIn(noteIds);
+        if (tagRows.isEmpty()) {
+            return null;
+        }
+        Map<String, Long> frequency = tagRows.stream()
+                .collect(Collectors.groupingBy(NoteTagRepository.NoteIdTagName::getTagName, Collectors.counting()));
+        return frequency.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .limit(MAX_TOPIC_TAGS)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.joining(", "));
+    }
+
     /**
      * 질문을 Elasticsearch(nori 형태소 분석)로 검색해 사용자 본인 노트 중 관련도 높은 노트를 찾고,
      * 매칭이 없으면 최근 노트로 폴백합니다.
@@ -155,7 +220,12 @@ public class ChatService {
             String content = note.content().length() > MAX_NOTE_LENGTH
                     ? note.content().substring(0, MAX_NOTE_LENGTH)
                     : note.content();
-            context.append("### ").append(note.title()).append("\n").append(content).append("\n\n");
+            List<String> tagNames = noteTagRepository.findTagNamesByNoteId(note.id());
+            context.append("### ").append(note.title());
+            if (!tagNames.isEmpty()) {
+                context.append(" (태그: ").append(String.join(", ", tagNames)).append(")");
+            }
+            context.append("\n").append(content).append("\n\n");
         }
         return context.toString();
     }

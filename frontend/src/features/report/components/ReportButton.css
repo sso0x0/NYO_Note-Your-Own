@@ -1,12 +1,14 @@
 .report-open-button {
   border: 0;
   background: transparent;
-  color: #777;
+  /* 모든 사용자 신고 버튼은 기본 검은색, 마우스를 올리면 빨간색으로 통일한다. */
+  color: #1c1c1a;
   cursor: pointer;
   font-size: 13px;
 }
 
-.report-open-button:hover {
+.report-open-button:hover,
+.report-open-button:focus-visible {
   color: #ff4f4f;
   text-decoration: underline;
 }

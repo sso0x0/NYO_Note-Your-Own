@@ -55,6 +55,11 @@ public enum ErrorCode {
     REPORT_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND, "신고 대상을 찾을 수 없습니다."),
     REPORT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 신고한 대상입니다."),
 
+    // 강사 등록 신청 관련 에러코드
+    INSTRUCTOR_APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 강사 신청입니다."),
+    INSTRUCTOR_APPLICATION_ALREADY_PENDING(HttpStatus.CONFLICT, "이미 심사 대기 중인 강사 신청이 있습니다."),
+    INSTRUCTOR_APPLICATION_ALREADY_PROCESSED(HttpStatus.CONFLICT, "이미 처리된 강사 신청입니다."),
+
     // 노트/게시글 이미지 관련 에러코드
     IMAGE_EMPTY(HttpStatus.BAD_REQUEST, "업로드할 이미지가 없습니다."),
     IMAGE_INVALID_EXTENSION(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 확장자입니다."),

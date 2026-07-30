@@ -140,9 +140,7 @@ export default function StatsAndHistory({ refreshKey }) {
                         <span className="pomodoro-history__date">{r.startedAt?.slice(0, 10)}</span>
                         <span className="pomodoro-history__time">{r.startedAt?.slice(11, 16)}</span>
                       </div>
-                      <span className={`pomodoro-history__duration${r.endedAt ? '' : ' pomodoro-history__duration--active'}`}>
-                        {r.endedAt ? `${r.focusMinutes}분` : '진행 중'}
-                      </span>
+                      <span className="pomodoro-history__duration">{r.focusMinutes}분</span>
                     </li>
                 ))}
               </ul>

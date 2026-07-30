@@ -1,247 +1,421 @@
 /* sh 디자인을 유지하면서 노트 상세에만 적용하는 별도 레이아웃입니다. */
 .note-detail-page {
-  --nd-primary: #6065fb;
-  --nd-primary-bg: #eef0fe;
-  width: 100%;
-  max-width: 1560px;
-  margin: 0 auto;
-  padding: 24px 32px 56px;
-  box-sizing: border-box;
-  text-align: left;
+    --nd-primary: #6065fb;
+    --nd-primary-bg: #eef0fe;
+    width: 100%;
+    max-width: 1560px;
+    margin: 0 auto;
+    padding: 24px 32px 56px;
+    box-sizing: border-box;
+    text-align: left;
 }
 
 .note-detail-page__crumbs {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-  color: var(--text);
-  font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    color: var(--text);
+    font-size: 12px;
 }
 
 .note-detail-page__crumbs button {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  cursor: pointer;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
 }
 
 .note-detail-page__crumbs button:hover {
-  color: var(--nd-primary);
+    color: var(--nd-primary);
 }
 
 .note-detail-page__crumbs .is-current {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text-h);
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-h);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .note-detail-page .note-detail-page__toolbar {
-  display: grid;
-  width: 100%;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 28px;
-  margin-bottom: 16px;
-  box-sizing: border-box;
+    display: grid;
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 28px;
+    margin-bottom: 16px;
+    box-sizing: border-box;
 }
 
-.note-detail-page:has(.note-detail-chat.is-collapsed) .note-detail-page__toolbar,
-.note-detail-page:has(.note-detail-chat.is-collapsed) .note-detail-layout {
-  grid-template-columns: minmax(0, 1fr) 48px;
+.note-detail-page:has(.note-detail-chat.is-collapsed) .note-detail-page__toolbar {
+    grid-template-columns: minmax(0, 1fr) 48px;
 }
 
 .note-detail-page__toolbar-main {
-  display: flex;
-  width: 100%;
-  min-width: 0;
-  grid-column: 1;
-  justify-self: stretch;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    grid-column: 1;
+    justify-self: stretch;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
 }
 
 .note-detail-page__toolbar-main .note-header-actions {
-  margin-left: auto;
-  justify-content: flex-end;
+    margin-left: auto;
+    justify-content: flex-end;
 }
 
 .note-detail-page .note-header-actions button,
 .note-detail-page__list-button {
-  padding: 8px 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--text-h);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text-h);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
 }
 
 .note-detail-page .note-header-actions button:hover,
 .note-detail-page__list-button:hover {
-  border-color: var(--nd-primary);
-  color: var(--nd-primary);
+    border-color: var(--nd-primary);
+    color: var(--nd-primary);
+}
+
+/* 커뮤니티 게시글 상세의 목록 버튼과 크기·글꼴·호버 효과를 동일하게 맞춘다. */
+.note-detail-page__list-button {
+    padding: 8px 16px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.note-detail-page__list-button:hover {
+    border-color: #6065fb;
+    color: #6065fb;
 }
 
 .note-detail-page .note-header-actions .danger-button {
-  border-color: #ff4f4f;
-  color: #ff4f4f;
+    border-color: #ff4f4f;
+    color: #ff4f4f;
 }
 
 .note-detail-page .note-header-actions .danger-button:hover {
-  border-color: #ff4f4f;
-  background: #ff4f4f;
-  color: #fff;
+    border-color: #ff4f4f;
+    background: #ff4f4f;
+    color: #fff;
 }
 
 .note-detail-page .note-detail-layout {
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 28px;
+    /* 기존 노트 디자인을 유지하면서 mia의 타이머와 챗봇을 오른쪽에 세로로 배치한다. */
+    display: flex;
+    align-items: flex-start;
+    gap: 28px;
+}
+
+.note-detail-page .note-detail-side {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: 20px;
 }
 
 .note-detail-page .note-detail-panel {
-  padding: 28px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg);
+    flex: 1;
+    min-width: 0;
+    padding: 28px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg);
 }
 
 .note-detail-page .post-detail-title {
-  margin: 0;
-  color: var(--text-h);
-  font-size: clamp(24px, 3vw, 32px);
-  font-weight: 800;
-  line-height: 1.3;
-  letter-spacing: -0.5px;
+    margin: 0;
+    color: var(--text-h);
+    font-size: clamp(24px, 3vw, 32px);
+    font-weight: 800;
+    line-height: 1.3;
+    letter-spacing: -0.5px;
 }
 
 .note-detail-page .note-detail-byline {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
-  margin: 10px 0 18px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text);
-  font-size: 13px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 10px 0 18px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
 }
 
 .note-detail-byline__left,
 .note-detail-byline__right {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
 }
 
 .note-detail-byline__right {
-  margin-left: auto;
-  justify-content: flex-end;
-  text-align: right;
+    margin-left: auto;
+    justify-content: flex-end;
+    text-align: right;
 }
 
 .note-detail-page .note-tags {
-  margin: 0 0 20px;
+    /* 노트 게시판의 태그 묶음과 동일한 간격을 상세 페이지에 독립적으로 적용한다. */
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 20px;
 }
 
-.note-detail-page .note-tag-chip {
-  border-color: var(--nd-primary-bg);
-  background: var(--nd-primary-bg);
-  color: var(--nd-primary);
+.note-detail-page__ai-tag {
+    /* 노트 게시판 NoteCard의 AI 태그 디자인을 상세 페이지 전용 클래스로 재현한다. */
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    appearance: none;
+    border: none;
+    border-radius: 999px;
+    background: #eff6ff;
+    box-shadow: none;
+    color: #2563eb;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+    cursor: pointer;
+}
+
+.note-detail-page__ai-tag:hover,
+.note-detail-page__ai-tag:focus,
+.note-detail-page__ai-tag:active {
+    background: #eff6ff;
+    box-shadow: none;
+    color: #2563eb;
+}
+
+.note-detail-page__ai-tag:focus-visible {
+    outline: 2px solid rgba(37, 99, 235, 0.35);
+    outline-offset: 2px;
 }
 
 .note-detail-page .note-thumbnail {
-  display: block;
-  max-width: 100%;
-  margin: 4px auto 20px;
-  border-radius: 12px;
+    display: block;
+    max-width: 100%;
+    margin: 4px auto 20px;
+    border-radius: 12px;
 }
 
 .note-detail-page .note-content {
-  min-height: 240px;
-  padding: 24px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--nd-primary-bg);
-  color: var(--text-h);
-  line-height: 1.75;
+    min-height: 240px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--nd-primary-bg);
+    color: var(--text-h);
+    line-height: 1.75;
 }
 
 .note-detail-page .note-like-summary {
-  /* 좋아요 버튼은 페이지가 아닌 노트 내용 칸의 왼쪽 선에 맞춘다. */
-  justify-content: flex-start;
-  margin-top: 20px;
-  padding-top: 18px;
-  border-top: 1px solid var(--border);
+    /* 좋아요 버튼은 페이지가 아닌 노트 내용 칸의 왼쪽 선에 맞춘다. */
+    justify-content: flex-start;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+}
+
+/* 커뮤니티 상세의 좋아요 버튼과 동일한 캡슐형 디자인을 노트 상세에 적용한다. */
+.note-detail-page .note-like-summary .note-detail-like-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    border: 1px solid #eaeaea;
+    border-radius: 999px;
+    background: var(--bg);
+    color: #1c1c1a;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: normal;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.note-detail-page .note-like-summary .note-detail-like-button img {
+    display: block;
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}
+
+.note-detail-page .note-like-summary .note-detail-like-button:hover:not(:disabled) {
+    border-color: #e57391;
+}
+
+.note-detail-page .note-like-summary .note-detail-like-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .note-detail-page .note-like-summary .note-report-button {
-  /* 좋아요는 왼쪽에 두고 신고 버튼만 노트 칸의 오른쪽 끝으로 보낸다. */
-  margin-left: auto;
-  padding: 4px 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: #ff4f4f;
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
+    /* 좋아요는 왼쪽에 두고 신고 버튼만 노트 칸의 오른쪽 끝으로 보낸다. */
+    margin-left: auto;
+    padding: 4px 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #1c1c1a;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
 }
 
-.note-detail-page .note-like-summary .note-report-button::before {
-  content: "⚠️";
-  margin-right: 5px;
-}
-
-.note-detail-page .note-like-summary .note-report-button:hover {
-  background: transparent;
-  color: #ff4f4f;
-  text-decoration: underline;
+.note-detail-page .note-like-summary .note-report-button:hover,
+.note-detail-page .note-like-summary .note-report-button:focus-visible {
+    background: transparent;
+    color: #ff4f4f;
+    text-decoration: underline;
 }
 
 .note-detail-page .note-detail-chat {
-  position: sticky;
-  top: 24px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
+    width: 320px;
+    flex: none;
+    position: sticky;
+    top: 24px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
+}
+
+/* mia의 노트 상세 뽀모도로 기능은 유지하되 노트 상세 전용 범위 안에서만 스타일을 적용한다. */
+.note-detail-page .note-detail-pomodoro {
+    width: 320px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--bg);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
+    box-sizing: border-box;
+}
+
+.note-detail-page .note-detail-pomodoro__header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.note-detail-page .note-detail-pomodoro__badge {
+    display: inline-flex;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: var(--nd-primary-bg);
+    color: var(--nd-primary);
+}
+
+.note-detail-page .note-detail-pomodoro__badge svg {
+    width: 13px;
+    height: 13px;
+}
+
+.note-detail-page .note-detail-pomodoro__title {
+    flex: 1;
+    color: var(--text-h);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.note-detail-page .note-detail-pomodoro__history-toggle {
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border: 0;
+    background: none;
+    color: var(--text-h);
+    opacity: 0.7;
+    cursor: pointer;
+}
+
+.note-detail-page .note-detail-pomodoro__history-toggle:hover {
+    opacity: 1;
+}
+
+.note-detail-page .note-detail-pomodoro__history-toggle svg {
+    width: 20px;
+    height: 20px;
+}
+
+.note-detail-page .note-detail-pomodoro__history-popover {
+    position: absolute;
+    z-index: 5;
+    top: calc(100% + 6px);
+    right: 0;
+    width: 280px;
+    max-height: 360px;
+    overflow-y: auto;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg);
+    box-shadow: var(--card-shadow, 0 8px 24px rgba(0, 0, 0, 0.15));
+    box-sizing: border-box;
 }
 
 @media (max-width: 900px) {
-  .note-detail-page .note-detail-page__toolbar,
-  .note-detail-page .note-detail-layout {
-    grid-template-columns: 1fr;
-  }
+    .note-detail-page .note-detail-page__toolbar {
+        grid-template-columns: 1fr;
+    }
 
-  .note-detail-page .note-detail-chat {
-    position: static;
-  }
+    .note-detail-page .note-detail-layout {
+        flex-direction: column;
+    }
+
+    .note-detail-page .note-detail-side,
+    .note-detail-page .note-detail-pomodoro,
+    .note-detail-page .note-detail-chat {
+        width: 100%;
+    }
+
+    .note-detail-page .note-detail-chat {
+        position: static;
+    }
 }
 
 @media (max-width: 640px) {
-  .note-detail-page {
-    padding: 18px 14px 40px;
-  }
+    .note-detail-page {
+        padding: 18px 14px 40px;
+    }
 
-  .note-detail-page__toolbar-main {
-    width: 100%;
-    align-items: flex-start;
-  }
+    .note-detail-page__toolbar-main {
+        width: 100%;
+        align-items: flex-start;
+    }
 
-  .note-detail-page .note-header-actions {
-    width: 100%;
-  }
+    .note-detail-page .note-header-actions {
+        width: 100%;
+    }
 
-  .note-detail-page .note-detail-panel {
-    padding: 20px 16px;
-  }
+    .note-detail-page .note-detail-panel {
+        padding: 20px 16px;
+    }
 
-  .note-detail-page .note-content {
-    padding: 18px 14px;
-  }
+    .note-detail-page .note-content {
+        padding: 18px 14px;
+    }
 }

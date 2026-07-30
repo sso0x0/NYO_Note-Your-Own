@@ -3,11 +3,14 @@ import { parseTextColors } from '../../../utils/textColor'
 import { useAuth } from '../../../context/AuthContext'
 import { parseMainImage } from '../../../utils/mainImage'
 import ReportButton from '../../report/components/ReportButton'
-import { generateAiTags, getNoteTags } from '../api/tag'
+import { addNoteTag, deleteNoteTag, generateAiTags, getNoteTags } from '../api/tag'
 import { sendMessage } from '../../chat/api/chat'
 import ChatMessage from '../../chat/ChatMessage'
 import ChatInput from '../../chat/ChatInput'
+import Timer from '../../pomodoro/Timer'
+import StatsAndHistory from '../../pomodoro/StatsAndHistory'
 import '../../chat/chat.css'
+import '../../pomodoro/pomodoro.css'
 import './NoteDetailDesign.css'
 
 const EMPTY_HEART_IMAGE = '/images/heart.png'
@@ -23,6 +26,17 @@ function QuestionListIcon() {
             <circle cx="4.5" cy="12" r="0.8" fill="currentColor" />
             <circle cx="4.5" cy="18" r="0.8" fill="currentColor" />
             <path d="M8.5 6h11M8.5 12h11M8.5 18h11" />
+        </svg>
+    )
+}
+
+// 타이머 헤더의 배지 아이콘. 강의 시청 페이지의 임베드 뽀모도로와 톤을 맞춘 단색 아웃라인 시계.
+function ClockBadgeIcon() {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+             strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3.5 2" />
         </svg>
     )
 }
@@ -179,6 +193,10 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
     const [tags, setTags] = useState([])
     const [tagGenerating, setTagGenerating] = useState(false)
     const [tagError, setTagError] = useState(null)
+    const [newTagName, setNewTagName] = useState('')
+    const [tagSubmitting, setTagSubmitting] = useState(false)
+    const [pomodoroRefreshKey, setPomodoroRefreshKey] = useState(0)
+    const [showPomodoroHistory, setShowPomodoroHistory] = useState(false)
     const userId = auth?.userId
 
     const loadTags = async () => {
@@ -201,6 +219,36 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
             setTagError(error.message)
         } finally {
             setTagGenerating(false)
+        }
+    }
+
+    // 작성자가 태그명을 직접 입력해 추가. 이미 있는 이름이면 백엔드가 기존 태그에 매핑해준다.
+    const handleAddTag = async (event) => {
+        event.preventDefault()
+        const name = newTagName.trim()
+        if (!name || tagSubmitting) return
+
+        setTagSubmitting(true)
+        setTagError(null)
+        try {
+            await addNoteTag(noteId, name)
+            setNewTagName('')
+            await loadTags()
+        } catch (error) {
+            setTagError(error.message)
+        } finally {
+            setTagSubmitting(false)
+        }
+    }
+
+    // AI가 붙였든 직접 추가했든, 작성자 본인이면 태그를 뗄 수 있다.
+    const handleDeleteTag = async (tagId) => {
+        setTagError(null)
+        try {
+            await deleteNoteTag(noteId, tagId)
+            await loadTags()
+        } catch (error) {
+            setTagError(error.message)
         }
     }
 
@@ -528,11 +576,10 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
 
             <header className="note-header note-detail-page__toolbar">
                 <div className="note-detail-page__toolbar-main">
-                    <button type="button" className="note-detail-page__list-button" onClick={onBack}>목록</button>
+                    <button type="button" className="note-detail-page__list-button" onClick={onBack}>← 목록</button>
                     <div className="note-header-actions">
-                        {/* 노트 파일 저장 기능은 작성자 본인에게만 표시한다. */}
-                        {canEdit && <button type="button" onClick={exportNotePdf}>PDF 저장</button>}
-                        {canEdit && <button type="button" onClick={exportNoteMarkdown}>마크다운 저장</button>}
+                        {note && <button type="button" onClick={exportNotePdf}>PDF 저장</button>}
+                        {note && <button type="button" onClick={exportNoteMarkdown}>마크다운 저장</button>}
                         {canEdit && <button type="button" onClick={() => onEdit(note)}>수정</button>}
                         {canDelete && <button type="button" className="danger-button" onClick={deleteNote} disabled={loading}>삭제</button>}
                     </div>
@@ -565,12 +612,11 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
                                     <button
                                         key={tag.tagId}
                                         type="button"
-                                        className="note-tag-chip"
+                                        className="note-detail-page__ai-tag"
                                         onClick={() => onTagClick?.(tag.tagName)}
                                         title={`'${tag.tagName}' 태그가 붙은 다른 노트 보기`}
                                     >
-                                        {tag.isAiGenerated && <span className="note-tag-chip__ai">AI</span>}
-                                        {tag.tagName}
+                                        #{tag.tagName}
                                     </button>
                                 ))}
                                 {canEdit && (
@@ -642,19 +688,18 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
                             <div className="note-like-summary">
                                 <button
                                     type="button"
-                                    className="like-icon-button"
+                                    className="note-detail-like-button"
                                     onClick={toggleLike}
                                     disabled={likeLoading}
                                     aria-label={liked ? '좋아요 취소' : '좋아요'}
                                     aria-pressed={liked}
                                 >
                                     <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" draggable={false} />
+                                    <span>좋아요 {note.likeCount ?? 0}</span>
                                 </button>
-                                <span>좋아요 {note.likeCount ?? 0}</span>
-                                {/* 노트 ID를 신고 대상으로 전달하고, 신고 사유 입력은 공통 신고 창에서 처리한다. */}
-                                {/* 본인이 작성한 노트는 자신을 신고할 수 없으므로 신고 버튼을 숨긴다. */}
+                                {/* 본인이 작성하지 않은 노트에만 신고 버튼을 표시한다. */}
                                 {!canEdit && (
-                                  <ReportButton targetType="NOTE" targetId={note.id} className="note-report-button" />
+                                    <ReportButton targetType="NOTE" targetId={note.id} className="note-report-button" />
                                 )}
                             </div>
                         </>
@@ -662,7 +707,35 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
                         <p>{loading ? '불러오는 중입니다.' : message}</p>
                     )}
                 </article>
-                {note?.lectureId && <NoteDetailChat key={noteId} lectureId={note.lectureId} noteId={noteId} />}
+                {note && (
+                    <div className="note-detail-side">
+                        <div className="note-detail-pomodoro">
+                            <div className="note-detail-pomodoro__header">
+                                <span className="note-detail-pomodoro__badge"><ClockBadgeIcon /></span>
+                                <span className="note-detail-pomodoro__title">타이머</span>
+                                <button
+                                    type="button"
+                                    className="note-detail-pomodoro__history-toggle"
+                                    onClick={() => setShowPomodoroHistory((v) => !v)}
+                                    aria-label={showPomodoroHistory ? '기록 닫기' : '기록 보기'}
+                                >
+                                    <QuestionListIcon />
+                                </button>
+                                {showPomodoroHistory && (
+                                    <div className="note-detail-pomodoro__history-popover">
+                                        <StatsAndHistory refreshKey={pomodoroRefreshKey} />
+                                    </div>
+                                )}
+                            </div>
+                            <Timer
+                                lectureId={note.lectureId ?? null}
+                                noteId={noteId}
+                                onFinished={() => setPomodoroRefreshKey((k) => k + 1)}
+                            />
+                        </div>
+                        <NoteDetailChat key={noteId} lectureId={note.lectureId ?? null} noteId={noteId} />
+                    </div>
+                )}
             </div>
         </section>
     )

@@ -885,6 +885,22 @@ gi.mypage {
   border-top: 1px solid var(--mp-line);
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
+}
+
+.mypage__instructor-apply-btn {
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.mypage__instructor-apply-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .mypage__withdraw-btn {

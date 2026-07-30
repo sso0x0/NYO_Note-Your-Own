@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getLectureList, searchLectures } from '../../lecture/api/lecture';
 import { getCategoryList } from '../../lecture/api/category';
 import { getNoteList, getNoteListByCategory, searchNotes } from '../../note/api/note';
@@ -90,6 +90,7 @@ function CategoryIcon({ name = '' }) {
 }
 
 function MainPage() {
+  const navigate = useNavigate();
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
   const [searchType, setSearchType] = useState('all');
@@ -503,7 +504,11 @@ function MainPage() {
                       ) : (
                         <div className="main-page__list">
                           {categoryNotes.map((note) => (
-                            <NoteCard key={note.id} note={note} />
+                            <NoteCard
+                              key={note.id}
+                              note={note}
+                              onTagClick={(tagName) => navigate(`/main/notes?keyword=${encodeURIComponent(tagName)}`)}
+                            />
                           ))}
                         </div>
                       )}
@@ -592,7 +597,11 @@ function MainPage() {
               ) : (
                 <div className="main-page__list">
                   {notes.map((note) => (
-                    <NoteCard key={note.id} note={note} />
+                    <NoteCard
+                      key={note.id}
+                      note={note}
+                      onTagClick={(tagName) => navigate(`/main/notes?keyword=${encodeURIComponent(tagName)}`)}
+                    />
                   ))}
                 </div>
               )}

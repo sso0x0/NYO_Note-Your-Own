@@ -30,3 +30,15 @@ export const uploadPendingContentImages = async (content, pendingImages, uploadI
 
   return { savedContent, contentImages }
 }
+
+// 저장된 본문의 마크다운 이미지와 HTML 이미지 중 실제로 가장 먼저 등장하는 URL을 썸네일로 사용한다.
+export const findFirstContentImageUrl = (content = '') => {
+  const markdown = /!\[[^\]]*]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/i.exec(content)
+  const html = /<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/i.exec(content)
+  const candidates = [
+    markdown && { index: markdown.index, url: markdown[1] },
+    html && { index: html.index, url: html[1] },
+  ].filter(Boolean)
+
+  return candidates.sort((a, b) => a.index - b.index)[0]?.url ?? null
+}
