@@ -1,4 +1,4 @@
-gi.mypage {
+.mypage {
   /* 강의/노트/커뮤니티 목록과 같은 팔레트 변수 구성을 사용해 톤을 통일한다. */
   --mp-accent: #e57391;
   --mp-accent-bg: #fdeef2;
