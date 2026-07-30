@@ -45,14 +45,14 @@ public class UserRequest {
     @Schema(description = "이메일", example = "user@example.com")
     private String email;
 
-    @Pattern(regexp = "^01[016789]-?\\d{3,4}-?\\d{4}$", message = "휴대폰 번호 형식이 올바르지 않습니다.")
-    @Schema(description = "전화번호", example = "010-1234-5678")
-    private String phone;
-
     @Pattern(regexp = "NONE|GOOGLE|KAKAO|INSTAGRAM", message = "지원하지 않는 소셜 로그인 제공자입니다.")
     @Schema(description = "소셜 로그인 제공자", example = "NONE", defaultValue = "NONE")
     private String oauthProvider;
 
     @Schema(description = "소셜 로그인 API 고유 ID값")
     private String oauthId;
+
+    @NotBlank(message = "휴대폰 번호를 입력해 주세요.")
+    @Pattern(regexp = "^01[0-9]-?\\d{3,4}-?\\d{4}$", message = "올바른 휴대폰 번호 형식이 아닙니다.")
+    private String phone;
 }

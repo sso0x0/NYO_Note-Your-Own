@@ -12,7 +12,15 @@ import NoteCard from '../../note/components/NoteCard';
 import LectureCard from '../../lecture/components/LectureCard';
 import { SmileIcon } from '../../chat/ChatMessage';
 import LineChart from '../../../components/charts/LineChart';
+import nyoLogo from '../../../assets/images/nyo_logo.png';
+import eyeOpenIcon from '../../../assets/images/eye.png';
+import eyeCloseIcon from '../../../assets/images/eye_close.png';
 import './MyPage.css';
+
+// 회원가입 페이지와 동일한 눈 모양 아이콘 컴포넌트 적용
+function EyeIcon({ open }) {
+    return <img src={open ? eyeOpenIcon : eyeCloseIcon} alt="" width="20" height="20" />;
+}
 
 const TABS = [
     { id: 'pomodoro', label: '학습 기록' },
@@ -25,11 +33,11 @@ const TABS = [
 ];
 
 const LIST_SIZE = 8;
-const POST_SCAN_SIZE = 50; // 내 글을 찾기 위해 넉넉히 훑어볼 최근 게시글 수
-const LECTURE_SCAN_SIZE = 30; // 수강신청 여부를 물어볼 최근 강의 수 (개별 API 호출 방식이라 너무 크게 잡지 않습니다)
-const CHAT_HISTORY_SIZE = 10; // 챗봇 대화 기록 한 페이지당 개수
-const POMODORO_PERIOD_SIZE = 100; // 기간별 조회 시 한 번에 가져올 기록 수
-const PAGE_SIZE = 5; // 노트/강의/게시글/댓글 목록을 한 페이지에 보여줄 개수
+const POST_SCAN_SIZE = 50;
+const LECTURE_SCAN_SIZE = 30;
+const CHAT_HISTORY_SIZE = 10;
+const POMODORO_PERIOD_SIZE = 100;
+const PAGE_SIZE = 5;
 
 function paginate(items, page) {
     return items.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
@@ -53,20 +61,18 @@ function Pager({ page, totalPages, onChange }) {
 function defaultPomodoroRange() {
     const end = new Date();
     const start = new Date();
-    start.setDate(end.getDate() - 13); // 최근 14일 (관리자 대시보드의 "최근 14일"과 동일한 기본 범위)
+    start.setDate(end.getDate() - 13);
     return { start: toLocalDateString(start), end: toLocalDateString(end) };
 }
 
-// 이번 주(월요일 시작) 첫날
 function startOfWeek(date) {
     const d = new Date(date);
-    const day = d.getDay(); // 0=일 ~ 6=토
+    const day = d.getDay();
     const diffToMonday = (day === 0 ? -6 : 1) - day;
     d.setDate(d.getDate() + diffToMonday);
     return d;
 }
 
-// 이번 달 첫날
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
 }
@@ -81,7 +87,7 @@ function MyPage() {
     const [activeTab, setActiveTab] = useState(TABS[0].id);
 
     const [editing, setEditing] = useState(false);
-    const [form, setForm] = useState({ name: '', nickname: '', phone: '', currentPassword: '', newPassword: '' });
+    const [form, setForm] = useState({ name: '', nickname: '', phone: '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
     const [saveError, setSaveError] = useState(null);
     const [saving, setSaving] = useState(false);
 
@@ -114,11 +120,13 @@ function MyPage() {
     const [pomodoroRange, setPomodoroRange] = useState(defaultPomodoroRange);
     const [pomodoroRecords, setPomodoroRecords] = useState([]);
     const [pomodoroPage, setPomodoroPage] = useState(0);
-    const [pomodoroStatus, setPomodoroStatus] = useState('idle'); // idle | loading | success | error
+    const [pomodoroStatus, setPomodoroStatus] = useState('idle');
     const [pomodoroError, setPomodoroError] = useState(null);
 
-    // chatHistories는 id 내림차순(최신순)으로 온다. 답변은 항상 질문 바로 다음에 저장되므로
-    // id가 더 크고, 내림차순 목록에서는 질문 바로 앞자리에 온다 — 그 관계로 짝을 짓는다.
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showNewPasswordConfirm, setShowNewPasswordConfirm] = useState(false);
+
     const chatPairs = useMemo(() => {
         const pairs = [];
         chatHistories.forEach((entry, index) => {
@@ -135,16 +143,12 @@ function MyPage() {
         [chatPairs, selectedChatId]
     );
 
-    // 선택돼 있던 질문이 삭제 등으로 목록에서 사라지면(혹은 아직 아무것도 안 골랐으면)
-    // 자동으로 첫 번째 질문을 대신 선택해, 상세 영역이 빈 채로 남지 않게 한다.
     useEffect(() => {
         if (chatPairs.length === 0) return;
         const stillExists = chatPairs.some((pair) => pair.question.id === selectedChatId);
         if (!stillExists) setSelectedChatId(chatPairs[0].question.id);
     }, [chatPairs, selectedChatId]);
 
-    // 대화 기록에는 강의 번호(lectureId)만 저장돼 있어, 목록에는 "강의 #12" 대신
-    // 실제 강의명을 보여주기 위해 아직 모르는 강의만 골라 상세 정보를 따로 불러온다.
     useEffect(() => {
         const missingIds = [...new Set(
             chatPairs.map((pair) => pair.question.lectureId).filter((id) => id != null)
@@ -179,6 +183,7 @@ function MyPage() {
             .sort()
             .map((date) => ({ label: date, value: grouped[date] }));
     }, [pomodoroRecords]);
+
     const fetchPomodoroRecords = useCallback((range) => {
         setPomodoroStatus('loading');
         setPomodoroError(null);
@@ -215,7 +220,7 @@ function MyPage() {
             .then(async ([me, mine, liked, posts, lectures, chatHistoryPage0, todayStudyTime, totalStudyTime, initialPomodoroRecords, comments]) => {
                 if (cancelled) return;
                 setProfile(me);
-                setForm({ name: me.name ?? '', nickname: me.nickname ?? '', phone: me.phone ?? '', currentPassword: '', newPassword: '' });
+                setForm({ name: me.name ?? '', nickname: me.nickname ?? '', phone: me.phone ?? '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
                 setMyNotes(mine?.content ?? []);
                 setLikedNotes(liked?.content ?? []);
                 setChatHistories(chatHistoryPage0?.content ?? []);
@@ -226,14 +231,11 @@ function MyPage() {
                 setPomodoroStatus('success');
                 setMyComments(comments?.content ?? []);
 
-                // 백엔드에 "내 글만" 조회 API가 없어 프론트에서 닉네임으로 걸러냅니다.
-                // 최근 POST_SCAN_SIZE개 안에서만 찾으므로 오래된 글은 누락될 수 있습니다.
                 const mineOnly = (posts?.content ?? []).filter(
                     (post) => post.authorNickname === me.nickname
                 );
                 setMyPosts(mineOnly.slice(0, LIST_SIZE));
 
-                // TODO: 수강신청 목록 API(예: getMyEnrolledLectures)가 생기면 아래 임시 로직을 그걸로 교체하세요.
                 const lectureList = lectures?.content ?? [];
                 const enrolledFlags = await Promise.all(
                     lectureList.map((lecture) => isEnrolled(lecture.id).catch(() => false))
@@ -252,7 +254,6 @@ function MyPage() {
         return () => {
             cancelled = true;
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleFormChange = (e) => {
@@ -272,6 +273,7 @@ function MyPage() {
             phone: profile.phone ?? '',
             currentPassword: '',
             newPassword: '',
+            newPasswordConfirm: ''
         });
         setSaveError(null);
         setEditing(false);
@@ -286,7 +288,7 @@ function MyPage() {
             const updated = await updateMyProfile(form);
             setProfile(updated);
             updateNickname(updated.nickname);
-            setForm({ name: updated.name ?? '', nickname: updated.nickname ?? '', phone: updated.phone ?? '', currentPassword: '', newPassword: '' });
+            setForm({ name: updated.name ?? '', nickname: updated.nickname ?? '', phone: updated.phone ?? '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
             setEditing(false);
         } catch (err) {
             setSaveError(err.message);
@@ -326,7 +328,6 @@ function MyPage() {
         );
     };
 
-    // 현재 불러온 목록에서 삭제된 id를 걷어내고, 선택 목록에서도 같이 지운다.
     const removeChatHistoryEntries = (deletedIds) => {
         const deletedSet = new Set(deletedIds);
         setChatHistories((prev) => prev.filter((entry) => !deletedSet.has(entry.id)));
@@ -421,7 +422,7 @@ function MyPage() {
                                 <dd>{profile.phone || '-'}</dd>
                             </dl>
                         ) : (
-                            <form className="mypage__profile-form" onSubmit={handleSaveProfile}>
+                            <form className="mypage__profile-form" onSubmit={handleSaveProfile} noValidate>
                                 {saveError && <p className="mypage__error" role="alert">{saveError}</p>}
 
                                 <dl className="mypage__profile-view mypage__profile-view--readonly">
@@ -431,42 +432,120 @@ function MyPage() {
                                     <dd>{profile.name}</dd>
                                 </dl>
 
-                                <label>
-                                    닉네임
-                                    <input name="nickname" value={form.nickname} onChange={handleFormChange} required />
-                                </label>
-                                <label>
-                                    전화번호
-                                    <input name="phone" value={form.phone} onChange={handleFormChange} placeholder="010-1234-5678" />
-                                </label>
+                                <div className="mypage__input-group">
+                                    <label htmlFor="nickname">닉네임</label>
+                                    <input
+                                        id="nickname"
+                                        name="nickname"
+                                        value={form.nickname}
+                                        onChange={handleFormChange}
+                                        className={!form.nickname ? 'input-error' : ''}
+                                    />
+                                    {!form.nickname && <span className="mypage__warning-text">닉네임을 입력해 주세요.</span>}
+                                </div>
+
+                                <div className="mypage__input-group">
+                                    <label htmlFor="phone">전화번호 (선택)</label>
+                                    <input
+                                        id="phone"
+                                        name="phone"
+                                        type="tel"
+                                        value={form.phone}
+                                        onChange={handleFormChange}
+                                        placeholder="010-1234-5678"
+                                    />
+                                </div>
 
                                 {!isSocialAccount && (
                                     <>
-                                        <label>
-                                            현재 비밀번호
-                                            <input
-                                                type="password"
-                                                name="currentPassword"
-                                                value={form.currentPassword}
-                                                onChange={handleFormChange}
-                                                placeholder="비밀번호를 바꿀 때만 입력"
-                                            />
-                                        </label>
-                                        <label>
-                                            새 비밀번호
-                                            <input
-                                                type="password"
-                                                name="newPassword"
-                                                value={form.newPassword}
-                                                onChange={handleFormChange}
-                                                placeholder="바꾸지 않으면 비워두세요"
-                                            />
-                                        </label>
+                                        <div className="mypage__input-group">
+                                            <label htmlFor="currentPassword">현재 비밀번호</label>
+                                            <div className="mypage__password-wrapper">
+                                                <input
+                                                    id="currentPassword"
+                                                    name="currentPassword"
+                                                    type={showCurrentPassword ? "text" : "password"}
+
+                                                    value={form.currentPassword}
+                                                    onChange={handleFormChange}
+                                                    className={!form.currentPassword ? 'input-error' : ''}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="mypage__eye-btn"
+                                                    onClick={() => setShowCurrentPassword((v) => !v)}
+                                                    aria-label={showCurrentPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                                                    aria-pressed={showCurrentPassword}
+                                                    tabIndex={-1}
+                                                >
+                                                    <EyeIcon open={showCurrentPassword} />
+                                                </button>
+                                            </div>
+                                            {!form.currentPassword && <span className="mypage__warning-text">현재 비밀번호를 입력해 주세요.</span>}
+                                        </div>
+
+                                        <div className="mypage__input-group">
+                                            <label htmlFor="newPassword">새 비밀번호</label>
+                                            <div className="mypage__password-wrapper">
+                                                <input
+                                                    id="newPassword"
+                                                    name="newPassword"
+                                                    type={showNewPassword ? "text" : "password"}
+                                                    autoComplete="new-password"
+                                                    value={form.newPassword}
+                                                    onChange={handleFormChange}
+                                                    className={!form.newPassword ? 'input-error' : ''}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="mypage__eye-btn"
+                                                    onClick={() => setShowNewPassword((v) => !v)}
+                                                    aria-label={showNewPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                                                    aria-pressed={showNewPassword}
+                                                    tabIndex={-1}
+                                                >
+                                                    <EyeIcon open={showNewPassword} />
+                                                </button>
+                                            </div>
+                                            {!form.newPassword && <span className="mypage__warning-text">새 비밀번호를 입력해 주세요.</span>}
+                                        </div>
+
+                                        <div className="mypage__input-group">
+                                            <label htmlFor="newPasswordConfirm">새 비밀번호 확인</label>
+                                            <div className="mypage__password-wrapper">
+                                                <input
+                                                    id="newPasswordConfirm"
+                                                    name="newPasswordConfirm"
+                                                    type={showNewPasswordConfirm ? "text" : "password"}
+                                                    autoComplete="new-password"
+                                                    value={form.newPasswordConfirm}
+                                                    onChange={handleFormChange}
+                                                    className={
+                                                        (!form.newPasswordConfirm || form.newPassword !== form.newPasswordConfirm)
+                                                            ? 'input-error' : ''
+                                                    }
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="mypage__eye-btn"
+                                                    onClick={() => setShowNewPasswordConfirm((v) => !v)}
+                                                    aria-label={showNewPasswordConfirm ? '비밀번호 숨기기' : '비밀번호 보기'}
+                                                    aria-pressed={showNewPasswordConfirm}
+                                                    tabIndex={-1}
+                                                >
+                                                    <EyeIcon open={showNewPasswordConfirm} />
+                                                </button>
+                                            </div>
+                                            {!form.newPasswordConfirm && <span className="mypage__warning-text">비밀번호 확인을 입력해 주세요.</span>}
+                                            {form.newPasswordConfirm && form.newPassword !== form.newPasswordConfirm && (
+                                                <span className="mypage__warning-text">비밀번호가 일치하지 않습니다.</span>
+                                            )}
+                                        </div>
                                     </>
                                 )}
 
                                 <div className="mypage__profile-actions">
-                                    <button type="submit" disabled={saving}>{saving ? '저장 중...' : '저장'}</button>
+                                    <button type="submit" disabled={saving}>{saving ? '저장 중...' : '수정'}</button>
                                     <button type="button" onClick={handleCancelEdit} disabled={saving}>취소</button>
                                 </div>
                             </form>

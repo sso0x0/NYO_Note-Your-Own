@@ -1,0 +1,628 @@
+{
+  "info": {
+    "name": "NYO - User/Admin/JWT/OAuth 보안 테스트",
+    "description": "user, admin, jwt, security, oauth 도메인 전체 시나리오 테스트용 컬렉션.\n\n사용 순서:\n1. `baseUrl` 변수가 http://localhost:8080 인지 확인 (서버 먼저 기동)\n2. '1. 회원가입/중복체크' 폴더의 '회원가입' 요청 실행 → 테스트 유저 생성\n3. '2. 로그인' 폴더의 '로그인 성공' 실행 → accessToken이 자동으로 컬렉션 변수에 저장됨\n4. '3. 마이페이지', '4. 인증 실패 시나리오'는 accessToken을 그대로 사용\n5. '5. 관리자'는 별도로 adminLoginId/adminPassword 변수를 채우고 '관리자 로그인'을 먼저 실행해야 함\n   (앱에 최초 관리자를 만드는 API가 없어서, DB에 이미 있는 ADMIN 계정 정보를 알고 있어야 합니다)\n6. '6. 권한 경계 테스트'는 일반 유저 accessToken으로 admin API를 찔러보는 네거티브 테스트",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "testLoginId", "value": "qa_user_{{$randomInt}}" },
+    { "key": "testPassword", "value": "TestPass123!" },
+    { "key": "testEmail", "value": "qa_{{$randomInt}}@example.com" },
+    { "key": "testNickname", "value": "qa닉네임{{$randomInt}}" },
+    { "key": "accessToken", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "adminLoginId", "value": "" },
+    { "key": "adminPassword", "value": "" },
+    { "key": "adminAccessToken", "value": "" },
+    { "key": "adminUserId", "value": "" },
+    { "key": "targetUserId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. 헬스체크",
+      "item": [
+        {
+          "name": "서버 살아있는지 확인",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users/check-login-id?loginId=ping"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('서버 응답 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. 회원가입/중복체크",
+      "item": [
+        {
+          "name": "회원가입",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/users/signup",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loginId\": \"{{testLoginId}}\",\n  \"password\": \"{{testPassword}}\",\n  \"name\": \"테스트유저\",\n  \"nickname\": \"{{testNickname}}\",\n  \"email\": \"{{testEmail}}\",\n  \"phone\": \"010-1234-5678\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('회원가입 성공 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (body.success) {",
+                  "  pm.collectionVariables.set('userId', body.data.id);",
+                  "  console.log('생성된 userId:', body.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "같은 아이디로 재가입 시도 → 409 중복",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/users/signup",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loginId\": \"{{testLoginId}}\",\n  \"password\": \"{{testPassword}}\",\n  \"name\": \"테스트유저2\",\n  \"nickname\": \"다른닉네임{{$randomInt}}\",\n  \"email\": \"other_{{$randomInt}}@example.com\",\n  \"phone\": \"010-1234-5678\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('아이디 중복이면 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "로그인 아이디 중복 체크",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users/check-login-id?loginId={{testLoginId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('가입된 아이디는 true', () => {",
+                  "  pm.expect(pm.response.json().data).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "이메일 중복 체크",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users/check-email?email={{testEmail}}"
+          }
+        },
+        {
+          "name": "닉네임 중복 체크",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users/check-nickname?nickname={{testNickname}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. 로그인",
+      "item": [
+        {
+          "name": "로그인 성공 (accessToken 자동 저장)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/users/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loginId\": \"{{testLoginId}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('로그인 성공 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (body.success) {",
+                  "  pm.collectionVariables.set('accessToken', body.data.accessToken);",
+                  "  pm.collectionVariables.set('userId', body.data.userId);",
+                  "  console.log('accessToken 저장 완료');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "로그인 실패 - 틀린 비밀번호 → 401",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/users/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loginId\": \"{{testLoginId}}\",\n  \"password\": \"WrongPassword!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 + LOGIN_FAILED 메시지', () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.eql('아이디 또는 비밀번호가 일치하지 않습니다.');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "로그인 실패 - 존재하지 않는 아이디 → 위와 동일 응답이어야 함(계정 열거 방지)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/users/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loginId\": \"no_such_user_{{$randomInt}}\",\n  \"password\": \"whatever\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 + 존재하는 아이디의 오답과 동일한 메시지', () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.eql('아이디 또는 비밀번호가 일치하지 않습니다.');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "브루트포스 - 같은 아이디로 5회 연속 오답 → 6번째는 429 잠금",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/users/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loginId\": \"{{testLoginId}}\",\n  \"password\": \"WrongPassword!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Postman의 Runner에서 이 요청을 6번 연속 돌려보세요 (Collection Runner, iteration count=6).",
+                  "// 5번째까지는 401, 6번째부터는 429(MEMBER_LOGIN_LOCKED)가 나와야 정상입니다."
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. 마이페이지 (JWT 인증 필요)",
+      "item": [
+        {
+          "name": "내 정보 조회",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/users/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('본인 정보 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "내 정보 수정 (이름/닉네임/전화번호만)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/api/users/me",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"수정된이름\",\n  \"nickname\": \"{{testNickname}}\",\n  \"phone\": \"010-9999-8888\"\n}"
+            }
+          }
+        },
+        {
+          "name": "비밀번호 변경 - 현재 비번 틀림 → 400",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/api/users/me",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"테스트유저\",\n  \"nickname\": \"{{testNickname}}\",\n  \"phone\": \"010-1234-5678\",\n  \"currentPassword\": \"완전히틀린비번\",\n  \"newPassword\": \"NewPass456!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('현재 비밀번호 불일치 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "비밀번호 변경 성공",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/api/users/me",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"테스트유저\",\n  \"nickname\": \"{{testNickname}}\",\n  \"phone\": \"010-1234-5678\",\n  \"currentPassword\": \"{{testPassword}}\",\n  \"newPassword\": \"NewPass456!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('비밀번호 변경 성공 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.collectionVariables.set('testPassword', 'NewPass456!');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "회원 탈퇴 (⚠️ 마지막에 실행, 되돌릴 수 없음)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/users/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('탈퇴 성공 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "탈퇴 후 재로그인 시도 → 정지와 동일하게 403 INACTIVE (비번 맞을 때만)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/users/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loginId\": \"{{testLoginId}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('탈퇴 계정 로그인 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. 인증 실패 시나리오",
+      "item": [
+        {
+          "name": "토큰 없이 /me 조회 → 401",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('토큰 없으면 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "위조/깨진 토큰으로 /me 조회 → 401",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer this.is.not.a.valid.jwt" }],
+            "url": "{{baseUrl}}/api/users/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('위조 토큰이면 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. 관리자 (ADMIN 권한 필요)",
+      "item": [
+        {
+          "name": "관리자 로그인 (adminLoginId/adminPassword 변수 먼저 채우기)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/users/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loginId\": \"{{adminLoginId}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('관리자 로그인 성공', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (body.success) {",
+                  "  pm.collectionVariables.set('adminAccessToken', body.data.accessToken);",
+                  "  pm.collectionVariables.set('adminUserId', body.data.userId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "회원 목록 조회",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "url": "{{baseUrl}}/api/admin/users?page=0&size=20"
+          }
+        },
+        {
+          "name": "회원 상세 조회 (targetUserId 변수 사용, 방금 만든 testUser의 userId로 채우면 됨)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "url": "{{baseUrl}}/api/admin/users/{{targetUserId}}"
+          }
+        },
+        {
+          "name": "회원 정지 (SUSPENSION, 3일 뒤 해제)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/api/admin/users/sanctions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{targetUserId}},\n  \"type\": \"SUSPENSION\",\n  \"reason\": \"Postman 테스트\",\n  \"endAt\": \"2099-12-31T23:59:59\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('제재 등록 성공 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "제재 이력 조회",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "url": "{{baseUrl}}/api/admin/users/{{targetUserId}}/sanctions"
+          }
+        },
+        {
+          "name": "권한 변경 (USER → ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/api/admin/users/{{targetUserId}}/role",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}"
+            }
+          }
+        },
+        {
+          "name": "자기 자신 권한 변경 시도 → 400 (강등 방지)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/api/admin/users/{{adminUserId}}/role",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"USER\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('자기 자신 강등 차단 400', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().message).to.eql('관리자는 자기 자신의 권한을 변경할 수 없습니다.');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "자기 자신 제재 시도 → 400 (자기 제재 방지)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/api/admin/users/sanctions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{adminUserId}},\n  \"type\": \"WARNING\",\n  \"reason\": \"셀프 테스트\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('자기 자신 제재 차단 400', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().message).to.eql('관리자는 자기 자신을 제재할 수 없습니다.');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. 권한 경계 테스트 (일반 유저가 admin API 접근)",
+      "item": [
+        {
+          "name": "일반 유저 토큰으로 회원 목록 조회 → 403",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/admin/users"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('일반 유저는 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "토큰 없이 회원 목록 조회 → 401",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/users"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('토큰 없으면 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "정지 직후 - 기존에 발급받은 토큰으로 /me 접근 → 즉시 401 (role/status 재조회 확인)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/api/users/me"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// 먼저 '5. 관리자' 폴더에서 targetUserId를 이 accessToken의 주인(userId)으로 맞춰 정지시킨 뒤 이 요청을 실행하세요.",
+                  "// 예전 토큰 만료 전인데도 401이 떠야, JwtAuthenticationFilter가 매 요청마다 DB에서 role/status를 재조회한다는 게 확인됩니다."
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('정지된 유저는 유효기간 남은 토큰이어도 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
