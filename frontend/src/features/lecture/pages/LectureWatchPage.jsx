@@ -19,10 +19,27 @@ import TextColorPicker from '../../note/components/TextColorPicker';
 import ChatMessage from '../../chat/ChatMessage';
 import ChatInput from '../../chat/ChatInput';
 import '../../chat/chat.css';
+// 실험: 뽀모도로를 전역 플로팅 위젯 대신 강의 시청 페이지에 직접 임베드해본다
+// (학습용 챗봇 바로 위). WidgetDock에서는 PomodoroWidget을 뺐다.
+import Timer from '../../pomodoro/Timer';
+import StatsAndHistory from '../../pomodoro/StatsAndHistory';
+import '../../pomodoro/pomodoro.css';
 import './LectureWatchPage.css';
 
 const emptyForm = { title: '', content: '' };
 const QUESTION_LIST_PREVIEW_COUNT = 4;
+
+// 타이머 헤더의 배지 아이콘. 학습용 챗봇 헤더의 "AI" 배지와 시각적 무게를 맞추기 위한
+// 단색 아웃라인 시계 아이콘 (뽀모도로 링과 같은 라벤더 톤으로 색을 입힌다).
+function ClockBadgeIcon() {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+             strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3.5 2" />
+        </svg>
+    );
+}
 
 // 질문 목록 아이콘. 다른 위젯 아이콘들과 톤을 맞춘 단색 아웃라인 SVG.
 function QuestionListIcon() {
@@ -112,6 +129,8 @@ function LectureWatchPage() {
     const [tagError, setTagError] = useState(null);
     const [newTagName, setNewTagName] = useState('');
     const [tagSubmitting, setTagSubmitting] = useState(false);
+    const [pomodoroRefreshKey, setPomodoroRefreshKey] = useState(0);
+    const [showPomodoroHistory, setShowPomodoroHistory] = useState(false);
 
     const [chatDrawerOpen, setChatDrawerOpen] = useState(true);
     const [chatMessages, setChatMessages] = useState([]);
@@ -737,6 +756,31 @@ function LectureWatchPage() {
                         )}
                     </div>
 
+                    <div className="lecture-watch-page__side">
+                    <div className="lecture-watch-page__pomodoro">
+                        <div className="lecture-watch-page__pomodoro-header">
+                            <span className="lecture-watch-page__pomodoro-badge"><ClockBadgeIcon /></span>
+                            <span className="lecture-watch-page__pomodoro-title">타이머</span>
+                            <button
+                                type="button"
+                                className="lecture-watch-page__pomodoro-history-toggle"
+                                onClick={() => setShowPomodoroHistory((v) => !v)}
+                                aria-label={showPomodoroHistory ? '기록 닫기' : '기록 보기'}
+                            >
+                                <QuestionListIcon />
+                            </button>
+                            {showPomodoroHistory && (
+                                <div className="lecture-watch-page__pomodoro-history-popover">
+                                    <StatsAndHistory refreshKey={pomodoroRefreshKey} />
+                                </div>
+                            )}
+                        </div>
+                        <Timer
+                            lectureId={lectureId}
+                            noteId={null}
+                            onFinished={() => setPomodoroRefreshKey((k) => k + 1)}
+                        />
+                    </div>
                     <aside className={`lecture-watch-page__chat${chatDrawerOpen ? '' : ' is-collapsed'}`}>
                         {chatDrawerOpen ? (
                             <>
@@ -814,6 +858,7 @@ function LectureWatchPage() {
                             </button>
                         )}
                     </aside>
+                    </div>
                 </div>
             )}
         </section>

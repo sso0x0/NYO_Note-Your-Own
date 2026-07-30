@@ -29,6 +29,9 @@ public interface LectureRepository extends JpaRepository<Lecture, Long> {
             nativeQuery = true)
     Optional<String> findActiveLectureTitleById(@Param("lectureId") Long lectureId);
 
+    // 챗봇이 강의 정보(제목/설명/강사)를 컨텍스트로 쓰기 위한 조회.
+    Optional<Lecture> findByIdAndIsDeletedFalse(Long id);
+
     // 삭제된 강의 제외, 강의 전체 조회 (페이징, category 즉시 로딩으로 N+1 방지)
     @Query(value = "SELECT l FROM Lecture l JOIN FETCH l.category WHERE l.isDeleted = false",
             countQuery = "SELECT count(l) FROM Lecture l WHERE l.isDeleted = false")
