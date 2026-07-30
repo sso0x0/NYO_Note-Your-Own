@@ -1,4 +1,5 @@
 import { Fragment, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getAdminPostList, restorePost } from '../api/post';
 import { deletePost } from '../../community/api/post';
 import { usePagedList } from '../hooks/usePagedList';
@@ -7,8 +8,10 @@ import './AdminModerationPage.css';
 const PAGE_SIZE = 10;
 
 function AdminModerationPage() {
-  const posts = usePagedList(getAdminPostList);
-  const [expandedPostId, setExpandedPostId] = useState(null);
+  const location = useLocation();
+  const posts = usePagedList(getAdminPostList, location.state?.focusPage ?? 0);
+  // 신고 관리에서 선택한 게시글 ID가 있으면 해당 상세 행을 자동으로 연다.
+  const [expandedPostId, setExpandedPostId] = useState(location.state?.focusTargetId ?? null);
 
   const handleToggle = (postId) => {
     setExpandedPostId((prev) => (prev === postId ? null : postId));

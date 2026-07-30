@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,7 +32,9 @@ public class AdminUserController {
     // 💡 회원 목록 조회 (페이징) - 기본 20개씩
     @Operation(summary = "회원 목록 조회")
     @GetMapping
-    public ApiResponse<Page<UserResponse>> getUserList(@PageableDefault(size = 20) Pageable pageable) {
+    public ApiResponse<Page<UserResponse>> getUserList(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable) {
         return ApiResponse.ok(userService.adminGetUserList(pageable));
     }
 

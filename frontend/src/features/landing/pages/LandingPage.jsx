@@ -272,10 +272,10 @@ function LandingPage() {
                     <div className="step-card reveal">
                         <div className="step-number">01</div>
                         <h3>
-                            <svg className="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"></path></svg>
-                            강의 연동하기
+                            <svg className="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            강의 탐색하기
                         </h3>
-                        <p>인프런, 유데미, 유튜브 등 외부 강의 링크를 등록해 강의 단위로 나만의 학습 노트를 연결하세요.</p>
+                        <p>카테고리별로 등록된 강의를 둘러보고, 내가 듣는 강의를 찾아 노트를 시작해보세요.</p>
                         <span className="step-arrow">
               <svg className="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
             </span>
@@ -286,7 +286,7 @@ function LandingPage() {
                             <svg className="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                             노트 작성하기
                         </h3>
-                        <p>이미지와 코드 블록을 곁들여 블로그 형식으로 정리하고, 뽀모도로 타이머로 집중하면 AI가 핵심 태그를 자동으로 붙여줘요.</p>
+                        <p>이미지와 코드 블록을 곁들여 블로그 형식으로 학습 기록을 남기고, 뽀모도로 타이머로 집중하면 AI가 핵심 태그를 자동으로 붙여줘요.</p>
                         <span className="step-arrow">
               <svg className="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
             </span>
@@ -297,7 +297,7 @@ function LandingPage() {
                             <svg className="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 00-3-3.87"></path><path d="M16 3.13a4 4 0 010 7.75"></path></svg>
                             비교하고 공유하기
                         </h3>
-                        <p>작성한 노트는 모두 공개돼요. 같은 강의를 듣는 사람들과 좋아요·댓글로 소통하고, RAG 챗봇으로 놓친 부분까지 복습하세요.</p>
+                        <p>작성한 노트는 모두 공개돼요. 같은 강의를 듣는 사람들과 좋아요·댓글로 비교하고 소통하며, RAG 챗봇으로 놓친 부분까지 복습하세요.</p>
                     </div>
                 </div>
             </section>
@@ -307,21 +307,21 @@ function LandingPage() {
                 <div className="feature-grid">
                     <div className="feature-card reveal">
                         <div className="icon-circle f-blue">
-                            <svg className="icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"></path></svg>
+                            <svg className="icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="5" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
                         </div>
                         <h3>1:N 강의-노트 연결</h3>
                         <p>로컬 드라이브나 개인 블로그에 뿔뿔이 파편화되어 있던 학습 정리본을 원본 강의 기준 하나로 매끄럽게 매핑합니다.</p>
                     </div>
                     <div className="feature-card reveal">
                         <div className="icon-circle f-pink">
-                            <svg className="icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            <svg className="icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8c-4.5 0-8 3.36-8 8a5 5 0 005 5c1.1 0 2.1-.36 3-1 .9.64 1.9 1 3 1a5 5 0 005-5c0-4.64-3.5-8-8-8z"></path><path d="M12 8V5"></path><path d="M12 5c-1.3-1.4-3-1.8-4.5-1"></path><path d="M12 5c1.3-1.4 3-1.8 4.5-1"></path></svg>
                         </div>
                         <h3>뽀모도로 집중 타이머</h3>
                         <p>노트 작성 및 영상 시청 주기에 맞춰 스스로 집중 시간을 조절하고, 누적 기록 통계를 마이페이지에서 비주얼 그래프로 피드백 받습니다.</p>
                     </div>
                     <div className="feature-card reveal">
                         <div className="icon-circle f-dark">
-                            <svg className="icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+                            <svg className="icon" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M9.937 15.5A2 2 0 008.5 14.063l-6.135-1.582a.5.5 0 010-.962L8.5 9.936A2 2 0 009.937 8.5l1.582-6.135a.5.5 0 01.963 0L14.063 8.5A2 2 0 0015.5 9.937l6.135 1.581a.5.5 0 010 .964L15.5 14.063a2 2 0 00-1.437 1.437l-1.582 6.135a.5.5 0 01-.963 0z"></path></svg>
                         </div>
                         <h3>AI 자동 태깅 & RAG 챗봇</h3>
                         <p>OpenAI 기술 기반으로 긴 노트를 요약 판별하고 최적화 분류 태그를 매칭합니다. 본인이 정리한 컨텐츠를 지식 베이스로 삼은 RAG 복습 챗봇이 탑재됩니다.</p>

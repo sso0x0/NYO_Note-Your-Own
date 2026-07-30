@@ -12,7 +12,15 @@ function OAuth2RedirectPage() {
         if (handled.current) return;
         handled.current = true;
 
-        // 백엔드가 토큰을 URL fragment(#token=...)로 보내므로 hash에서 파싱한다
+        // 로그인 실패 시 백엔드(OAuth2FailureHandler)가 실패 사유를 쿼리 파라미터(?error=...)로 보낸다
+        const errorMessage = new URLSearchParams(window.location.search).get('error');
+        if (errorMessage) {
+            alert(errorMessage);
+            navigate('/login', { replace: true });
+            return;
+        }
+
+        // 성공 시에는 토큰을 URL fragment(#token=...)로 보내므로 hash에서 파싱한다
         const hash = window.location.hash.replace(/^#/, '');
         const params = new URLSearchParams(hash);
         const accessToken = params.get('token');

@@ -91,7 +91,9 @@ function LoginPage() {
     };
 
     const handleGoogleLogin = () => {
-        window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+        // 상대 경로로 보내야 ngrok 터널 접속 시에도 같은 origin을 유지하고
+        // vite.config.js의 /oauth2/authorization 프록시를 통해 백엔드로 전달된다.
+        window.location.href = '/oauth2/authorization/google';
     };
 
     return (

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
+    long countByCreatedAtAfter(java.time.LocalDateTime createdAt);
 
     List<Post> findByIsDeletedOrderByCreatedAtDesc(Integer isDeleted);
 

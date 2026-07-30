@@ -137,6 +137,19 @@ function NoteBoard({ onOpenNote }) {
         setCurrentPage(1)
     }, [sortBy])
 
+    const openTagPage = useCallback((event, tagName) => {
+        // 카드 클릭과 태그 클릭을 분리하고, 노트 상세의 태그 이동과 같은 검색 URL을 사용한다.
+        event.stopPropagation()
+        const params = new URLSearchParams()
+        params.set('keyword', tagName)
+        params.set('page', '1')
+        params.set('sort', sortBy)
+        window.history.pushState(null, '', `${window.location.pathname}?${params}`)
+        setKeyword(tagName)
+        setCategoryId('')
+        setCurrentPage(1)
+    }, [sortBy])
+
     useEffect(() => {
         // 강의 목록 페이지와 동일한 카테고리 목록을 가져와 노트 게시판 필터로 표시한다.
         getCategoryList()
@@ -314,7 +327,13 @@ function NoteBoard({ onOpenNote }) {
                                         {note.thumbnailUrl ? (
                                             <img src={note.thumbnailUrl} alt={note.title} loading="lazy" />
                                         ) : (
-                                            <div className="note-card__thumb-fallback" aria-hidden="true" />
+                                            /* 대표 이미지가 없는 노트 카드에 노트 전용 기본 이미지를 표시한다. */
+                                            <img
+                                                className="note-card__thumb-fallback-image"
+                                                src="/images/note-empty.png"
+                                                alt=""
+                                                draggable={false}
+                                            />
                                         )}
                                     </div>
 
@@ -331,7 +350,19 @@ function NoteBoard({ onOpenNote }) {
                                         {note.tags?.length > 0 && (
                                             <div className="note-card__tags">
                                                 {note.tags.map((tag) => (
-                                                    <span key={tag.tagId} className="note-card__tag">
+                                                    <span
+                                                        key={tag.tagId}
+                                                        className="note-card__tag note-card__tag--clickable"
+                                                        role="link"
+                                                        tabIndex={0}
+                                                        onClick={(event) => openTagPage(event, tag.tagName)}
+                                                        onKeyDown={(event) => {
+                                                            if (event.key === 'Enter' || event.key === ' ') {
+                                                                event.preventDefault()
+                                                                openTagPage(event, tag.tagName)
+                                                            }
+                                                        }}
+                                                    >
                                                         #{tag.tagName}
                                                     </span>
                                                 ))}

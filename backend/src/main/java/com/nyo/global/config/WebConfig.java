@@ -22,7 +22,8 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 // CORS 수정: SecurityConfig와 동일한 설정값을 사용해 허용 주소 불일치를 방지합니다.
-                .allowedOrigins(allowedOrigins.toArray(String[]::new))
+                // allowedOriginPatterns를 써야 ngrok처럼 매번 바뀌는 서브도메인을 와일드카드(*)로 허용할 수 있다.
+                .allowedOriginPatterns(allowedOrigins.toArray(String[]::new))
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);

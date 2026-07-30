@@ -1,0 +1,17 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sso0x0/NYO_Note-Your-Own.git"
+  },
+  "private": true,
+  "dependencies": {
+    "vite": "^8.1.5"
+  }
+}

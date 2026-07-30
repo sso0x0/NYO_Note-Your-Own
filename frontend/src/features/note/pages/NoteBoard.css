@@ -242,6 +242,17 @@
   color: var(--nb-accent);
 }
 
+.note-board-page__list .note-card__tag--clickable {
+  cursor: pointer;
+}
+
+.note-board-page__list .note-card__tag--clickable:hover,
+.note-board-page__list .note-card__tag--clickable:focus-visible {
+  background: #dbeafe;
+  color: #1d4ed8;
+  outline: none;
+}
+
 .note-board-page__pagination {
   display: flex;
   align-items: center;

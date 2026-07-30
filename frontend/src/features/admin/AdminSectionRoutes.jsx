@@ -8,6 +8,7 @@ import AdminLectureFormPage from './pages/AdminLectureFormPage';
 import AdminModerationPage from './pages/AdminModerationPage';
 import AdminNotesPage from './pages/AdminNotesPage';
 import AdminCommentsPage from './pages/AdminCommentsPage';
+import AdminReportsPage from './pages/AdminReportsPage';
 
 // 관리자 전용 화면을 /admin 하위 주소에 연결합니다. 일반 회원용 헤더/네비게이션과는
 // 완전히 분리된 별도 콘솔입니다. 일반 회원이 URL을 직접 입력해도 접근하지 못하도록
@@ -31,6 +32,8 @@ function AdminSectionRoutes() {
         <Route path="moderation" element={<AdminModerationPage />} />
         <Route path="notes" element={<AdminNotesPage />} />
         <Route path="comments" element={<AdminCommentsPage />} />
+        {/* 노트·게시글·댓글 신고는 한 화면에서 통합 관리한다. */}
+        <Route path="reports" element={<AdminReportsPage />} />
       </Route>
     </Routes>
   );

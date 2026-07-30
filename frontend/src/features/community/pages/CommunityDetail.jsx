@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../../context/AuthContext'
-import { parseMainImage } from '../../../utils/mainImage'
+import ReportButton from '../../report/components/ReportButton'
 import './CommunityDetail.css'
 
 const EMPTY_HEART_IMAGE = '/images/heart.png'
@@ -98,6 +98,10 @@ function CommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
           </div>
           <div className="comment-body__actions">
             {!comment.isDeleted && <button type="button" onClick={() => onReply(comment)}>답글</button>}
+            {/* 삭제되지 않은 댓글과 답글은 같은 COMMENT 타입으로 신고한다. */}
+            {!comment.isDeleted && !isOwner && (
+              <ReportButton targetType="COMMENT" targetId={comment.id} className="comment-report-button" />
+            )}
             {/* 수정은 작성자만, 삭제는 작성자 또는 DB ROLE이 ADMIN인 사용자에게만 표시합니다. */}
             {!comment.isDeleted && isOwner && !editing && <button type="button" onClick={() => setEditing(true)}>수정</button>}
             {canDelete && <button type="button" className="danger-button" onClick={() => onDelete(comment)}>삭제</button>}
@@ -271,7 +275,6 @@ function CommunityDetail({ postId, onBack, onEdit }) {
   )
   // 수정은 관리자 권한과 관계없이 게시글을 작성한 로그인 사용자 본인에게만 허용합니다.
   const canEdit = post && auth && String(post.userId) === String(auth.userId)
-  const mainImage = parseMainImage(post?.thumbnailUrl)
 
   const selectReplyTarget = (comment) => {
     setCommentForm((prev) => ({
@@ -428,17 +431,6 @@ function CommunityDetail({ postId, onBack, onEdit }) {
                   <span>조회수 {post.viewCount ?? 0}</span>
                 </p>
 
-                {mainImage.url && (
-                    <div className="post-detail-page__thumb">
-                      <img
-                          src={mainImage.url}
-                          style={{ width: `${mainImage.width}px` }}
-                          alt="게시글 이미지"
-                          draggable={false}
-                      />
-                    </div>
-                )}
-
                 <div className="post-detail-page__content">{renderPostContent(post.content)}</div>
 
                 {/* 하트 아이콘과 서버의 현재 총 좋아요 수를 하나의 버튼으로 묶어 보여줍니다. */}
@@ -454,6 +446,11 @@ function CommunityDetail({ postId, onBack, onEdit }) {
                     <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" />
                     <span>{post.likeCount ?? 0}</span>
                   </button>
+                  {/* 좋아요와 같은 줄에서 신고 버튼만 오른쪽 끝에 배치한다. */}
+                  {/* 본인이 작성한 게시글에는 신고 버튼을 표시하지 않는다. */}
+                  {!canEdit && !post.notice && (
+                    <ReportButton targetType="POST" targetId={post.id} className="community-report-button" />
+                  )}
                 </div>
               </>
           ) : (
