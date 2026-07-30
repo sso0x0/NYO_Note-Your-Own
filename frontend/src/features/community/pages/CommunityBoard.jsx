@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
+import BoardSearchBar from '../../../components/BoardSearchBar'
 import '../components/PostCard.css'
 import './CommunityBoard.css'
 
@@ -58,8 +59,12 @@ function CommunityBoard({ onCreate, onOpenPost }) {
     const [totalPages, setTotalPages] = useState(0)
     const [totalElements, setTotalElements] = useState(0)
     const [notices, setNotices] = useState([])
+    const [searchInput, setSearchInput] = useState('')
+    const [keyword, setKeyword] = useState('')
+    const [searchType, setSearchType] = useState('all')
+    const [appliedSearchType, setAppliedSearchType] = useState('all')
 
-    const loadPosts = useCallback(async (page, sort) => {
+    const loadPosts = useCallback(async (page, sort, searchKeyword = keyword) => {
         setLoading(true)
         setError('')
         try {
@@ -71,7 +76,12 @@ function CommunityBoard({ onCreate, onOpenPost }) {
                 sort: `${sort === 'notice' ? 'updatedAt' : sort},desc`,
                 noticeOnly: String(sort === 'notice'),
             })
-            const response = await fetch(`/api/posts?${params}`, {
+            if (searchKeyword) {
+                params.set('keyword', searchKeyword)
+                params.set('searchType', appliedSearchType)
+            }
+            const path = searchKeyword ? '/api/posts/search' : '/api/posts'
+            const response = await fetch(`${path}?${params}`, {
                 headers: { Authorization: `Bearer ${auth?.accessToken}` },
             })
             const data = await response.json()
@@ -84,10 +94,12 @@ function CommunityBoard({ onCreate, onOpenPost }) {
             }
 
             setPosts(data.content ?? [])
-            setNotices(data.notices ?? [])
+            setNotices(searchKeyword ? [] : (data.notices ?? []))
             setTotalPages(data.totalPages ?? 0)
             setTotalElements(data.totalElements ?? 0)
-            setMessage(data.totalElements > 0 ? `전체 ${data.totalElements}개의 게시글` : '등록된 게시글이 없습니다.')
+            setMessage(data.totalElements > 0
+                ? (searchKeyword ? `'${searchKeyword}' 검색 결과 ${data.totalElements}건` : `전체 ${data.totalElements}개의 게시글`)
+                : (searchKeyword ? '검색 결과가 없습니다.' : '등록된 게시글이 없습니다.'))
         } catch (error) {
             const errorMessage = `게시글 목록 조회 실패: ${error.message}`
             setMessage(errorMessage)
@@ -95,7 +107,7 @@ function CommunityBoard({ onCreate, onOpenPost }) {
         } finally {
             setLoading(false)
         }
-    }, [auth])
+    }, [auth, keyword, appliedSearchType])
 
     const movePage = useCallback((page, sort = sortBy) => {
         const safePage = Math.max(1, page)
@@ -161,6 +173,19 @@ function CommunityBoard({ onCreate, onOpenPost }) {
         setIsSortOpen(false)
     }
 
+    const submitSearch = (event) => {
+        event.preventDefault()
+        setAppliedSearchType(searchType)
+        setKeyword(searchInput.trim())
+        setCurrentPage(1)
+    }
+
+    const clearSearch = () => {
+        setSearchInput('')
+        setKeyword('')
+        setCurrentPage(1)
+    }
+
     const renderPostItem = (post, keyPrefix = '') => (
         <article className={`post-card${post.notice ? ' post-card--notice' : ''}`} key={`${keyPrefix}${post.id}`}>
             <button
@@ -199,6 +224,15 @@ function CommunityBoard({ onCreate, onOpenPost }) {
             <h2>커뮤니티</h2>
 
             <div className="community-board-page__toolbar">
+                <BoardSearchBar
+                    value={searchInput}
+                    onChange={setSearchInput}
+                    searchType={searchType}
+                    onSearchTypeChange={setSearchType}
+                    onSubmit={submitSearch}
+                    onClear={clearSearch}
+                    placeholder="커뮤니티 글을 검색하세요"
+                />
                 <p className="community-board-page__summary">{message}</p>
 
                 <div className="community-board-page__sort" ref={sortRef}>

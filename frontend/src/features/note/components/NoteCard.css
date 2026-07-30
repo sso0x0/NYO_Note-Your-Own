@@ -116,12 +116,24 @@
 .note-card__tag {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   padding: 2px 10px;
   border-radius: 999px;
   background: #eff6ff;
   font-size: 12px;
   font-weight: 600;
   color: #2563eb;
+}
+
+/* AI가 자동 생성한 노트 태그는 게시판·메인 인기 노트에서도 동일하게 표시한다. */
+.note-card__tag-ai {
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 .note-card__tag--clickable {

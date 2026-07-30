@@ -363,15 +363,53 @@
     flex-direction: column;
     gap: 4px;
     padding: 14px;
+    /* 노트 게시판 카드와 같은 기본 테두리색을 사용한다. */
+    border: 1px solid #eaeaea;
     border-radius: 14px;
     background: var(--lw-surface-alt);
     text-decoration: none;
     color: var(--lw-ink);
+    transition: border-color 0.18s ease;
+}
+
+.lecture-watch-page__other-note:hover {
+    /* 노트 게시판 카드 hover와 같은 포인트색을 사용한다. */
+    border-color: #6065fb;
 }
 
 .lecture-watch-page__other-note-author {
     font-size: 12px;
     color: var(--text);
+}
+
+.lecture-watch-page__other-note-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.lecture-watch-page__other-note-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    width: fit-content;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.lecture-watch-page__other-note-tag-ai {
+    padding: 1px 5px;
+    border-radius: 999px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.4;
 }
 
 .lecture-watch-page__other-note-meta {
