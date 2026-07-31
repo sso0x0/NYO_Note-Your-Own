@@ -108,7 +108,6 @@ export default function ChatPage() {
             .sort((a, b) => idRank(a.question.id) - idRank(b.question.id));
     }, [chatPairs, selectedRootId]);
     const messagesEndRef = useRef(null);
-    const abortControllerRef = useRef(null); // "중단" 버튼이 지금 진행 중인 스트리밍 요청을 취소할 때 쓴다.
 
     // 새 메시지가 이어지거나 스트리밍 중일 때 항상 대화창 맨 아래로 따라간다.
     useEffect(() => {
@@ -148,11 +147,6 @@ export default function ChatPage() {
             { id: pendingId, senderRole: 'USER', message, createdAt: new Date().toISOString(), rootQuestionId },
             ...prev,
         ]);
-        // "새 대화"(selectedRootId === null)로 보내는 경우, visibleChatPairs는 selectedRootId가
-        // null이면 무조건 빈 배열을 반환해서 답변이 다 올 때까지 화면에 아무 것도(질문조차) 안
-        // 보이는 문제가 있었다 — 방금 만든 임시 id를 바로 앵커로 세워서 스트리밍이 실시간으로
-        // 보이게 한다. 진짜 답변이 오면 아래에서 서버가 내려준 실제 rootQuestionId로 교체된다.
-        if (selectedRootId == null) setSelectedRootId(pendingId);
 
         // 스트리밍 체감 속도 개선: 토큰이 도착하는 즉시 답변 자리를 만들어(최초 1회) 이어붙인다.
         // 스트림이 끝나면 서버에 저장된 최종본(따옴표 치환·강의 추천 포함)으로 통째로 바꿔치기한다.
@@ -173,12 +167,9 @@ export default function ChatPage() {
             });
         };
 
-        const controller = new AbortController();
-        abortControllerRef.current = controller;
-
         try {
             const noteIds = selectedNoteIds.length > 0 ? selectedNoteIds : undefined;
-            const answer = await streamMessage({ message, noteIds, rootQuestionId }, appendChunk, { signal: controller.signal });
+            const answer = await streamMessage({ message, noteIds, rootQuestionId }, appendChunk);
             setChatHistories((prev) => prev.map((entry) => {
                 if (entry.id === answerId) return answer;
                 // 임시 id(pending-...)를 서버가 실제로 저장한 id로 바꿔치기해야, 새로고침 없이도
@@ -193,27 +184,11 @@ export default function ChatPage() {
             // 새 대화였다면 이제부터는 방금 저장된 이 대화의 루트를 계속 이어간다.
             setSelectedRootId(answer.rootQuestionId);
         } catch (err) {
-            if (err.name === 'AbortError') {
-                // 사용자가 직접 중단한 경우: 에러로 취급하지 않고, 그때까지 받은 텍스트를
-                // 그대로 이 답변의 최종본으로 남긴다. 다만 서버는 스트림이 끊기면 답변을
-                // 저장하지 않으므로(질문만 저장된 상태), 새로고침하면 이 답변은 사라진다.
-                setChatHistories((prev) => prev.map((entry) =>
-                    entry.id === answerId
-                        ? { ...entry, message: streamedText || '(응답이 중단되었습니다)' }
-                        : entry
-                ));
-            } else {
-                setSendError(err.message);
-                setChatHistories((prev) => prev.filter((entry) => entry.id !== answerId));
-            }
+            setSendError(err.message);
+            setChatHistories((prev) => prev.filter((entry) => entry.id !== answerId));
         } finally {
             setSending(false);
-            abortControllerRef.current = null;
         }
-    };
-
-    const handleStopSend = () => {
-        abortControllerRef.current?.abort();
     };
 
     const handleNewChat = () => {
@@ -512,7 +487,7 @@ export default function ChatPage() {
                     </div>
 
                     {sendError && <p className="chat-error">{sendError}</p>}
-                    <ChatInput sending={sending} onSend={handleSend} onStop={handleStopSend} />
+                    <ChatInput sending={sending} onSend={handleSend} />
                 </div>
 
                 <aside className="chat-page__pomodoro-panel">
