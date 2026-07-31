@@ -44,6 +44,9 @@ const LECTURE_MANAGE_TABS = [
     { id: 'status', label: '강사 신청 현황' },
 ];
 
+// 회원가입 페이지(SignupPage)의 전화번호 형식 검사와 동일한 정규식
+const PHONE_PATTERN = /^01[0-9]-?\d{3,4}-?\d{4}$/;
+
 const LIST_SIZE = 8;
 const POST_SCAN_SIZE = 50;
 const LECTURE_SCAN_SIZE = 30;
@@ -99,7 +102,9 @@ function MyPage() {
 
     const [editing, setEditing] = useState(false);
     const [form, setForm] = useState({ name: '', nickname: '', phone: '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
+    const [touched, setTouched] = useState({});
     const [saveError, setSaveError] = useState(null);
+    const [currentPasswordError, setCurrentPasswordError] = useState(null);
     const [saving, setSaving] = useState(false);
 
     const [myNotes, setMyNotes] = useState([]);
@@ -230,10 +235,18 @@ function MyPage() {
     const handleFormChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
+        if (name === 'currentPassword') setCurrentPasswordError(null);
+    };
+
+    const handleFieldBlur = (e) => {
+        const { name } = e.target;
+        setTouched((prev) => ({ ...prev, [name]: true }));
     };
 
     const handleStartEdit = () => {
         setSaveError(null);
+        setCurrentPasswordError(null);
+        setTouched({});
         setEditing(true);
     };
 
@@ -246,7 +259,9 @@ function MyPage() {
             newPassword: '',
             newPasswordConfirm: ''
         });
+        setTouched({});
         setSaveError(null);
+        setCurrentPasswordError(null);
         setEditing(false);
     };
 
@@ -254,6 +269,7 @@ function MyPage() {
         e.preventDefault();
         setSaving(true);
         setSaveError(null);
+        setCurrentPasswordError(null);
 
         try {
             const updated = await updateMyProfile(form);
@@ -261,8 +277,16 @@ function MyPage() {
             updateNickname(updated.nickname);
             setForm({ name: updated.name ?? '', nickname: updated.nickname ?? '', phone: updated.phone ?? '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
             setEditing(false);
+            alert('수정되었습니다.');
         } catch (err) {
-            setSaveError(err.message);
+            // 현재 비밀번호 불일치는 상단 배너 대신, 로그인/회원가입 페이지와 동일하게
+            // 해당 입력란 바로 아래에 필드 단위 경고로 보여준다.
+            if (err.message === '현재 비밀번호가 일치하지 않습니다.') {
+                setCurrentPasswordError(err.message);
+                setTouched((prev) => ({ ...prev, currentPassword: true }));
+            } else {
+                setSaveError(err.message);
+            }
         } finally {
             setSaving(false);
         }
@@ -623,6 +647,11 @@ function MyPage() {
 
     return (
         <section className="mypage">
+            <nav className="mypage__crumbs" aria-label="현재 위치">
+                <Link to="/main">메인</Link>
+                <span>/</span>
+                <span className="is-current">마이페이지</span>
+            </nav>
             <h2>마이페이지</h2>
 
             {status === 'loading' && <p>불러오는 중...</p>}
@@ -660,6 +689,8 @@ function MyPage() {
                                     <dd>{profile.loginId}</dd>
                                     <dt>이름</dt>
                                     <dd>{profile.name}</dd>
+                                    <dt>이메일</dt>
+                                    <dd>{profile.email}</dd>
                                 </dl>
 
                                 <div className="mypage__input-group">
@@ -669,21 +700,36 @@ function MyPage() {
                                         name="nickname"
                                         value={form.nickname}
                                         onChange={handleFormChange}
-                                        className={!form.nickname ? 'input-error' : ''}
+                                        onBlur={handleFieldBlur}
+                                        className={touched.nickname && !form.nickname.trim() ? 'input-error' : ''}
+                                        aria-invalid={touched.nickname && !form.nickname.trim()}
                                     />
-                                    {!form.nickname && <span className="mypage__warning-text">닉네임을 입력해 주세요.</span>}
+                                    {touched.nickname && !form.nickname.trim() && <span className="mypage__warning-text">닉네임을 입력해 주세요.</span>}
                                 </div>
 
                                 <div className="mypage__input-group">
-                                    <label htmlFor="phone">전화번호 (선택)</label>
+                                    <label htmlFor="phone">전화번호</label>
                                     <input
                                         id="phone"
                                         name="phone"
                                         type="tel"
+                                        placeholder="010-1234-5678"
+                                        autoComplete="tel"
                                         value={form.phone}
                                         onChange={handleFormChange}
-                                        placeholder="010-1234-5678"
+                                        onBlur={handleFieldBlur}
+                                        className={
+                                            touched.phone && (!form.phone.trim() || !PHONE_PATTERN.test(form.phone))
+                                                ? 'input-error' : ''
+                                        }
+                                        aria-invalid={touched.phone && (!form.phone.trim() || !PHONE_PATTERN.test(form.phone))}
                                     />
+                                    {touched.phone && !form.phone.trim() && (
+                                        <span className="mypage__warning-text">휴대폰 번호를 입력해 주세요</span>
+                                    )}
+                                    {touched.phone && form.phone.trim() && !PHONE_PATTERN.test(form.phone) && (
+                                        <span className="mypage__warning-text">올바른 전화번호 형식이 아닙니다. (예: 010-1234-5678)</span>
+                                    )}
                                 </div>
 
                                 {!isSocialAccount && (
@@ -698,7 +744,12 @@ function MyPage() {
 
                                                     value={form.currentPassword}
                                                     onChange={handleFormChange}
-                                                    className={!form.currentPassword ? 'input-error' : ''}
+                                                    onBlur={handleFieldBlur}
+                                                    className={
+                                                        (touched.currentPassword && !form.currentPassword) || currentPasswordError
+                                                            ? 'input-error' : ''
+                                                    }
+                                                    aria-invalid={(touched.currentPassword && !form.currentPassword) || !!currentPasswordError}
                                                 />
                                                 <button
                                                     type="button"
@@ -711,66 +762,94 @@ function MyPage() {
                                                     <EyeIcon open={showCurrentPassword} />
                                                 </button>
                                             </div>
-                                            {!form.currentPassword && <span className="mypage__warning-text">현재 비밀번호를 입력해 주세요.</span>}
-                                        </div>
-
-                                        <div className="mypage__input-group">
-                                            <label htmlFor="newPassword">새 비밀번호</label>
-                                            <div className="mypage__password-wrapper">
-                                                <input
-                                                    id="newPassword"
-                                                    name="newPassword"
-                                                    type={showNewPassword ? "text" : "password"}
-                                                    autoComplete="new-password"
-                                                    value={form.newPassword}
-                                                    onChange={handleFormChange}
-                                                    className={!form.newPassword ? 'input-error' : ''}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className="mypage__eye-btn"
-                                                    onClick={() => setShowNewPassword((v) => !v)}
-                                                    aria-label={showNewPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
-                                                    aria-pressed={showNewPassword}
-                                                    tabIndex={-1}
-                                                >
-                                                    <EyeIcon open={showNewPassword} />
-                                                </button>
-                                            </div>
-                                            {!form.newPassword && <span className="mypage__warning-text">새 비밀번호를 입력해 주세요.</span>}
-                                        </div>
-
-                                        <div className="mypage__input-group">
-                                            <label htmlFor="newPasswordConfirm">새 비밀번호 확인</label>
-                                            <div className="mypage__password-wrapper">
-                                                <input
-                                                    id="newPasswordConfirm"
-                                                    name="newPasswordConfirm"
-                                                    type={showNewPasswordConfirm ? "text" : "password"}
-                                                    autoComplete="new-password"
-                                                    value={form.newPasswordConfirm}
-                                                    onChange={handleFormChange}
-                                                    className={
-                                                        (!form.newPasswordConfirm || form.newPassword !== form.newPasswordConfirm)
-                                                            ? 'input-error' : ''
-                                                    }
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className="mypage__eye-btn"
-                                                    onClick={() => setShowNewPasswordConfirm((v) => !v)}
-                                                    aria-label={showNewPasswordConfirm ? '비밀번호 숨기기' : '비밀번호 보기'}
-                                                    aria-pressed={showNewPasswordConfirm}
-                                                    tabIndex={-1}
-                                                >
-                                                    <EyeIcon open={showNewPasswordConfirm} />
-                                                </button>
-                                            </div>
-                                            {!form.newPasswordConfirm && <span className="mypage__warning-text">비밀번호 확인을 입력해 주세요.</span>}
-                                            {form.newPasswordConfirm && form.newPassword !== form.newPasswordConfirm && (
-                                                <span className="mypage__warning-text">비밀번호가 일치하지 않습니다.</span>
+                                            {touched.currentPassword && !form.currentPassword && (
+                                                <span className="mypage__warning-text">현재 비밀번호를 입력해 주세요.</span>
+                                            )}
+                                            {currentPasswordError && form.currentPassword && (
+                                                <span className="mypage__warning-text">{currentPasswordError}</span>
                                             )}
                                         </div>
+
+                                        {/* 현재 비밀번호를 입력해야 새 비밀번호 칸이, 새 비밀번호를 입력해야 새 비밀번호 확인 칸이 순서대로 나타난다 */}
+                                        {form.currentPassword && (
+                                            <div className="mypage__input-group">
+                                                <label htmlFor="newPassword">새 비밀번호</label>
+                                                <div className="mypage__password-wrapper">
+                                                    <input
+                                                        id="newPassword"
+                                                        name="newPassword"
+                                                        type={showNewPassword ? "text" : "password"}
+                                                        autoComplete="new-password"
+                                                        minLength={8}
+                                                        maxLength={72}
+                                                        value={form.newPassword}
+                                                        onChange={handleFormChange}
+                                                        onBlur={handleFieldBlur}
+                                                        className={
+                                                            touched.newPassword &&
+                                                            (!form.newPassword || form.newPassword.length < 8 || form.newPassword.length > 72)
+                                                                ? 'input-error' : ''
+                                                        }
+                                                        aria-invalid={
+                                                            touched.newPassword &&
+                                                            (!form.newPassword || form.newPassword.length < 8 || form.newPassword.length > 72)
+                                                        }
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className="mypage__eye-btn"
+                                                        onClick={() => setShowNewPassword((v) => !v)}
+                                                        aria-label={showNewPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                                                        aria-pressed={showNewPassword}
+                                                        tabIndex={-1}
+                                                    >
+                                                        <EyeIcon open={showNewPassword} />
+                                                    </button>
+                                                </div>
+                                                {touched.newPassword && !form.newPassword && <span className="mypage__warning-text">새 비밀번호를 입력해 주세요.</span>}
+                                                {touched.newPassword && form.newPassword && (form.newPassword.length < 8 || form.newPassword.length > 72) && (
+                                                    <span className="mypage__warning-text">비밀번호는 8자 이상 입력해 주세요.</span>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {form.newPassword && (
+                                            <div className="mypage__input-group">
+                                                <label htmlFor="newPasswordConfirm">새 비밀번호 확인</label>
+                                                <div className="mypage__password-wrapper">
+                                                    <input
+                                                        id="newPasswordConfirm"
+                                                        name="newPasswordConfirm"
+                                                        type={showNewPasswordConfirm ? "text" : "password"}
+                                                        autoComplete="new-password"
+                                                        value={form.newPasswordConfirm}
+                                                        onChange={handleFormChange}
+                                                        onBlur={handleFieldBlur}
+                                                        className={
+                                                            touched.newPasswordConfirm && (!form.newPasswordConfirm || form.newPassword !== form.newPasswordConfirm)
+                                                                ? 'input-error' : ''
+                                                        }
+                                                        aria-invalid={
+                                                            touched.newPasswordConfirm && (!form.newPasswordConfirm || form.newPassword !== form.newPasswordConfirm)
+                                                        }
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className="mypage__eye-btn"
+                                                        onClick={() => setShowNewPasswordConfirm((v) => !v)}
+                                                        aria-label={showNewPasswordConfirm ? '비밀번호 숨기기' : '비밀번호 보기'}
+                                                        aria-pressed={showNewPasswordConfirm}
+                                                        tabIndex={-1}
+                                                    >
+                                                        <EyeIcon open={showNewPasswordConfirm} />
+                                                    </button>
+                                                </div>
+                                                {touched.newPasswordConfirm && !form.newPasswordConfirm && <span className="mypage__warning-text">비밀번호 확인을 입력해 주세요.</span>}
+                                                {touched.newPasswordConfirm && form.newPasswordConfirm && form.newPassword !== form.newPasswordConfirm && (
+                                                    <span className="mypage__warning-text">비밀번호가 일치하지 않습니다.</span>
+                                                )}
+                                            </div>
+                                        )}
                                     </>
                                 )}
 
@@ -918,18 +997,35 @@ function MyPage() {
                                     <p>작성한 게시글이 없습니다.</p>
                                 ) : (
                                     <>
-                                        <ul className="mypage__post-list">
-                                            {paginate(myPosts, postsPage).map((post) => (
+                                        <div className="mypage__list-header mypage__list-header--posts" aria-hidden="true">
+                                            <span>번호</span>
+                                            <span>제목</span>
+                                            <span>작성자</span>
+                                            <span>조회수</span>
+                                            <span>좋아요</span>
+                                            <span>작성일자</span>
+                                        </div>
+                                        <ul className="mypage__post-list mypage__post-list--posts">
+                                            {paginate(myPosts, postsPage).map((post, index) => (
                                                 <li key={post.id} className="mypage__post-item">
                                                     <Link to={`/main/community/${post.id}`} className="mypage__post-link">
+                                                        <span className="mypage__post-col mypage__post-col--no">
+                                                            {postsPage * PAGE_SIZE + index + 1}
+                                                        </span>
+                                                        <span className="mypage__post-col mypage__post-col--title">
                           <span className="mypage__post-title">
                             {post.notice && <span className="mypage__post-badge">공지</span>}
                               {post.title}
                           </span>
-                                                        <span className="mypage__post-meta">
-                          조회 {post.viewCount ?? 0} · 좋아요 {post.likeCount ?? 0}
-                                                            {post.createdAt && ` · ${post.createdAt.slice(0, 10)}`}
-                          </span>
+                                                        </span>
+                                                        <span className="mypage__post-col mypage__post-col--author">
+                                                            {post.authorNickname || '알 수 없는 사용자'}
+                                                        </span>
+                                                        <span className="mypage__post-col mypage__post-col--views">{post.viewCount ?? 0}</span>
+                                                        <span className="mypage__post-col mypage__post-col--likes">{post.likeCount ?? 0}</span>
+                                                        <span className="mypage__post-col mypage__post-col--date">
+                                                            {post.createdAt ? post.createdAt.slice(0, 10) : ''}
+                                                        </span>
                                                     </Link>
                                                 </li>
                                             ))}
@@ -951,18 +1047,31 @@ function MyPage() {
                                     <p>작성한 댓글이 없습니다.</p>
                                 ) : (
                                     <>
-                                        <ul className="mypage__post-list">
-                                            {paginate(myComments, commentsPage).map((comment) => (
+                                        <div className="mypage__list-header mypage__list-header--comments" aria-hidden="true">
+                                            <span>번호</span>
+                                            <span>내용</span>
+                                            <span>구분</span>
+                                            <span>작성일자</span>
+                                        </div>
+                                        <ul className="mypage__post-list mypage__post-list--comments">
+                                            {paginate(myComments, commentsPage).map((comment, index) => (
                                                 <li key={comment.id} className="mypage__post-item">
                                                     <Link
                                                         to={comment.postId ? `/main/community/${comment.postId}` : `/main/lectures/${comment.lectureId}`}
                                                         className="mypage__post-link"
                                                     >
-                                                        <span className="mypage__post-title">{comment.content}</span>
-                                                        <span className="mypage__post-meta">
-                                                    {comment.postId ? '커뮤니티' : '강의'}
-                                                            {comment.createdAt && ` · ${comment.createdAt.replace('T', ' ').slice(0, 16)}`}
-                                                </span>
+                                                        <span className="mypage__post-col mypage__post-col--no">
+                                                            {commentsPage * PAGE_SIZE + index + 1}
+                                                        </span>
+                                                        <span className="mypage__post-col mypage__post-col--title">
+                                                            <span className="mypage__post-title">{comment.content}</span>
+                                                        </span>
+                                                        <span className="mypage__post-col mypage__post-col--author">
+                                                            {comment.postId ? '커뮤니티' : '강의'}
+                                                        </span>
+                                                        <span className="mypage__post-col mypage__post-col--date">
+                                                            {comment.createdAt ? comment.createdAt.replace('T', ' ').slice(0, 16) : ''}
+                                                        </span>
                                                     </Link>
                                                 </li>
                                             ))}
@@ -985,7 +1094,7 @@ function MyPage() {
                                 ) : (
                                     <>
                                         <div className="mypage__note-list">
-                                            {paginate(myNotes, notesPage).map((note) => (
+                                            {paginate(myNotes, notesPage).map((음표) => (
                                                 <NoteCard key={note.id} note={note} />
                                             ))}
                                         </div>
@@ -1007,7 +1116,7 @@ function MyPage() {
                                 ) : (
                                     <>
                                         <div className="mypage__note-list">
-                                            {paginate(likedNotes, likedNotesPage).map((note) => (
+                                            {paginate(likedNotes, likedNotesPage).map((음표) => (
                                                 <NoteCard key={note.id} note={note} />
                                             ))}
                                         </div>
