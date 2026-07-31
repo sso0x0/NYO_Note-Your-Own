@@ -24,6 +24,29 @@
     font-family: inherit;
 }
 
+.mypage__crumbs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--text);
+}
+
+.mypage__crumbs a {
+    color: var(--text);
+    text-decoration: none;
+}
+
+.mypage__crumbs a:hover {
+    color: var(--mp-accent);
+}
+
+.mypage__crumbs .is-current {
+    color: var(--text-h);
+    font-weight: 600;
+}
+
 .mypage > h2 {
     font-size: 32px;
     font-weight: 700;
@@ -32,8 +55,13 @@
     color: var(--text-h);
 }
 
+/* 로그인/회원가입 페이지(AuthPage)의 폼 에러 박스와 동일한 디자인 (현재 비밀번호 불일치 등 서버 에러 메시지) */
 .mypage__error {
-    color: #d92d20;
+    font-size: 13px;
+    color: #d32f2f;
+    background: #fdecea;
+    padding: 10px 14px;
+    border-radius: 10px;
 }
 
 /* ===== 프로필 카드 ===== */
@@ -515,10 +543,50 @@
     font-size: 12px;
 }
 
-/* ===== 게시글/강의/댓글 리스트 ===== */
+/* ===== 게시글/강의/댓글 리스트 =====
+   커뮤니티 목록(CommunityBoard.css의 __list-header / post-card__body)과 동일하게
+   번호/제목/작성자/조회수 등을 그리드 칼럼으로 나눈 표 형태로 맞춘다. */
+.mypage__list-header,
+.mypage__post-link {
+    display: grid;
+    align-items: center;
+    gap: 12px;
+}
+
+.mypage__list-header--posts,
+.mypage__post-list--posts .mypage__post-link {
+    grid-template-columns: 56px 1fr 140px 96px 96px 120px;
+}
+
+.mypage__list-header--comments,
+.mypage__post-list--comments .mypage__post-link {
+    grid-template-columns: 56px 1fr 100px 140px;
+}
+
+.mypage__list-header {
+    margin-top: 14px;
+    padding: 10px 10px;
+    border-bottom: 2px solid var(--mp-ink);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-h);
+}
+
+.mypage__list-header span {
+    text-align: center;
+}
+
+.mypage__list-header span:first-child {
+    text-align: center;
+}
+
+.mypage__list-header span:nth-child(2) {
+    text-align: left;
+}
+
 .mypage__post-list {
     list-style: none;
-    margin: 14px 0 0;
+    margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
@@ -528,25 +596,26 @@
     border-bottom: 1px solid var(--mp-line);
 }
 
-.mypage__post-item:first-child {
-    border-top: 1px solid var(--mp-line);
-}
-
 .mypage__post-link {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
     padding: 12px 10px;
     text-decoration: none;
     color: inherit;
-    border-radius: 8px;
     transition: background 0.15s ease;
 }
 
 .mypage__post-link:hover {
     background: #f5f5f5;
+}
+
+.mypage__post-col--no {
+    text-align: center;
+    font-size: 12px;
+    color: #999;
+    font-variant-numeric: tabular-nums;
+}
+
+.mypage__post-col--title {
+    min-width: 0;
 }
 
 .mypage__post-title {
@@ -556,6 +625,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    display: block;
 }
 
 .mypage__post-badge {
@@ -569,11 +639,18 @@
     background: var(--mp-accent);
 }
 
-.mypage__post-meta {
-    font-size: 11px;
-    color: #999;
+.mypage__post-col--author,
+.mypage__post-col--views,
+.mypage__post-col--likes,
+.mypage__post-col--date {
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
-    flex-shrink: 0;
+    text-align: center;
+    line-height: 1.3;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: #999;
 }
 
 .mypage__post-link--btn {
@@ -585,17 +662,136 @@
     cursor: pointer;
 }
 
+/* ===== 강의 관리 하위 메뉴(승인된 강사 전용) =====
+   상위 마이페이지 탭(.mypage__tabs)과 같은 구조를 축소해서 재사용, 색만 포인트 컬러로 구분한다. */
+.mypage__subtabs {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 16px 0 24px;
+    border: 1px solid var(--mp-line);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.mypage__subtab-btn {
+    flex: 1 1 0;
+    min-width: 100px;
+    padding: 10px 14px;
+    border: none;
+    border-right: 1px solid var(--mp-line);
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.mypage__subtab-btn:last-child {
+    border-right: none;
+}
+
+.mypage__subtab-btn:hover {
+    background: var(--mp-ink);
+    color: #fff;
+}
+
+.mypage__subtab-btn--active,
+.mypage__subtab-btn--active:hover {
+    background: var(--mp-ink);
+    color: #fff;
+}
+
+/* ===== 강사 신청 내역 목록 =====
+   신청 페이지(InstructorApplyPage)의 상태 카드(instructor-apply-page__status-card)와
+   같은 상태별 톤(대기중 회색/승인 초록/반려 빨강)을 사용해 두 화면의 디자인을 통일한다. */
+.mypage__application-list {
+    list-style: none;
+    margin: 16px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.mypage__application-card {
+    padding: 20px 24px;
+    border: 1px solid var(--mp-line);
+    border-radius: 14px;
+    background: var(--bg);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.03);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.mypage__application-card:hover {
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.07);
+    transform: translateY(-1px);
+}
+
+.mypage__application-card:has(.mypage__application-card-link--static):hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.03);
+    transform: none;
+}
+
+.mypage__application-card-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.mypage__application-card-link--static {
+    cursor: default;
+}
+
+.mypage__application-card--pending {
+    background: rgba(153, 153, 153, 0.06);
+}
+
+.mypage__application-card--approved {
+    background: rgba(46, 158, 91, 0.06);
+    border-color: rgba(46, 158, 91, 0.25);
+}
+
+.mypage__application-card--rejected {
+    background: rgba(217, 45, 32, 0.05);
+    border-color: rgba(217, 45, 32, 0.2);
+}
+
+.mypage__application-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.mypage__application-category {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-h);
+}
+
+.mypage__application-date {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text);
+}
+
 /* ===== 강사 신청 내역 상세 =====
    신청 페이지(InstructorApplyPage)의 요약 dl(instructor-apply-page__summary)과
    같은 96px/1fr 그리드·15px 본문 크기로 통일한다. */
 .mypage__application-detail {
     display: grid;
     grid-template-columns: 96px 1fr;
-    row-gap: 12px;
+    row-gap: 10px;
     column-gap: 16px;
     margin: 0;
-    padding: 4px 10px 16px;
-    font-size: 15px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--mp-line);
+    font-size: 14px;
 }
 
 .mypage__application-detail dt {
@@ -666,12 +862,42 @@
     resize: vertical;
 }
 
+/* 로그인/회원가입 페이지(AuthPage)와 동일한 유효성 검사 디자인:
+   빨간 테두리 + 옅은 빨간 배경, 12px 빨간 에러 문구. */
+.mypage__lecture-form input.input-error,
+.mypage__lecture-form select.input-error,
+.mypage__lecture-form textarea.input-error {
+    border-color: #d32f2f;
+    background: #fdecea;
+}
+
+.mypage__lecture-form input.input-error:focus,
+.mypage__lecture-form select.input-error:focus,
+.mypage__lecture-form textarea.input-error:focus {
+    border-color: #d32f2f;
+}
+
+.mypage__lecture-form .mypage__warning-text {
+    margin-top: -2px;
+    font-size: 12px;
+    color: #d32f2f;
+}
+
 .mypage__lecture-form-full {
     grid-column: 1 / -1;
 }
 
 .mypage__lecture-form-hint {
     margin: 14px 0 0;
+    color: var(--text);
+    font-size: 12px;
+}
+
+.mypage__lecture-form-notice {
+    margin: 0 0 16px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    background: var(--bg-subtle, rgba(0, 0, 0, 0.04));
     color: var(--text);
     font-size: 12px;
 }
@@ -882,20 +1108,19 @@
     color: #333;
 }
 
-/* 유효성 검사 에러 상태 (입력창 빨간 테두리) */
+/* 유효성 검사 에러 상태: 로그인/회원가입 페이지(AuthPage)와 동일한 디자인으로 통일 */
 input.input-error {
-    border: 1px solid #ff4d4f;
-    outline: none;
+    border-color: #d32f2f;
+    background: #fdecea;
 }
 
 input.input-error:focus {
-    border-color: #ff4d4f;
-    box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2);
+    border-color: #d32f2f;
 }
 
 /* 하단 빨간색 경고 텍스트 */
 .mypage__warning-text {
-    color: #ff4d4f;
-    font-size: 0.85rem;
-    margin-top: 0.4rem;
+    font-size: 12px;
+    color: #d32f2f;
+    margin-top: -2px;
 }
