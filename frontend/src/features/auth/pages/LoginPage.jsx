@@ -24,6 +24,7 @@ const validators = {
     },
 };
 
+// 로그인 페이지. 아이디/비밀번호 로그인과 구글 OAuth 로그인 진입점을 함께 제공한다.
 function LoginPage() {
     const { login } = useAuth();
     const navigate = useNavigate();
@@ -31,7 +32,9 @@ function LoginPage() {
 
     const [form, setForm] = useState({ loginId: '', password: '' });
     const [fieldErrors, setFieldErrors] = useState({});
+    // 사용자가 한 번이라도 focus out(blur)한 필드만 기록 - 처음부터 모든 필드에 에러를 띄우지 않기 위함
     const [touched, setTouched] = useState({});
+    // 로그인 실패 등 서버/네트워크 에러 메시지
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -51,6 +54,7 @@ function LoginPage() {
         setFieldErrors((prev) => ({ ...prev, [name]: validators[name](value) }));
     };
 
+    // 제출 직전 전체 필드를 한 번에 검증 (blur를 안 거친 필드도 강제로 touched 처리)
     const validateAll = () => {
         const nextErrors = {
             loginId: validators.loginId(form.loginId),
@@ -61,6 +65,7 @@ function LoginPage() {
         return Object.values(nextErrors).every((msg) => !msg);
     };
 
+    // 로그인 폼 제출: 검증 통과 시 로그인 API 호출 후 AuthContext에 세션 저장, 역할별로 이동
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);

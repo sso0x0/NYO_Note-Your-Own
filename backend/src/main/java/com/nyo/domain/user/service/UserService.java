@@ -433,6 +433,7 @@ public class UserService {
         if (userRepository.existsByNickname(nickname)) throw new BusinessException(ErrorCode.MEMBER_DUPLICATE_NICKNAME);
     }
 
+    // User 엔티티 → 응답 DTO 변환 (비밀번호 등 민감 필드는 제외하고 매핑)
     private UserResponse toResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
@@ -450,6 +451,7 @@ public class UserService {
                 .build();
     }
 
+    // UserSanction 엔티티 → 응답 DTO 변환
     private UserSanctionResponse toSanctionResponse(UserSanction sanction) {
         return UserSanctionResponse.builder()
                 .id(sanction.getId())

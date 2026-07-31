@@ -19,6 +19,7 @@ const DUPLICATE_CHECKS = {
     nickname: { check: checkNickname, message: '이미 사용 중인 닉네임입니다.' },
 };
 
+// 회원가입 페이지 (SignupPage와 별개 구현). FormField 공용 컴포넌트 + 필드별 서버 중복 체크를 사용한다.
 function RegisterPage() {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
@@ -30,6 +31,7 @@ function RegisterPage() {
     });
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
+    // 필드별로 중복 체크 API 요청이 진행 중인지 (true인 동안 "중복 확인 중..." 힌트 표시)
     const [checking, setChecking] = useState({});
     const [submitError, setSubmitError] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -47,6 +49,7 @@ function RegisterPage() {
         }
     };
 
+    // blur 시 형식 검증을 통과한 필드에 한해 서버에 중복 여부를 물어본다 (loginId/email/nickname만 해당)
     const runDuplicateCheck = async (name, value) => {
         const entry = DUPLICATE_CHECKS[name];
         if (!entry) return;
@@ -102,6 +105,7 @@ function RegisterPage() {
             const status = error.response?.status;
             const message = error.response?.data?.message || error.message;
 
+            // 409(중복) 응답은 메시지 내용으로 어느 필드 에러인지 추정해 해당 입력란에 표시한다
             if (status === 409) {
                 if (message.includes('아이디') || message.toLowerCase().includes('loginid')) {
                     setErrors((prev) => ({ ...prev, loginId: message }));

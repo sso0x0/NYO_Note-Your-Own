@@ -5,8 +5,9 @@ import nyoLogo from '../../../assets/images/nyo_logo.png';
 
 import './AuthPage.css';
 
+// 아이디 찾기 / 비밀번호 찾기 페이지. 탭으로 두 폼(FindIdForm, ResetPasswordForm)을 전환한다.
 function FindAccountPage() {
-    const [activeTab, setActiveTab] = useState('id');
+    const [activeTab, setActiveTab] = useState('id'); // 'id' | 'password'
 
     return (
         <div className="auth-page">
@@ -44,6 +45,7 @@ function FindAccountPage() {
     );
 }
 
+// 이름+이메일 입력 -> 마스킹된 아이디를 조회해서 보여주는 폼
 function FindIdForm() {
     const [form, setForm] = useState({ name: '', email: '' });
     const [error, setError] = useState(null);
@@ -137,14 +139,17 @@ function PasswordToggleButton({ visible, onToggle }) {
     );
 }
 
+// 비밀번호 재설정 폼. 아이디+휴대폰 확인 -> SMS 인증코드 발송 -> 코드 확인 -> 새 비밀번호 제출, 3단계로 진행된다.
 function ResetPasswordForm() {
     const navigate = useNavigate();
+    // 인증코드 발송 여부에 따라 코드/새 비밀번호 입력란을 보여줄지 결정
     const [codeSent, setCodeSent] = useState(false);
     const [form, setForm] = useState({ loginId: '', phone: '', code: '', newPassword: '', confirmPassword: '' });
     const [error, setError] = useState(null);
     const [info, setInfo] = useState(null);
     const [sendingCode, setSendingCode] = useState(false);
     const [resetting, setResetting] = useState(false);
+    // 인증코드 사전 확인(verify-code) 통과 여부. true여야 최종 제출이 가능하다.
     const [codeVerified, setCodeVerified] = useState(false);
     const [verifying, setVerifying] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
@@ -155,6 +160,7 @@ function ResetPasswordForm() {
         setForm((prev) => ({ ...prev, [name]: value }));
     };
 
+    // 1단계: 아이디+휴대폰 번호로 SMS 인증코드 발송 요청
     const handleSendCode = async () => {
         setError(null);
         setInfo(null);
@@ -176,6 +182,7 @@ function ResetPasswordForm() {
         }
     };
 
+    // 2단계: 발송된 인증코드가 맞는지 최종 제출 전에 미리 확인
     const handleVerifyCode = async () => {
         setError(null);
         setInfo(null);
@@ -197,6 +204,7 @@ function ResetPasswordForm() {
         }
     };
 
+    // 3단계: 인증 완료 후 새 비밀번호로 최종 교체
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
