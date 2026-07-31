@@ -12,8 +12,10 @@ import './chat.css'
 const WELCOME_SHOWN_KEY = 'nyo_chat_welcome_shown'
 const WELCOME_MESSAGE = '안녕하세요?'
 
-// 챗봇 아이콘 + 팝업창. WidgetDock을 통해 ProtectedLayout에 한 번만 마운트되어
-// 대부분의 /main/* 페이지에서 보인다. 대화 기록은 서버(chat_histories)에 계속 쌓이지만,
+// 챗봇 아이콘 + 팝업창. 원래 WidgetDock을 통해 ProtectedLayout에 마운트되어
+// 대부분의 /main/* 페이지에서 보이는 구조였으나, 지금은 WidgetDock이 빈 div만 렌더링해서
+// 이 컴포넌트가 실제로는 어디서도 마운트되지 않는다(되돌리려면 WidgetDock.jsx 참고).
+// 대화 기록은 서버(chat_histories)에 계속 쌓이지만,
 // 페이지를 이동하면 화면에는 이전 대화가 다시 뜨지 않도록 로컬 상태만 비운다.
 // 강의 시청 페이지·노트 상세 페이지는 이 위젯이 페이지 컨텍스트(lectureId/noteId)를
 // 몰라서 엉뚱한 답을 할 수 있어, 대신 그 자리에 컨텍스트를 아는 전용 학습 챗봇이 있다.

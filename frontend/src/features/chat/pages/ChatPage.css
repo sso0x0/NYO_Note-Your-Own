@@ -1,86 +1,60 @@
+/* 노트 게시판/커뮤니티 페이지와 같은 max-width·padding으로 맞춰 양옆 여백을 통일한다. */
 .chat-page {
     width: 100%;
-    max-width: 960px;
+    max-width: 1560px;
     margin: 0 auto;
-    padding: 24px 16px 40px;
+    padding: 24px 32px 56px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     gap: 16px;
-    transition: max-width 0.15s ease;
 }
 
-/* 타이머 패널이 열리면 대화창 폭이 그만큼 줄어들지 않도록 페이지 전체를 조금 넓힌다.
-   100vw를 넘지 않게 min()으로 감싸서, 뷰포트보다 넓어져 가로 스크롤이 생기는 일이 없게 한다. */
-.chat-page--with-pomodoro {
-    max-width: min(1240px, 100vw - 32px);
-}
-
-.chat-page__header {
+/* 강의 목록/노트 게시판/커뮤니티 페이지와 같은 빵부스러기+굵은 제목 형식으로 통일한다. */
+.chat-page__crumbs {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
-}
-
-.chat-page__header .chat-header__avatar {
-    width: 40px;
-    height: 40px;
-}
-
-.chat-page__title {
-    flex: 1;
-}
-
-.chat-page__title h1 {
-    margin: 0;
-    font-size: 20px;
-    color: var(--text-h);
-}
-
-.chat-page__title p {
-    margin: 4px 0 0;
-    font-size: 13px;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 12px;
     color: var(--text);
 }
 
-/* ===== 뽀모도로: NoteDetail.jsx와 같은 임베드 방식으로, 헤더의 배지 버튼으로 여닫되
-   패널 자체는 팝오버로 대화창 위에 겹쳐 뜨지 않도록 사이드바/대화창과 나란한
-   세 번째 칸(.chat-page__pomodoro-panel)으로 붙인다 — 열려도 뭔가를 가리지 않는다.
-   색은 pomodoro.css의 라벤더 톤을 그대로 두고(챗봇의 블루-핑크와 구분되게),
-   여기서는 뱃지/패널 틀만 챗봇 페이지 톤에 맞춘다. */
-.chat-page__pomodoro-toggle {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    border-radius: 999px;
-    border: 1px solid #e2d4fb;
-    background: linear-gradient(135deg, #f3edfd 0%, #fdeef7 100%);
-    color: #6b4fa0;
-    font-size: 13px;
+.chat-page__crumbs a {
+    color: var(--text);
+    text-decoration: none;
+}
+
+.chat-page__crumbs a:hover {
+    color: #e57391;
+}
+
+.chat-page__crumbs .is-current {
+    color: var(--text-h);
     font-weight: 600;
-    cursor: pointer;
-    transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
-.chat-page__pomodoro-toggle svg {
-    width: 16px;
-    height: 16px;
+.chat-page h2 {
+    margin: 0;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text-h);
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-.chat-page__pomodoro-toggle:hover {
-    box-shadow: 0 4px 14px -4px rgba(155, 127, 212, 0.4);
-    transform: translateY(-1px);
+.chat-page__subtitle {
+    margin: 8px 0 0;
+    font-size: 16px;
+    color: var(--text);
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
 }
 
-.chat-page__pomodoro-toggle--active {
-    background: linear-gradient(135deg, #e2d4fb 0%, #ffd9ec 100%);
-    box-shadow: 0 4px 14px -4px rgba(155, 127, 212, 0.4);
-}
-
+/* ===== 뽀모도로: NoteDetail.jsx와 같은 임베드 방식으로, 아이콘을 눌러야 나타나는 대신
+   항상 펼쳐진 상태로 사이드바/대화창과 나란한 세 번째 칸으로 붙여둔다 — 대화창을 가리지 않는다.
+   색은 pomodoro.css의 라벤더 톤을 그대로 두고(챗봇의 블루-핑크와 구분되게),
+   여기서는 패널 틀만 챗봇 페이지 톤에 맞춘다. */
 .chat-page__pomodoro-panel {
     /* NoteDetail.jsx의 카드(320px, 20px 패딩)와 비슷한 안쪽 여유폭을 맞춰, 기록 목록의
        날짜·시간·소요시간 배지가 서로 부대끼며 잘리지 않게 했다. min-width:0이 없으면
@@ -147,9 +121,60 @@
     height: 14px;
 }
 
+/* 뽀모도로 위젯 글자 크기를 이 페이지에서만 3px씩 키운다 — pomodoro.css는
+   NoteDetail/LectureWatch의 임베드 위젯과 공유하므로 거기서 직접 고치지 않고,
+   이 페이지 안에서만 선택자를 좁혀 덮어쓴다. */
+.chat-page__pomodoro-panel .pomodoro-clock {
+    font-size: 27px;
+}
+
+.chat-page__pomodoro-panel .pomodoro-settings label {
+    font-size: 15px;
+}
+
+.chat-page__pomodoro-panel .pomodoro-settings input {
+    font-size: 15px;
+}
+
+.chat-page__pomodoro-panel .pomodoro-stats-row {
+    font-size: 15px;
+}
+
+.chat-page__pomodoro-panel .pomodoro-stats-row strong {
+    font-size: 16px;
+}
+
+.chat-page__pomodoro-panel .pomodoro-select-all {
+    font-size: 13px;
+}
+
+.chat-page__pomodoro-panel .pomodoro-btn {
+    font-size: 13px;
+}
+
+.chat-page__pomodoro-panel .pomodoro-history__date {
+    font-size: 13px;
+}
+
+.chat-page__pomodoro-panel .pomodoro-history__time {
+    font-size: 15px;
+}
+
+.chat-page__pomodoro-panel .pomodoro-history__duration {
+    font-size: 15px;
+}
+
+.chat-page__pomodoro-panel .pomodoro-history__toggle {
+    font-size: 15px;
+}
+
+.chat-page__pomodoro-panel .pomodoro-empty {
+    font-size: 16px;
+}
+
 .chat-page__pomodoro-panel-title {
     flex: 1;
-    font-size: 14px;
+    font-size: 17px;
     font-weight: 700;
     color: var(--text-h);
 }
@@ -194,7 +219,7 @@
     border: 1px solid var(--border);
     background: var(--bg);
     color: var(--text-h);
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
     cursor: pointer;
     text-align: left;
@@ -217,7 +242,7 @@
        나머지 챗봇 UI와 맞춘 옅은 핑크빛 중립색으로 바꿨다. */
     border: 1px solid #e7d9e2;
     background: #fdf9fb;
-    font-size: 13px;
+    font-size: 15px;
     color: var(--text-h);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -229,7 +254,7 @@
 
 .chat-page__sidebar-empty {
     padding: 12px 4px;
-    font-size: 13px;
+    font-size: 15px;
     color: var(--text);
     text-align: center;
 }
@@ -246,7 +271,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--text);
     cursor: pointer;
 }
@@ -257,7 +282,7 @@
     border-radius: 6px;
     border: 1px solid transparent;
     background: transparent;
-    font-size: 12px;
+    font-size: 14px;
     cursor: pointer;
 }
 
@@ -351,7 +376,7 @@
 
 .chat-page__question-text {
     width: 100%;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--text-h);
     overflow: hidden;
@@ -359,8 +384,18 @@
     white-space: nowrap;
 }
 
+/* 강의명이 길 수 있어 날짜/시간과는 별도 줄로 두고, 한 줄을 넘기면 말줄임표로 자른다. */
+.chat-page__question-lecture {
+    width: 100%;
+    font-size: 13px;
+    color: #e57391;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .chat-page__question-meta {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--text);
 }
 

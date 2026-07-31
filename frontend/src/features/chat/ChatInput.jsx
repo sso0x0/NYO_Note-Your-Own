@@ -11,6 +11,15 @@ function SendIcon() {
   )
 }
 
+// 스트리밍 중단 아이콘 (채워진 사각형 — 미디어 플레이어의 정지 버튼 관례를 그대로 따름).
+function StopIcon() {
+  return (
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <rect x="6" y="6" width="12" height="12" rx="2" />
+      </svg>
+  )
+}
+
 // 두 줄 정도까지만 자연스럽게 커지고, 그 이상은 창 크기를 고정한 채 안에서만 스크롤되게 하는 상한.
 const MAX_TEXTAREA_HEIGHT = 64
 
@@ -18,7 +27,7 @@ const MAX_TEXTAREA_HEIGHT = 64
 // 여기서는 입력값 관리와 "전송 중"일 때 중복 제출 막는 것만 담당한다.
 // input이 아니라 textarea를 써서 여러 줄 질문(코드 포함 등)을 편하게 입력할 수 있게 했다:
 // Enter는 전송, Shift+Enter는 줄바꿈 — 대부분의 채팅형 UI가 따르는 관례를 그대로 따른다.
-export default function ChatInput({ sending, onSend }) {
+export default function ChatInput({ sending, onSend, onStop }) {
   const [input, setInput] = useState('')
   const textareaRef = useRef(null)
 
@@ -63,6 +72,12 @@ export default function ChatInput({ sending, onSend }) {
             placeholder="질문을 입력하세요 (Shift+Enter로 줄바꿈)"
             disabled={sending}
         />
+        {sending && (
+            // 전송 버튼과는 별도로, 전송 중일 때만 옆에 나타나는 중단 버튼.
+            <button type="button" className="chat-stop" onClick={onStop} aria-label="중단">
+              <StopIcon />
+            </button>
+        )}
         <button type="submit" className="chat-send" disabled={sending} aria-label="전송">
           <SendIcon />
         </button>
