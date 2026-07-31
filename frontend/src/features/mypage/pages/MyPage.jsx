@@ -36,6 +36,7 @@ const POST_SCAN_SIZE = 50;
 const LECTURE_SCAN_SIZE = 30;
 const POMODORO_PERIOD_SIZE = 100;
 const PAGE_SIZE = 5;
+const CHAT_HISTORY_SIZE = 8; // 필요한 값으로 조정
 
 function paginate(items, page) {
     return items.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
@@ -124,6 +125,20 @@ function MyPage() {
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showNewPasswordConfirm, setShowNewPasswordConfirm] = useState(false);
+    const [touched, setTouched] = useState({
+        nickname: false,
+        phone: false,
+        currentPassword: false,
+        newPassword: false,
+        newPasswordConfirm: false,
+    });
+    const [saveSuccess, setSaveSuccess] = useState(false);
+
+    useEffect(() => {
+        if (!saveSuccess) return;
+        const timer = setTimeout(() => setSaveSuccess(false), 3000);
+        return () => clearTimeout(timer);
+    }, [saveSuccess]);
 
     const chatPairs = useMemo(() => {
         const pairs = [];
@@ -261,6 +276,8 @@ function MyPage() {
 
     const handleStartEdit = () => {
         setSaveError(null);
+        setSaveSuccess(false);
+        setTouched({ nickname: false, phone: false, currentPassword: false, newPassword: false, newPasswordConfirm: false });
         setEditing(true);
     };
 
@@ -274,6 +291,7 @@ function MyPage() {
             newPasswordConfirm: ''
         });
         setSaveError(null);
+        setTouched({ nickname: false, phone: false, currentPassword: false, newPassword: false, newPasswordConfirm: false });
         setEditing(false);
     };
 
@@ -288,6 +306,7 @@ function MyPage() {
             updateNickname(updated.nickname);
             setForm({ name: updated.name ?? '', nickname: updated.nickname ?? '', phone: updated.phone ?? '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
             setEditing(false);
+            setSaveSuccess(true);
         } catch (err) {
             setSaveError(err.message);
         } finally {
@@ -407,18 +426,23 @@ function MyPage() {
                         </div>
 
                         {!editing ? (
-                            <dl className="mypage__profile-view">
-                                <dt>아이디</dt>
-                                <dd>{profile.loginId}</dd>
-                                <dt>이름</dt>
-                                <dd>{profile.name}</dd>
-                                <dt>닉네임</dt>
-                                <dd>{profile.nickname}</dd>
-                                <dt>이메일</dt>
-                                <dd>{profile.email}</dd>
-                                <dt>전화번호</dt>
-                                <dd>{profile.phone || '-'}</dd>
-                            </dl>
+                            <>
+                                {saveSuccess && (
+                                    <p className="mypage__success" role="status">수정되었습니다.</p>
+                                )}
+                                <dl className="mypage__profile-view">
+                                    <dt>아이디</dt>
+                                    <dd>{profile.loginId}</dd>
+                                    <dt>이름</dt>
+                                    <dd>{profile.name}</dd>
+                                    <dt>닉네임</dt>
+                                    <dd>{profile.nickname}</dd>
+                                    <dt>이메일</dt>
+                                    <dd>{profile.email}</dd>
+                                    <dt>전화번호</dt>
+                                    <dd>{profile.phone || '-'}</dd>
+                                </dl>
+                            </>
                         ) : (
                             <form className="mypage__profile-form" onSubmit={handleSaveProfile} noValidate>
                                 {saveError && <p className="mypage__error" role="alert">{saveError}</p>}
@@ -437,21 +461,29 @@ function MyPage() {
                                         name="nickname"
                                         value={form.nickname}
                                         onChange={handleFormChange}
-                                        className={!form.nickname ? 'input-error' : ''}
+                                        onBlur={() => setTouched((prev) => ({ ...prev, nickname: true }))}
+                                        className={touched.nickname && !form.nickname ? 'input-error' : ''}
                                     />
-                                    {!form.nickname && <span className="mypage__warning-text">닉네임을 입력해 주세요.</span>}
+                                    {touched.nickname && !form.nickname && (
+                                        <span className="mypage__warning-text">닉네임을 입력해 주세요.</span>
+                                    )}
                                 </div>
 
                                 <div className="mypage__input-group">
-                                    <label htmlFor="phone">전화번호 (선택)</label>
+                                    <label htmlFor="phone">전화번호</label>
                                     <input
                                         id="phone"
                                         name="phone"
                                         type="tel"
                                         value={form.phone}
                                         onChange={handleFormChange}
+                                        onBlur={() => setTouched((prev) => ({ ...prev, phone: true }))}
                                         placeholder="010-1234-5678"
+                                        className={touched.phone && !form.phone ? 'input-error' : ''}
                                     />
+                                    {touched.phone && !form.phone && (
+                                        <span className="mypage__warning-text">전화번호를 입력해 주세요.</span>
+                                    )}
                                 </div>
 
                                 {!isSocialAccount && (
@@ -463,10 +495,10 @@ function MyPage() {
                                                     id="currentPassword"
                                                     name="currentPassword"
                                                     type={showCurrentPassword ? "text" : "password"}
-
                                                     value={form.currentPassword}
                                                     onChange={handleFormChange}
-                                                    className={!form.currentPassword ? 'input-error' : ''}
+                                                    onBlur={() => setTouched((prev) => ({ ...prev, currentPassword: true }))}
+                                                    className={touched.currentPassword && !form.currentPassword ? 'input-error' : ''}
                                                 />
                                                 <button
                                                     type="button"
@@ -479,7 +511,9 @@ function MyPage() {
                                                     <EyeIcon open={showCurrentPassword} />
                                                 </button>
                                             </div>
-                                            {!form.currentPassword && <span className="mypage__warning-text">현재 비밀번호를 입력해 주세요.</span>}
+                                            {touched.currentPassword && !form.currentPassword && (
+                                                <span className="mypage__warning-text">현재 비밀번호를 입력해 주세요.</span>
+                                            )}
                                         </div>
 
                                         <div className="mypage__input-group">
@@ -492,7 +526,8 @@ function MyPage() {
                                                     autoComplete="new-password"
                                                     value={form.newPassword}
                                                     onChange={handleFormChange}
-                                                    className={!form.newPassword ? 'input-error' : ''}
+                                                    onBlur={() => setTouched((prev) => ({ ...prev, newPassword: true }))}
+                                                    className={touched.newPassword && !form.newPassword ? 'input-error' : ''}
                                                 />
                                                 <button
                                                     type="button"
@@ -505,7 +540,9 @@ function MyPage() {
                                                     <EyeIcon open={showNewPassword} />
                                                 </button>
                                             </div>
-                                            {!form.newPassword && <span className="mypage__warning-text">새 비밀번호를 입력해 주세요.</span>}
+                                            {touched.newPassword && !form.newPassword && (
+                                                <span className="mypage__warning-text">새 비밀번호를 입력해 주세요.</span>
+                                            )}
                                         </div>
 
                                         <div className="mypage__input-group">
@@ -518,7 +555,9 @@ function MyPage() {
                                                     autoComplete="new-password"
                                                     value={form.newPasswordConfirm}
                                                     onChange={handleFormChange}
+                                                    onBlur={() => setTouched((prev) => ({ ...prev, newPasswordConfirm: true }))}
                                                     className={
+                                                        touched.newPasswordConfirm &&
                                                         (!form.newPasswordConfirm || form.newPassword !== form.newPasswordConfirm)
                                                             ? 'input-error' : ''
                                                     }
@@ -534,8 +573,10 @@ function MyPage() {
                                                     <EyeIcon open={showNewPasswordConfirm} />
                                                 </button>
                                             </div>
-                                            {!form.newPasswordConfirm && <span className="mypage__warning-text">비밀번호 확인을 입력해 주세요.</span>}
-                                            {form.newPasswordConfirm && form.newPassword !== form.newPasswordConfirm && (
+                                            {touched.newPasswordConfirm && !form.newPasswordConfirm && (
+                                                <span className="mypage__warning-text">비밀번호 확인을 입력해 주세요.</span>
+                                            )}
+                                            {touched.newPasswordConfirm && form.newPasswordConfirm && form.newPassword !== form.newPasswordConfirm && (
                                                 <span className="mypage__warning-text">비밀번호가 일치하지 않습니다.</span>
                                             )}
                                         </div>

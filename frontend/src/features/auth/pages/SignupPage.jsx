@@ -270,7 +270,7 @@ function SignupPage() {
               </div>
 
               <div className="auth-page__field">
-                <label htmlFor="phone">전화번호 (선택)</label>
+                <label htmlFor="phone">전화번호</label>
                 <input
                     id="phone"
                     name="phone"
