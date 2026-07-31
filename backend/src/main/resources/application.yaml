@@ -72,3 +72,9 @@ solapi:
   api-key: ${SOLAPI_API_KEY}
   api-secret: ${SOLAPI_API_SECRET}
   sender-phone: ${SOLAPI_SENDER_PHONE}
+
+  elastic:
+    image: nyo-elastic
+
+    ports:
+      - "9200:9200"
