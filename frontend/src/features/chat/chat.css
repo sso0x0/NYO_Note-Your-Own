@@ -47,6 +47,7 @@
   border-radius: 50%;
   flex: 0 0 auto;
   background: linear-gradient(135deg, #6fb6ff 0%, #ff8fbd 100%);
+  box-shadow: 0 3px 10px -3px rgba(150, 90, 200, 0.45);
 }
 
 .chat-header__title {
@@ -112,6 +113,7 @@
   border-radius: 50%;
   flex: 0 0 auto;
   background: linear-gradient(135deg, #8ec9ff 0%, #ffb3d1 100%);
+  box-shadow: 0 3px 10px -3px rgba(150, 90, 200, 0.4);
 }
 
 .chat-bubble {
@@ -128,12 +130,79 @@
   background: #d9ecff;
   color: #274a6b;
   border-bottom-right-radius: 4px;
+  /* 말풍선 색과 같은 톤의 그림자를 옅게 깔아 배경 위에 살짝 떠 있는 느낌을 준다. */
+  box-shadow: 0 4px 14px -6px rgba(60, 130, 220, 0.35);
 }
 
 .chat-bubble-assistant {
+  position: relative;
   background: #ffe4ef;
   color: #6b3550;
   border-bottom-left-radius: 4px;
+  padding-right: 2rem; /* 복사 버튼과 텍스트가 겹치지 않게 오른쪽 여백 확보 */
+  box-shadow: 0 4px 14px -6px rgba(217, 100, 150, 0.3);
+}
+
+.chat-bubble__copy-btn {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.55);
+  color: #6b3550;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.chat-bubble__copy-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.chat-bubble__copy-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.chat-bubble__code {
+  display: block;
+  margin: 0.5rem 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #f1f1f1;
+  font-family: 'Fira Code', 'D2Coding', Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: auto;
+}
+
+.chat-bubble__code:first-child {
+  margin-top: 0;
+}
+
+.chat-bubble__code:last-child {
+  margin-bottom: 0;
+}
+
+.chat-bubble__code-lang {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .chat-bubble__lectures {
@@ -152,10 +221,13 @@
   font-size: 0.85rem;
   font-weight: 600;
   text-decoration: none;
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .chat-bubble__lecture-link:hover {
   background: #fff;
+  box-shadow: 0 4px 12px -4px rgba(107, 53, 80, 0.3);
+  transform: translateY(-1px);
 }
 
 .chat-typing {
@@ -195,22 +267,49 @@
 
 .chat-input-row {
   display: flex;
-  align-items: center;
+  /* flex-end면 입력칸이 늘어날 때 윗변이 위로 밀려 올라간다 — 대신 flex-start로 윗변을
+     고정해두면 늘어나는 만큼 아랫변만 아래로 내려간다(전송 버튼은 윗줄에 고정). */
+  align-items: flex-start;
   gap: 0.5rem;
   padding: 0.7rem 0.75rem;
   border-top: 1px solid var(--border, #ddd);
 }
 
-.chat-input-row input {
+.chat-input-row textarea {
   flex: 1;
   padding: 0.55rem 0.9rem;
   font-size: 0.9rem;
-  border-radius: 999px;
+  font-family: inherit;
+  line-height: 1.4;
+  border-radius: 18px;
   border: 1px solid #e7d9e2;
+  background: #fdf9fb;
+  resize: none;
+  overflow-y: auto;
+  box-shadow: inset 0 1px 4px rgba(107, 53, 80, 0.06);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* 두 줄을 넘어서 스크롤될 때도 스크롤바가 튀어 보이지 않게, 배경색과 같은 톤으로 감춘다. */
+.chat-input-row textarea {
+  scrollbar-width: thin;
+  scrollbar-color: #fdf9fb #fdf9fb;
+}
+
+.chat-input-row textarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-input-row textarea::-webkit-scrollbar-track {
   background: #fdf9fb;
 }
 
-.chat-input-row input:focus {
+.chat-input-row textarea::-webkit-scrollbar-thumb {
+  background: #fdf9fb;
+  border-radius: 4px;
+}
+
+.chat-input-row textarea:focus {
   outline: none;
   border-color: #ffb3d1;
   box-shadow: 0 0 0 3px rgba(255, 179, 209, 0.25);
@@ -228,11 +327,19 @@
   justify-content: center;
   background: linear-gradient(135deg, #8ec9ff 0%, #ffb3d1 100%);
   color: #fff;
+  box-shadow: 0 4px 12px -3px rgba(150, 90, 200, 0.5);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.chat-send:hover:not(:disabled) {
+  box-shadow: 0 6px 16px -3px rgba(150, 90, 200, 0.6);
+  transform: translateY(-1px);
 }
 
 .chat-send:disabled {
   opacity: 0.55;
   cursor: default;
+  box-shadow: none;
 }
 
 .chat-send svg {
