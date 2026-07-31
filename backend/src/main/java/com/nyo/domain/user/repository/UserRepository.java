@@ -33,5 +33,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // 💡 추가: 마이페이지 정보수정 시, 닉네임을 안 바꾸고 그대로 재저장해도
 // 자기 자신과 중복 체크에 걸리면 안 되므로 "본인 ID 제외" 버전이 필요함
     boolean existsByNicknameAndIdNot(String nickname, Long id);
+    // 💡 추가: 마이페이지에서 이메일 수정 시 본인 제외 중복 체크용
+    boolean existsByEmailAndIdNot(String email, Long id);
 
 }

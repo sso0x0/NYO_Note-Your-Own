@@ -108,10 +108,11 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // 마이페이지에서 이름/닉네임/전화번호 수정 (아이디·이메일·비밀번호는 여기서 변경 불가)
-    public void updateProfile(String name, String nickname, String phone) {
+    // 마이페이지에서 이름/닉네임/이메일/전화번호 수정 (아이디·비밀번호는 여기서 변경 불가)
+    public void updateProfile(String name, String nickname, String email, String phone) {
         this.name = name;
         this.nickname = nickname;
+        this.email = email;
         this.phone = phone;
         this.updatedAt = LocalDateTime.now();
     }

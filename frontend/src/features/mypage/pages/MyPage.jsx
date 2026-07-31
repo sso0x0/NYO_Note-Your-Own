@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getMyInfo, updateMyProfile, withdraw } from '../api/mypage';
+import { getMyInfo, updateMyProfile, sendPhoneVerificationCode, verifyPhoneVerificationCode, withdraw } from '../api/mypage';
 import { getMyNotes, getLikedNotes } from '../../note/api/note';
 import { getPostList, getMyComments } from '../../community/api/post';
 import { getLectureList, isEnrolled, createMyLecture, getMyLectures } from '../../lecture/api/lecture';
@@ -44,8 +44,11 @@ const LECTURE_MANAGE_TABS = [
     { id: 'status', label: '강사 신청 현황' },
 ];
 
-// 회원가입 페이지(SignupPage)의 전화번호 형식 검사와 동일한 정규식
+// 회원가입 페이지(SignupPage)의 이메일/전화번호 형식 검사와 동일한 정규식
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^01[0-9]-?\d{3,4}-?\d{4}$/;
+// 영문 대소문자 + 숫자 + 특수문자를 모두 포함해야 함
+const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).+$/;
 
 const LIST_SIZE = 8;
 const POST_SCAN_SIZE = 50;
@@ -101,11 +104,22 @@ function MyPage() {
     const [activeTab, setActiveTab] = useState(TABS[0].id);
 
     const [editing, setEditing] = useState(false);
-    const [form, setForm] = useState({ name: '', nickname: '', phone: '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
+    const [form, setForm] = useState({ name: '', nickname: '', email: '', phone: '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
+    const [fieldErrors, setFieldErrors] = useState({});
     const [touched, setTouched] = useState({});
     const [saveError, setSaveError] = useState(null);
     const [currentPasswordError, setCurrentPasswordError] = useState(null);
     const [saving, setSaving] = useState(false);
+
+    // 전화번호 변경 인증 (비밀번호 찾기와 동일한 SMS 인증코드 방식). verifiedPhone은 인증에 성공한 번호 값을 들고 있다가
+    // form.phone과 비교해서, 인증 후 번호를 또 고치면 인증 상태가 자동으로 풀리게 한다.
+    const [verifiedPhone, setVerifiedPhone] = useState(null);
+    const [phoneCode, setPhoneCode] = useState('');
+    const [phoneCodeSent, setPhoneCodeSent] = useState(false);
+    const [sendingPhoneCode, setSendingPhoneCode] = useState(false);
+    const [verifyingPhoneCode, setVerifyingPhoneCode] = useState(false);
+    const [phoneCodeError, setPhoneCodeError] = useState(null);
+    const [phoneCodeInfo, setPhoneCodeInfo] = useState(null);
 
     const [myNotes, setMyNotes] = useState([]);
     const [likedNotes, setLikedNotes] = useState([]);
@@ -195,7 +209,7 @@ function MyPage() {
             .then(async ([me, mine, liked, posts, lectures, todayStudyTime, totalStudyTime, initialPomodoroRecords, comments, instructorApplicationList, categoryList, myLectureApplicationList]) => {
                 if (cancelled) return;
                 setProfile(me);
-                setForm({ name: me.name ?? '', nickname: me.nickname ?? '', phone: me.phone ?? '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
+                setForm({ name: me.name ?? '', nickname: me.nickname ?? '', email: me.email ?? '', phone: me.phone ?? '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
                 setMyNotes(mine?.content ?? []);
                 setLikedNotes(liked?.content ?? []);
                 setPomodoroToday(todayStudyTime?.totalFocusMinutes ?? 0);
@@ -232,21 +246,104 @@ function MyPage() {
         };
     }, []);
 
+    const isSocialAccount = profile?.oauthProvider && profile.oauthProvider !== 'NONE';
+    const nicknameChanged = !!profile && form.nickname !== profile.nickname;
+    const emailChanged = !!profile && form.email !== profile.email;
+    const phoneChanged = !!profile && form.phone !== (profile.phone ?? '');
+    const phoneVerified = phoneChanged && verifiedPhone === form.phone;
+    // 닉네임/이메일/전화번호/새 비밀번호 중 하나라도 바뀌어야 현재 비밀번호 입력란이 나타난다.
+    const anyChanged = nicknameChanged || emailChanged || phoneChanged || !!form.newPassword;
+
+    // 필드별 실시간 검증 규칙. 회원가입 페이지(SignupPage)의 validators와 동일한 패턴이다.
+    const profileValidators = {
+        nickname: (value) => {
+            if (!value.trim()) return '닉네임을 입력해 주세요.';
+            if (value.trim().length < 2) return '닉네임은 2자 이상 입력해 주세요.';
+            return '';
+        },
+        email: (value) => {
+            if (!value.trim()) return '이메일을 입력해 주세요.';
+            if (!EMAIL_PATTERN.test(value)) return '올바른 이메일 형식이 아닙니다.';
+            return '';
+        },
+        phone: (value) => {
+            if (!value.trim()) return '휴대폰 번호를 입력해 주세요';
+            if (!PHONE_PATTERN.test(value)) return '올바른 전화번호 형식이 아닙니다. (예: 010-1234-5678)';
+            return '';
+        },
+        // 소셜 로그인 회원이거나, 아무 값도 안 바꿨으면 이 검사 자체가 필요 없다.
+        currentPassword: (value) => {
+            if (isSocialAccount || !anyChanged) return '';
+            if (!value) return '현재 비밀번호를 입력해 주세요.';
+            return '';
+        },
+        newPassword: (value) => {
+            if (!value) return ''; // 선택 항목
+            if (value.length < 8 || value.length > 72) return '비밀번호는 8자 이상 입력해 주세요.';
+            if (!PASSWORD_PATTERN.test(value)) return '비밀번호는 영문 대소문자, 숫자, 특수문자를 모두 포함해야 합니다.';
+            return '';
+        },
+        newPasswordConfirm: (value, nextForm) => {
+            if (!nextForm.newPassword) return ''; // 새 비밀번호를 안 바꾸면 확인도 필요 없음
+            if (!value) return '비밀번호 확인을 입력해 주세요.';
+            if (value !== nextForm.newPassword) return '비밀번호가 일치하지 않습니다.';
+            return '';
+        },
+    };
+
+    const runValidator = (name, nextForm) => profileValidators[name](nextForm[name], nextForm);
+
+    const resetPhoneVerification = () => {
+        setPhoneCodeSent(false);
+        setVerifiedPhone(null);
+        setPhoneCode('');
+        setPhoneCodeError(null);
+        setPhoneCodeInfo(null);
+    };
+
     const handleFormChange = (e) => {
         const { name, value } = e.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
+        const nextForm = { ...form, [name]: value };
+        setForm(nextForm);
+
         if (name === 'currentPassword') setCurrentPasswordError(null);
+        // 번호를 다시 고치면 이전에 받았거나 확인한 인증코드는 더 이상 유효하지 않다.
+        if (name === 'phone') resetPhoneVerification();
+
+        setFieldErrors((prev) => {
+            const next = { ...prev };
+            if (touched[name]) next[name] = runValidator(name, nextForm);
+            // 새 비밀번호를 바꾸면 이미 입력해둔 비밀번호 확인도 다시 검사한다.
+            if (name === 'newPassword' && touched.newPasswordConfirm) {
+                next.newPasswordConfirm = runValidator('newPasswordConfirm', nextForm);
+            }
+            return next;
+        });
     };
 
     const handleFieldBlur = (e) => {
         const { name } = e.target;
         setTouched((prev) => ({ ...prev, [name]: true }));
+        setFieldErrors((prev) => ({ ...prev, [name]: runValidator(name, form) }));
+    };
+
+    const validateAll = () => {
+        const names = Object.keys(profileValidators);
+        const nextErrors = {};
+        names.forEach((name) => {
+            nextErrors[name] = runValidator(name, form);
+        });
+        setFieldErrors(nextErrors);
+        setTouched((prev) => ({ ...prev, ...Object.fromEntries(names.map((name) => [name, true])) }));
+        return Object.values(nextErrors).every((msg) => !msg);
     };
 
     const handleStartEdit = () => {
         setSaveError(null);
         setCurrentPasswordError(null);
+        setFieldErrors({});
         setTouched({});
+        resetPhoneVerification();
         setEditing(true);
     };
 
@@ -254,28 +351,93 @@ function MyPage() {
         setForm({
             name: profile.name ?? '',
             nickname: profile.nickname ?? '',
+            email: profile.email ?? '',
             phone: profile.phone ?? '',
             currentPassword: '',
             newPassword: '',
             newPasswordConfirm: ''
         });
+        setFieldErrors({});
         setTouched({});
         setSaveError(null);
         setCurrentPasswordError(null);
+        resetPhoneVerification();
         setEditing(false);
+    };
+
+    // 1단계: 지금 입력된(바뀐) 전화번호로 SMS 인증코드 발송
+    const handleSendPhoneCode = async () => {
+        setPhoneCodeError(null);
+        setPhoneCodeInfo(null);
+
+        const phoneError = profileValidators.phone(form.phone);
+        if (phoneError) {
+            setFieldErrors((prev) => ({ ...prev, phone: phoneError }));
+            setTouched((prev) => ({ ...prev, phone: true }));
+            return;
+        }
+
+        setSendingPhoneCode(true);
+        try {
+            await sendPhoneVerificationCode(form.phone);
+            setPhoneCodeSent(true);
+            setVerifiedPhone(null);
+            setPhoneCode('');
+            setPhoneCodeInfo('인증코드를 문자로 보냈어요. 5분 이내에 입력해 주세요.');
+        } catch (err) {
+            setPhoneCodeError(err.message);
+        } finally {
+            setSendingPhoneCode(false);
+        }
+    };
+
+    // 2단계: 발송된 인증코드가 맞는지 저장 전에 미리 확인
+    const handleVerifyPhoneCode = async () => {
+        setPhoneCodeError(null);
+        setPhoneCodeInfo(null);
+
+        if (!phoneCode.trim()) {
+            setPhoneCodeError('인증코드를 입력해 주세요.');
+            return;
+        }
+
+        setVerifyingPhoneCode(true);
+        try {
+            await verifyPhoneVerificationCode(form.phone, phoneCode);
+            setVerifiedPhone(form.phone);
+            setPhoneCodeInfo('인증코드가 확인되었습니다.');
+        } catch (err) {
+            setPhoneCodeError(err.message);
+        } finally {
+            setVerifyingPhoneCode(false);
+        }
     };
 
     const handleSaveProfile = async (e) => {
         e.preventDefault();
-        setSaving(true);
         setSaveError(null);
         setCurrentPasswordError(null);
 
+        if (!validateAll()) return;
+
+        if (phoneChanged && !phoneVerified) {
+            setSaveError('전화번호 인증을 먼저 완료해 주세요.');
+            return;
+        }
+
+        setSaving(true);
         try {
-            const updated = await updateMyProfile(form);
+            // eslint-disable-next-line no-unused-vars
+            const { newPasswordConfirm, ...rest } = form;
+            const payload = phoneChanged ? { ...rest, phoneVerificationCode: phoneCode } : rest;
+
+            const updated = await updateMyProfile(payload);
             setProfile(updated);
             updateNickname(updated.nickname);
-            setForm({ name: updated.name ?? '', nickname: updated.nickname ?? '', phone: updated.phone ?? '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
+            setForm({ name: updated.name ?? '', nickname: updated.nickname ?? '', email: updated.email ?? '', phone: updated.phone ?? '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
+            setFieldErrors({});
+            setTouched({});
+            resetPhoneVerification();
             setEditing(false);
             alert('수정되었습니다.');
         } catch (err) {
@@ -311,7 +473,6 @@ function MyPage() {
         fetchPomodoroRecords(pomodoroRange);
     };
 
-    const isSocialAccount = profile?.oauthProvider && profile.oauthProvider !== 'NONE';
     const isInstructor = profile?.role === 'INSTRUCTOR';
     const latestInstructorApplicationStatus = instructorApplications[0]?.status;
     const canApplyAsInstructor =
@@ -689,8 +850,6 @@ function MyPage() {
                                     <dd>{profile.loginId}</dd>
                                     <dt>이름</dt>
                                     <dd>{profile.name}</dd>
-                                    <dt>이메일</dt>
-                                    <dd>{profile.email}</dd>
                                 </dl>
 
                                 <div className="mypage__input-group">
@@ -698,82 +857,93 @@ function MyPage() {
                                     <input
                                         id="nickname"
                                         name="nickname"
+                                        minLength={2}
                                         value={form.nickname}
                                         onChange={handleFormChange}
                                         onBlur={handleFieldBlur}
-                                        className={touched.nickname && !form.nickname.trim() ? 'input-error' : ''}
-                                        aria-invalid={touched.nickname && !form.nickname.trim()}
+                                        className={fieldErrors.nickname ? 'input-error' : ''}
+                                        aria-invalid={!!fieldErrors.nickname}
                                     />
-                                    {touched.nickname && !form.nickname.trim() && <span className="mypage__warning-text">닉네임을 입력해 주세요.</span>}
+                                    {fieldErrors.nickname && <span className="mypage__warning-text">{fieldErrors.nickname}</span>}
+                                </div>
+
+                                <div className="mypage__input-group">
+                                    <label htmlFor="email">이메일</label>
+                                    <input
+                                        id="email"
+                                        name="email"
+                                        type="email"
+                                        autoComplete="email"
+                                        value={form.email}
+                                        onChange={handleFormChange}
+                                        onBlur={handleFieldBlur}
+                                        className={fieldErrors.email ? 'input-error' : ''}
+                                        aria-invalid={!!fieldErrors.email}
+                                    />
+                                    {fieldErrors.email && <span className="mypage__warning-text">{fieldErrors.email}</span>}
                                 </div>
 
                                 <div className="mypage__input-group">
                                     <label htmlFor="phone">전화번호</label>
-                                    <input
-                                        id="phone"
-                                        name="phone"
-                                        type="tel"
-                                        placeholder="010-1234-5678"
-                                        autoComplete="tel"
-                                        value={form.phone}
-                                        onChange={handleFormChange}
-                                        onBlur={handleFieldBlur}
-                                        className={
-                                            touched.phone && (!form.phone.trim() || !PHONE_PATTERN.test(form.phone))
-                                                ? 'input-error' : ''
-                                        }
-                                        aria-invalid={touched.phone && (!form.phone.trim() || !PHONE_PATTERN.test(form.phone))}
-                                    />
-                                    {touched.phone && !form.phone.trim() && (
-                                        <span className="mypage__warning-text">휴대폰 번호를 입력해 주세요</span>
+                                    <div className="mypage__code-row">
+                                        <input
+                                            id="phone"
+                                            name="phone"
+                                            type="tel"
+                                            placeholder="010-1234-5678"
+                                            autoComplete="tel"
+                                            value={form.phone}
+                                            onChange={handleFormChange}
+                                            onBlur={handleFieldBlur}
+                                            className={fieldErrors.phone ? 'input-error' : ''}
+                                            aria-invalid={!!fieldErrors.phone}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="mypage__code-btn"
+                                            onClick={handleSendPhoneCode}
+                                            disabled={!phoneChanged || sendingPhoneCode}
+                                        >
+                                            {sendingPhoneCode ? '발송 중...' : phoneCodeSent ? '재발송' : '인증코드 받기'}
+                                        </button>
+                                    </div>
+                                    {fieldErrors.phone && <span className="mypage__warning-text">{fieldErrors.phone}</span>}
+                                    {!fieldErrors.phone && phoneChanged && !phoneVerified && (
+                                        <span className="mypage__hint-text">번호를 바꾸려면 인증코드 확인이 필요해요.</span>
                                     )}
-                                    {touched.phone && form.phone.trim() && !PHONE_PATTERN.test(form.phone) && (
-                                        <span className="mypage__warning-text">올바른 전화번호 형식이 아닙니다. (예: 010-1234-5678)</span>
+
+                                    {phoneChanged && phoneCodeSent && (
+                                        <div className="mypage__code-row mypage__code-row--verify">
+                                            <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                maxLength={6}
+                                                placeholder="인증코드 6자리"
+                                                value={phoneCode}
+                                                onChange={(e) => {
+                                                    setPhoneCode(e.target.value);
+                                                    if (verifiedPhone) setVerifiedPhone(null);
+                                                }}
+                                                disabled={phoneVerified}
+                                            />
+                                            <button
+                                                type="button"
+                                                className="mypage__code-btn"
+                                                onClick={handleVerifyPhoneCode}
+                                                disabled={verifyingPhoneCode || phoneVerified}
+                                            >
+                                                {verifyingPhoneCode ? '확인 중...' : phoneVerified ? '확인됨' : '인증확인'}
+                                            </button>
+                                        </div>
                                     )}
+                                    {phoneCodeError && <span className="mypage__warning-text">{phoneCodeError}</span>}
+                                    {!phoneCodeError && phoneCodeInfo && <span className="mypage__success-text">{phoneCodeInfo}</span>}
                                 </div>
 
                                 {!isSocialAccount && (
                                     <>
                                         <div className="mypage__input-group">
-                                            <label htmlFor="currentPassword">현재 비밀번호</label>
-                                            <div className="mypage__password-wrapper">
-                                                <input
-                                                    id="currentPassword"
-                                                    name="currentPassword"
-                                                    type={showCurrentPassword ? "text" : "password"}
-
-                                                    value={form.currentPassword}
-                                                    onChange={handleFormChange}
-                                                    onBlur={handleFieldBlur}
-                                                    className={
-                                                        (touched.currentPassword && !form.currentPassword) || currentPasswordError
-                                                            ? 'input-error' : ''
-                                                    }
-                                                    aria-invalid={(touched.currentPassword && !form.currentPassword) || !!currentPasswordError}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className="mypage__eye-btn"
-                                                    onClick={() => setShowCurrentPassword((v) => !v)}
-                                                    aria-label={showCurrentPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
-                                                    aria-pressed={showCurrentPassword}
-                                                    tabIndex={-1}
-                                                >
-                                                    <EyeIcon open={showCurrentPassword} />
-                                                </button>
-                                            </div>
-                                            {touched.currentPassword && !form.currentPassword && (
-                                                <span className="mypage__warning-text">현재 비밀번호를 입력해 주세요.</span>
-                                            )}
-                                            {currentPasswordError && form.currentPassword && (
-                                                <span className="mypage__warning-text">{currentPasswordError}</span>
-                                            )}
-                                        </div>
-
-                                        {/* 현재 비밀번호를 입력해야 새 비밀번호 칸이, 새 비밀번호를 입력해야 새 비밀번호 확인 칸이 순서대로 나타난다 */}
-                                        {form.currentPassword && (
-                                        <div className="mypage__input-group">
-                                            <label htmlFor="newPassword">새 비밀번호</label>
+                                            <label htmlFor="newPassword">새 비밀번호 (선택)</label>
                                             <div className="mypage__password-wrapper">
                                                 <input
                                                     id="newPassword"
@@ -785,15 +955,8 @@ function MyPage() {
                                                     value={form.newPassword}
                                                     onChange={handleFormChange}
                                                     onBlur={handleFieldBlur}
-                                                    className={
-                                                        touched.newPassword &&
-                                                        (!form.newPassword || form.newPassword.length < 8 || form.newPassword.length > 72)
-                                                            ? 'input-error' : ''
-                                                    }
-                                                    aria-invalid={
-                                                        touched.newPassword &&
-                                                        (!form.newPassword || form.newPassword.length < 8 || form.newPassword.length > 72)
-                                                    }
+                                                    className={fieldErrors.newPassword ? 'input-error' : ''}
+                                                    aria-invalid={!!fieldErrors.newPassword}
                                                 />
                                                 <button
                                                     type="button"
@@ -806,12 +969,8 @@ function MyPage() {
                                                     <EyeIcon open={showNewPassword} />
                                                 </button>
                                             </div>
-                                            {touched.newPassword && !form.newPassword && <span className="mypage__warning-text">새 비밀번호를 입력해 주세요.</span>}
-                                            {touched.newPassword && form.newPassword && (form.newPassword.length < 8 || form.newPassword.length > 72) && (
-                                                <span className="mypage__warning-text">비밀번호는 8자 이상 입력해 주세요.</span>
-                                            )}
+                                            {fieldErrors.newPassword && <span className="mypage__warning-text">{fieldErrors.newPassword}</span>}
                                         </div>
-                                        )}
 
                                         {form.newPassword && (
                                         <div className="mypage__input-group">
@@ -825,13 +984,8 @@ function MyPage() {
                                                     value={form.newPasswordConfirm}
                                                     onChange={handleFormChange}
                                                     onBlur={handleFieldBlur}
-                                                    className={
-                                                        touched.newPasswordConfirm && (!form.newPasswordConfirm || form.newPassword !== form.newPasswordConfirm)
-                                                            ? 'input-error' : ''
-                                                    }
-                                                    aria-invalid={
-                                                        touched.newPasswordConfirm && (!form.newPasswordConfirm || form.newPassword !== form.newPasswordConfirm)
-                                                    }
+                                                    className={fieldErrors.newPasswordConfirm ? 'input-error' : ''}
+                                                    aria-invalid={!!fieldErrors.newPasswordConfirm}
                                                 />
                                                 <button
                                                     type="button"
@@ -844,9 +998,43 @@ function MyPage() {
                                                     <EyeIcon open={showNewPasswordConfirm} />
                                                 </button>
                                             </div>
-                                            {touched.newPasswordConfirm && !form.newPasswordConfirm && <span className="mypage__warning-text">비밀번호 확인을 입력해 주세요.</span>}
-                                            {touched.newPasswordConfirm && form.newPasswordConfirm && form.newPassword !== form.newPasswordConfirm && (
-                                                <span className="mypage__warning-text">비밀번호가 일치하지 않습니다.</span>
+                                            {fieldErrors.newPasswordConfirm && <span className="mypage__warning-text">{fieldErrors.newPasswordConfirm}</span>}
+                                        </div>
+                                        )}
+
+                                        {/* 닉네임/이메일/전화번호/새 비밀번호 중 하나라도 바뀌었을 때만, 맨 마지막에 현재 비밀번호 확인란이 나타난다 */}
+                                        {anyChanged && (
+                                        <div className="mypage__input-group mypage__input-group--emphasis">
+                                            <span className="mypage__hint-text">닉네임/이메일/전화번호/비밀번호 중 무엇을 바꾸든 현재 비밀번호 확인이 필요해요.</span>
+                                            <label htmlFor="currentPassword">현재 비밀번호</label>
+                                            <div className="mypage__password-wrapper">
+                                                <input
+                                                    id="currentPassword"
+                                                    name="currentPassword"
+                                                    type={showCurrentPassword ? "text" : "password"}
+
+                                                    value={form.currentPassword}
+                                                    onChange={handleFormChange}
+                                                    onBlur={handleFieldBlur}
+                                                    className={(fieldErrors.currentPassword || currentPasswordError) ? 'input-error' : ''}
+                                                    aria-invalid={!!(fieldErrors.currentPassword || currentPasswordError)}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="mypage__eye-btn"
+                                                    onClick={() => setShowCurrentPassword((v) => !v)}
+                                                    aria-label={showCurrentPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                                                    aria-pressed={showCurrentPassword}
+                                                    tabIndex={-1}
+                                                >
+                                                    <EyeIcon open={showCurrentPassword} />
+                                                </button>
+                                            </div>
+                                            {fieldErrors.currentPassword && (
+                                                <span className="mypage__warning-text">{fieldErrors.currentPassword}</span>
+                                            )}
+                                            {!fieldErrors.currentPassword && currentPasswordError && (
+                                                <span className="mypage__warning-text">{currentPasswordError}</span>
                                             )}
                                         </div>
                                         )}
@@ -1094,7 +1282,7 @@ function MyPage() {
                                 ) : (
                                     <>
                                         <div className="mypage__note-list">
-                                            {paginate(myNotes, notesPage).map((음표) => (
+                                            {paginate(myNotes, notesPage).map((note) => (
                                                 <NoteCard key={note.id} note={note} />
                                             ))}
                                         </div>
@@ -1116,7 +1304,7 @@ function MyPage() {
                                 ) : (
                                     <>
                                         <div className="mypage__note-list">
-                                            {paginate(likedNotes, likedNotesPage).map((음표) => (
+                                            {paginate(likedNotes, likedNotesPage).map((note) => (
                                                 <NoteCard key={note.id} note={note} />
                                             ))}
                                         </div>

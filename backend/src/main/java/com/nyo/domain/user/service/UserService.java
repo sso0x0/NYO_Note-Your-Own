@@ -14,6 +14,7 @@ import com.nyo.global.jwt.JwtTokenProvider;
 import com.nyo.global.sms.SmsService;
 import com.nyo.global.security.LoginAttemptGuard;
 import com.nyo.global.security.PasswordResetCodeStore;
+import com.nyo.global.security.PhoneVerificationCodeStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -44,9 +45,13 @@ public class UserService {
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginAttemptGuard loginAttemptGuard;
     private final PasswordResetCodeStore passwordResetCodeStore;
+    private final PhoneVerificationCodeStore phoneVerificationCodeStore;
     private final SmsService smsService; // MailService 대신
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    // 영문 대소문자 + 숫자 + 특수문자를 모두 포함해야 함 (UserRequest.password와 동일한 정책)
+    private static final java.util.regex.Pattern PASSWORD_PATTERN =
+            java.util.regex.Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^a-zA-Z0-9]).+$");
 
     // 회원가입
     @Transactional
@@ -191,44 +196,84 @@ public class UserService {
         return toResponse(user);
     }
 
-    // 마이페이지 수정. 닉네임이 실제로 바뀔 때만 중복 검사(자기 자신 제외)해서 불필요한 쿼리 방지.
-    // newPassword가 채워져 있으면 비밀번호도 같이 변경한다(선택 항목).
+    // 마이페이지 수정. 닉네임/이메일/전화번호/비밀번호 중 하나라도 실제로 바뀌는 요청일 때만 현재 비밀번호 확인을 요구한다.
+    // (값을 하나도 안 바꾸고 그대로 다시 저장하는 요청까지 현재 비밀번호를 강제하면, 프론트에서 현재 비밀번호 입력란 자체를
+    // 안 보여주는 상황과 어긋나기 때문. 소셜 로그인 회원은 비밀번호 자체가 없어 이 확인을 건너뛰고, 대신 비밀번호 변경 자체를 차단한다)
+    // 닉네임/이메일은 실제로 바뀔 때만 중복 검사(자기 자신 제외)하고, 전화번호는 실제로 바뀔 때만 SMS 인증코드를 재검증한다.
     @Transactional
     public UserResponse updateMyProfile(Long userId, UserProfileUpdateRequest request) {
         User user = findActiveUserOrThrow(userId);
 
-        if (!user.getNickname().equals(request.getNickname())
-                && userRepository.existsByNicknameAndIdNot(request.getNickname(), userId)) {
+        boolean nicknameChanged = !user.getNickname().equals(request.getNickname());
+        boolean emailChanged = !user.getEmail().equals(request.getEmail());
+        boolean phoneChanged = !java.util.Objects.equals(user.getPhone(), request.getPhone());
+        boolean passwordChangeRequested = request.getNewPassword() != null && !request.getNewPassword().isBlank();
+        boolean anyChanged = nicknameChanged || emailChanged || phoneChanged || passwordChangeRequested;
+
+        if (user.getPassword() != null) {
+            if (anyChanged
+                    && (request.getCurrentPassword() == null
+                        || !passwordEncoder.matches(request.getCurrentPassword(), user.getPassword()))) {
+                throw new BusinessException(ErrorCode.MEMBER_CURRENT_PASSWORD_MISMATCH);
+            }
+        } else if (passwordChangeRequested) {
+            throw new BusinessException(ErrorCode.MEMBER_OAUTH_PASSWORD_CHANGE_NOT_ALLOWED);
+        }
+
+        if (nicknameChanged && userRepository.existsByNicknameAndIdNot(request.getNickname(), userId)) {
             throw new BusinessException(ErrorCode.MEMBER_DUPLICATE_NICKNAME);
         }
 
-        user.updateProfile(request.getName(), request.getNickname(), request.getPhone());
-
-        if (request.getNewPassword() != null && !request.getNewPassword().isBlank()) {
-            changePassword(user, request.getCurrentPassword(), request.getNewPassword());
+        if (emailChanged && userRepository.existsByEmailAndIdNot(request.getEmail(), userId)) {
+            throw new BusinessException(ErrorCode.MEMBER_DUPLICATE_EMAIL);
         }
 
-        // 사전 중복 체크 이후에도 동시 요청이 겹치면 DB unique 제약(nickname)에서 걸릴 수 있어 방어적으로 처리
+        // 전화번호가 바뀌는 경우, 새 번호로 미리 발송/확인해둔 인증코드를 여기서 다시 검증하고 즉시 소모한다.
+        if (phoneChanged) {
+            if (request.getPhoneVerificationCode() == null || request.getPhoneVerificationCode().isBlank()) {
+                throw new BusinessException(ErrorCode.PHONE_VERIFICATION_REQUIRED);
+            }
+            phoneVerificationCodeStore.verify(userId, request.getPhone(), request.getPhoneVerificationCode());
+        }
+
+        user.updateProfile(request.getName(), request.getNickname(), request.getEmail(), request.getPhone());
+
+        if (passwordChangeRequested) {
+            changePassword(user, request.getNewPassword());
+        }
+
+        // 사전 중복 체크 이후에도 동시 요청이 겹치면 DB unique 제약(nickname/email)에서 걸릴 수 있어 방어적으로 처리.
+        // 어느 컬럼 때문인지 재조회해서 정확한 에러를 돌려준다.
         try {
             userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException e) {
+            if (userRepository.existsByEmailAndIdNot(request.getEmail(), userId)) {
+                throw new BusinessException(ErrorCode.MEMBER_DUPLICATE_EMAIL);
+            }
             throw new BusinessException(ErrorCode.MEMBER_DUPLICATE_NICKNAME);
         }
 
         return toResponse(user);
     }
 
-    // updateMyProfile에서 newPassword가 같이 온 경우에만 호출됨. 소셜 로그인 회원(password null)은 변경 자체를 차단
-    private void changePassword(User user, String currentPassword, String newPassword) {
-        if (user.getPassword() == null) {
-            throw new BusinessException(ErrorCode.MEMBER_OAUTH_PASSWORD_CHANGE_NOT_ALLOWED);
-        }
+    // 마이페이지에서 전화번호를 바꿀 때, 새 번호로 SMS 인증코드를 발송한다 (비밀번호 찾기와 동일한 방식)
+    @Transactional
+    public void sendPhoneVerificationCode(Long userId, String phone) {
+        findActiveUserOrThrow(userId);
+        String code = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+        phoneVerificationCodeStore.save(userId, phone, code);
+        smsService.sendPhoneVerificationCode(phone, code);
+    }
 
-        if (currentPassword == null || !passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new BusinessException(ErrorCode.MEMBER_CURRENT_PASSWORD_MISMATCH);
-        }
+    // 전화번호 변경 폼에서 "인증확인" 버튼을 눌렀을 때, 최종 제출 전에 코드가 맞는지 미리 확인시켜주는 용도
+    @Transactional(readOnly = true)
+    public void verifyPhoneVerificationCode(Long userId, String phone, String code) {
+        phoneVerificationCodeStore.verifyOnly(userId, phone, code);
+    }
 
-        if (newPassword.length() < 8 || newPassword.length() > 72) {
+    // updateMyProfile에서 newPassword가 같이 온 경우에만 호출됨. currentPassword 확인은 updateMyProfile 상단에서 이미 끝났다.
+    private void changePassword(User user, String newPassword) {
+        if (newPassword.length() < 8 || newPassword.length() > 72 || !PASSWORD_PATTERN.matcher(newPassword).matches()) {
             throw new BusinessException(ErrorCode.MEMBER_INVALID_NEW_PASSWORD);
         }
 

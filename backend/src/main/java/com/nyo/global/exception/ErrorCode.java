@@ -85,13 +85,16 @@ public enum ErrorCode {
     MEMBER_SUSPENSION_NOT_ACTIVE(HttpStatus.CONFLICT, "현재 정지 상태인 회원이 아닙니다."),
     MEMBER_CURRENT_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "현재 비밀번호가 일치하지 않습니다."),
     MEMBER_OAUTH_PASSWORD_CHANGE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "소셜 로그인 계정은 비밀번호를 변경할 수 없습니다."),
-    MEMBER_INVALID_NEW_PASSWORD(HttpStatus.BAD_REQUEST, "새 비밀번호는 8자 이상 72자 이하로 입력해주세요."),
+    MEMBER_INVALID_NEW_PASSWORD(HttpStatus.BAD_REQUEST, "새 비밀번호는 영문 대소문자, 숫자, 특수문자를 모두 포함해 8자 이상 72자 이하로 입력해주세요."),
     // 아이디/비밀번호 찾기 관련 에러코드. 계정 열거를 막기 위해 "이름/이메일 불일치"와 "아이디/이메일 불일치"
     // 둘 다 각각 동일한 메시지("일치하는 회원 정보가 없습니다")로 통일해서 사용한다.
     MEMBER_FIND_ID_NOT_FOUND(HttpStatus.NOT_FOUND, "일치하는 회원 정보가 없습니다."),
     PASSWORD_RESET_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND, "일치하는 회원 정보가 없습니다."),
     PASSWORD_RESET_CODE_INVALID(HttpStatus.BAD_REQUEST, "인증코드가 일치하지 않거나 만료되었습니다."),
     SMS_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "문자 발송에 실패했습니다. 잠시 후 다시 시도해주세요."),
+    // 마이페이지 전화번호 변경 인증 관련
+    PHONE_VERIFICATION_CODE_INVALID(HttpStatus.BAD_REQUEST, "인증코드가 일치하지 않거나 만료되었습니다."),
+    PHONE_VERIFICATION_REQUIRED(HttpStatus.BAD_REQUEST, "전화번호를 변경하려면 먼저 인증을 완료해주세요."),
 
     // ai / pomodoro / tag (장예지)
     AI_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "AI 응답 생성에 실패했습니다."),
