@@ -27,20 +27,23 @@ public class LectureRequest {
     @Schema(description = "강의명", example = "스프링 부트 마스터 클래스")
     private String title;
 
+    @NotBlank(message = "강의 설명은 필수입니다.")
     @Size(max = 5000, message = "강의 설명은 5000자를 초과할 수 없습니다.")
     @Schema(description = "강의 설명")
     private String description;
 
+    @NotBlank(message = "강의 링크는 필수입니다.")
     @Size(max = 1000)
     @URL(message = "강의 링크는 올바른 URL 형식이어야 합니다.")
-    @Schema(description = "강의 링크", example = "https://example.com")
+    @Schema(description = "강의 링크 (현재는 유튜브 링크만 지원)", example = "https://www.youtube.com/watch?v=xxxxxxxxxxx")
     private String lectureUrl;
 
     @Size(max = 1000)
-    @URL(message = "썸네일 URL은 올바른 URL 형식이어야 합니다.")
-    @Schema(description = "강의 대표 썸네일 이미지 URL", example = "https://example.com/thumbnail.jpg")
-    private String thumbnailUrl;
+    @URL(message = "복습용 URL은 올바른 URL 형식이어야 합니다.")
+    @Schema(description = "복습용 자료 URL (선택)", example = "https://example.com/review")
+    private String reviewUrl;
 
+    @NotBlank(message = "강사명은 필수입니다.")
     @Size(max = 100)
     @Schema(description = "강사명", example = "김강사")
     private String instructor;

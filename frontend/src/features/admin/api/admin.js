@@ -52,6 +52,10 @@ export function deleteLecture(id) {
   return apiDelete(`/api/admin/lectures/${id}`);
 }
 
+export function restoreLecture(id) {
+  return apiPost(`/api/admin/lectures/${id}/restore`);
+}
+
 export function approveLecture(id) {
   return apiPost(`/api/admin/lectures/${id}/approve`);
 }

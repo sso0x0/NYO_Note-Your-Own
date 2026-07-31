@@ -18,6 +18,7 @@ import com.nyo.domain.lecture.entity.Lecture;
 import com.nyo.domain.lecture.entity.LectureStatus;
 import com.nyo.domain.lecture.repository.LectureRepository;
 import com.nyo.domain.lecture.repository.LectureSearchRepository;
+import com.nyo.domain.lecture.util.YoutubeUrlUtils;
 import com.nyo.domain.note.repository.NoteRepository;
 import com.nyo.domain.user.entity.User;
 import com.nyo.domain.user.repository.UserRepository;
@@ -86,6 +87,20 @@ public class LectureServiceImpl implements LectureService {
         return likeRepository.existsByUserIdAndTargetTypeAndTargetId(userId, TargetType.ENROLL, lectureId);
     }
 
+    // 강의 URL(현재는 유튜브만 지원)에서 대표 썸네일을 자동으로 뽑아낸다. 유튜브 링크가 아니면 등록 자체를 막는다.
+    private String resolveThumbnailUrl(String lectureUrl) {
+        String thumbnailUrl = YoutubeUrlUtils.buildThumbnailUrl(lectureUrl);
+        if (thumbnailUrl == null) {
+            throw new BusinessException(ErrorCode.LECTURE_URL_NOT_YOUTUBE);
+        }
+        return thumbnailUrl;
+    }
+
+    // 복습용 URL은 선택 입력이라, 빈 문자열은 저장하지 않고 null로 정규화한다.
+    private String normalizeReviewUrl(String reviewUrl) {
+        return StringUtils.hasText(reviewUrl) ? reviewUrl : null;
+    }
+
     // 강의 등록
     @Override
     @Transactional
@@ -101,7 +116,8 @@ public class LectureServiceImpl implements LectureService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .lectureUrl(request.getLectureUrl())
-                .thumbnailUrl(request.getThumbnailUrl())
+                .thumbnailUrl(resolveThumbnailUrl(request.getLectureUrl()))
+                .reviewUrl(normalizeReviewUrl(request.getReviewUrl()))
                 .instructor(request.getInstructor())
                 .capacity(request.getCapacity())
                 .status(LectureStatus.APPROVED) // 관리자가 직접 등록하는 강의는 심사 없이 즉시 공개
@@ -132,7 +148,8 @@ public class LectureServiceImpl implements LectureService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .lectureUrl(request.getLectureUrl())
-                .thumbnailUrl(request.getThumbnailUrl())
+                .thumbnailUrl(resolveThumbnailUrl(request.getLectureUrl()))
+                .reviewUrl(normalizeReviewUrl(request.getReviewUrl()))
                 .instructor(request.getInstructor())
                 .capacity(request.getCapacity())
                 .status(LectureStatus.PENDING) // 관리자 승인 전까지는 비공개
@@ -194,15 +211,16 @@ public class LectureServiceImpl implements LectureService {
             throw new BusinessException(ErrorCode.CATEGORY_NOT_FOUND);
         }
 
+        // 삭제된 강의도 관리자 목록에는 그대로 남겨 두고(복구 전까지 내역 확인용) 화면에서 구분 표시한다.
         Page<Lecture> lectures;
         if (categoryId != null && status != null) {
-            lectures = lectureRepository.findByCategoryIdAndIsDeletedFalseAndStatus(categoryId, status, pageable);
+            lectures = lectureRepository.findByCategoryIdAndStatusForAdmin(categoryId, status, pageable);
         } else if (categoryId != null) {
-            lectures = lectureRepository.findByCategoryIdAndIsDeletedFalse(categoryId, pageable);
+            lectures = lectureRepository.findByCategoryIdForAdmin(categoryId, pageable);
         } else if (status != null) {
-            lectures = lectureRepository.findByIsDeletedFalseAndStatus(status, pageable);
+            lectures = lectureRepository.findByStatusForAdmin(status, pageable);
         } else {
-            lectures = lectureRepository.findByIsDeletedFalse(pageable);
+            lectures = lectureRepository.findAllForAdmin(pageable);
         }
         List<Long> lectureIds = lectures.getContent().stream().map(Lecture::getId).toList();
 
@@ -284,7 +302,8 @@ public class LectureServiceImpl implements LectureService {
         }
 
         lecture.update(category, request.getTitle(), request.getDescription(),
-                request.getLectureUrl(), request.getThumbnailUrl(), request.getInstructor(), request.getCapacity());
+                request.getLectureUrl(), resolveThumbnailUrl(request.getLectureUrl()),
+                normalizeReviewUrl(request.getReviewUrl()), request.getInstructor(), request.getCapacity());
         // 아직 승인 전(PENDING/REJECTED)인 강의는 수정해도 색인하지 않는다 — 승인 전 검색 노출 방지.
         if (lecture.getStatus() == LectureStatus.APPROVED) {
             indexLecture(LectureDocument.from(lecture)); // 검색 색인 반영
@@ -315,6 +334,23 @@ public class LectureServiceImpl implements LectureService {
         likeRepository.deleteByTargetTypeAndTargetId(TargetType.ENROLL, id);
 
         deindexLecture(id); // 검색 결과에서도 제외
+    }
+
+    // 삭제된 강의 복구 (DB에서 완전히 삭제되기 전까지는 관리자가 되돌릴 수 있다)
+    @Override
+    @Transactional
+    public void restoreLecture(Long id, Long adminId) {
+        findAdmin(adminId);
+
+        Lecture lecture = lectureRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND));
+
+        lecture.restore();
+
+        // 승인된 강의만 일반 목록/검색에 노출되므로, 그 경우에만 색인을 되살린다.
+        if (lecture.getStatus() == LectureStatus.APPROVED) {
+            indexLecture(LectureDocument.from(lecture));
+        }
     }
 
     // ES 색인 저장 실패가 강의 생성/수정 트랜잭션 자체를 롤백시키지 않도록 격리한다.

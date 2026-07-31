@@ -25,6 +25,50 @@
   font-weight: 600;
 }
 
+/* 강의명을 눌렀을 때 펼쳐지는 상세 정보: 썸네일 + 설명/URL 요약. */
+.admin-lecture__detail {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.admin-lecture__thumbnail {
+  width: 200px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.admin-lecture__summary {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  row-gap: 10px;
+  column-gap: 16px;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--code-bg);
+  color: var(--text-h);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.admin-lecture__summary dt {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.admin-lecture__summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 /* 카테고리/상태 필터를 계단식(cascading)으로 이어붙여 하나의 필터 컨트롤처럼 보이게 한다. */
 .admin-lecture-filter {
   display: flex;

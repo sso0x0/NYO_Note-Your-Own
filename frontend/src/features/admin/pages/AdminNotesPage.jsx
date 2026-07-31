@@ -75,7 +75,7 @@ function AdminNotesPage() {
                     </td>
                     <td className="admin-actions">
                       {note.isDeleted ? (
-                        <span className="admin-deleted-label">삭제됨</span>
+                        <span className="admin-deleted-label admin-actions__deleted-label">삭제됨</span>
                       ) : (
                         <button type="button" className="admin-btn admin-btn--sm admin-btn--danger" onClick={() => handleDeleteNote(note)}>삭제</button>
                       )}

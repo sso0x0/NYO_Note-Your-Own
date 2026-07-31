@@ -45,6 +45,9 @@ public interface LectureService {
     // 강의 삭제 (관리자만 가능)
     void deleteLecture(Long id, Long adminId);
 
+    // 삭제된 강의 복구 (관리자만 가능, DB에서 완전히 삭제되기 전까지 되돌릴 수 있음)
+    void restoreLecture(Long id, Long adminId);
+
     // 조회수 증가 (하루 1회 제한)
     void increaseViewCount(Long id, Long userId);
 
