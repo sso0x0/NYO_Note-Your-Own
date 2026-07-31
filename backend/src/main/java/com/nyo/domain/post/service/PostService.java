@@ -7,7 +7,6 @@ import com.nyo.domain.common.entity.Image;
 import com.nyo.domain.common.repository.ImageRepository;
 import com.nyo.domain.common.service.LikeService;
 import com.nyo.domain.common.service.ViewService;
-import com.nyo.domain.comment.entity.Comment;
 import com.nyo.domain.comment.repository.CommentRepository;
 import com.nyo.domain.post.document.PostDocument;
 import com.nyo.domain.post.dto.PostAdminResponse;
@@ -286,8 +285,8 @@ public class PostService {
         // isDeleted 기반 소프트 삭제: comments 등 자식 데이터가 참조하는 row를 물리 삭제하지 않는다.
         // 관리자 복구를 위해 GCS 이미지는 삭제하지 않고 그대로 보존한다.
         post.delete();
-        // 게시글이 사용자 화면에서 사라질 때 연결된 원댓글과 답글도 모두 삭제 상태로 바꾼다.
-        commentRepository.findByPostId(postId).forEach(Comment::delete);
+        // 게시글이 삭제되어도 연결된 댓글의 삭제 상태는 변경하지 않는다.
+        // 게시글 자체가 사용자 화면에서 숨겨지므로 댓글도 노출되지 않고, 게시글 복구 시 기존 댓글 상태가 그대로 유지된다.
         deindexPost(postId); // 검색 결과에서도 제외 (공지가 아니었다면 원래 있던 것만 지워짐)
     }
 
@@ -296,8 +295,7 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
         post.restore();
-        // 게시글 복구 시 연결 댓글도 함께 복구한다. 이후 댓글별 개별 삭제·복구도 가능하다.
-        commentRepository.findByPostId(postId).forEach(Comment::restore);
+        // 게시글 삭제 시 댓글 상태를 바꾸지 않으므로 복구할 때도 댓글 상태를 변경하지 않는다.
         if (!post.isNotice()) {
             indexPost(PostDocument.from(post));
         }
@@ -354,6 +352,8 @@ public class PostService {
                 .thumbnailUrl(post.getThumbnailUrl())
                 .viewCount(post.getViewCount())
                 .likeCount(post.getLikeCount())
+                // 목록과 상세에서 제목 옆에 표시할 현재 댓글 수입니다.
+                .commentCount(commentRepository.countByPostIdAndIsDeleted(post.getId(), 0))
                 .isDeleted(post.isDeleted())
                 .notice(post.isNotice())
                 .createdAt(post.getCreatedAt())

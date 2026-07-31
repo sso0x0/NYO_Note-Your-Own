@@ -197,7 +197,12 @@ function CommunityBoard({ onCreate, onOpenPost }) {
                 <div className="post-card__body">
                     <div className="post-card__col post-card__col--title">
                         {post.notice && <span className="post-card__badge">공지</span>}
-                        <h3 className="post-card__title">{post.title}</h3>
+                        <h3 className="post-card__title">
+                            {post.title}
+                            {(post.commentCount ?? 0) > 0 && (
+                                <span className="post-card__comment-count"> [{post.commentCount}]</span>
+                            )}
+                        </h3>
                     </div>
                     <div className="post-card__col post-card__col--author">{post.authorNickname || '알 수 없는 사용자'}</div>
                     <div className="post-card__col post-card__col--views">{post.viewCount ?? 0}</div>

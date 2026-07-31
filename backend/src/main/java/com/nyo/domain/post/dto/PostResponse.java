@@ -40,6 +40,9 @@ public class PostResponse {
     @Schema(description = "캐시된 좋아요수", example = "22")
     private Long likeCount;
 
+    @Schema(description = "삭제되지 않은 댓글 수", example = "3")
+    private Long commentCount;
+
     @Schema(description = "삭제 여부", example = "false")
     private Boolean isDeleted;
 

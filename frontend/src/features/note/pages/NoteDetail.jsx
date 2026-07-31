@@ -48,14 +48,9 @@ function NoteDetailChat({ lectureId, noteId }) {
     const [chatMessages, setChatMessages] = useState([])
     const [chatSending, setChatSending] = useState(false)
     const [chatError, setChatError] = useState(null)
-    const chatBottomRef = useRef(null)
-
-    // 이 노트를 보는 동안 이어서 물어본 질문들이 서버에 하나의 대화(rootQuestionId)로 묶이게 한다 —
-    // 없으면(null) 다음 질문이 새 대화의 시작이 되고, 그 응답의 rootQuestionId를 저장해두면 이후
-    // 질문들이 계속 같은 대화로 이어진다. 이렇게 해야 AI 챗봇 페이지(/main/chat)의 전체 대화
-    // 목록에서도 이 노트에서 이어서 물어본 질문들이 새 항목으로 따로따로 안 뜨고 하나로 묶여 보인다.
+    const chatMessagesRef = useRef(null)
+    // mia 기준: 이 노트에서 이어지는 질문을 하나의 AI 대화로 묶기 위한 루트 질문 ID입니다.
     const rootQuestionIdRef = useRef(null)
-
     const [chatDrawerOpen, setChatDrawerOpen] = useState(true)
     const [showQuestionList, setShowQuestionList] = useState(false)
     const [questionListExpanded, setQuestionListExpanded] = useState(false)
@@ -67,7 +62,7 @@ function NoteDetailChat({ lectureId, noteId }) {
         setChatError(null)
         setShowQuestionList(false)
         setQuestionListExpanded(false)
-        rootQuestionIdRef.current = null // 노트/강의가 바뀌면 이어가던 대화도 새로 시작한다
+        rootQuestionIdRef.current = null
     }, [lectureId])
 
     // 서버에서 지난 질문을 다시 불러오지 않고, 위 chatMessages에서 사용자 질문만 걸러서 보여준다
@@ -75,17 +70,24 @@ function NoteDetailChat({ lectureId, noteId }) {
     const askedQuestions = chatMessages.filter((message) => message.senderRole === 'USER')
 
     useEffect(() => {
-        // 상세 첫 진입에는 화면을 움직이지 않고 실제 메시지가 생긴 뒤에만 마지막 대화로 이동한다.
-        if (chatMessages.length > 0) {
-            chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+        // AI 답변이 추가돼도 페이지 전체는 움직이지 않고 챗봇 대화창 내부만 아래로 이동한다.
+        const chatContainer = chatMessagesRef.current
+        if (chatMessages.length > 0 && chatContainer) {
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' })
         }
     }, [chatMessages])
 
     // 질문 목록에서 항목을 누르면 대화창에서 그 질문이 있는 위치로 스크롤해서 보여주고, 팝오버는 닫는다.
     const scrollToQuestion = (questionId) => {
         setShowQuestionList(false)
-        document.getElementById(`note-chat-message-${questionId}`)
-            ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        const chatContainer = chatMessagesRef.current
+        const questionElement = document.getElementById(`note-chat-message-${questionId}`)
+        if (chatContainer && questionElement) {
+            chatContainer.scrollTo({
+                top: questionElement.offsetTop - chatContainer.offsetTop,
+                behavior: 'smooth',
+            })
+        }
     }
 
     const handleChatSend = async (message) => {
@@ -96,10 +98,16 @@ function NoteDetailChat({ lectureId, noteId }) {
             { id: `pending-${Date.now()}`, senderRole: 'USER', message },
         ])
 
+
         try {
             // 연결된 강의 ID로 저장해 노트와 강의 화면에서 같은 대화를 이어가고,
             // 지금 보고 있는 노트 ID도 같이 보내 "이 노트 설명해줘" 같은 질문도 이 노트를 근거로 답하게 한다.
-            const answer = await sendMessage({ lectureId, noteId, message, rootQuestionId: rootQuestionIdRef.current })
+            const answer = await sendMessage({
+                lectureId,
+                noteId,
+                message,
+                rootQuestionId: rootQuestionIdRef.current,
+            })
             rootQuestionIdRef.current = answer.rootQuestionId
             setChatMessages((previous) => [...previous, answer])
         } catch (error) {
@@ -166,7 +174,7 @@ function NoteDetailChat({ lectureId, noteId }) {
                             </div>
                         )}
                     </div>
-                    <div className="chat-messages">
+                    <div className="chat-messages" ref={chatMessagesRef}>
                         {chatMessages.map((chatMessage) => (
                             <div key={chatMessage.id} id={`note-chat-message-${chatMessage.id}`}>
                                 <ChatMessage
@@ -176,7 +184,6 @@ function NoteDetailChat({ lectureId, noteId }) {
                                 />
                             </div>
                         ))}
-                        <div ref={chatBottomRef} />
                     </div>
                     {chatError && <p className="chat-error">{chatError}</p>}
                     <ChatInput sending={chatSending} onSend={handleChatSend} />
