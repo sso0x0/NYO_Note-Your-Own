@@ -312,18 +312,18 @@
   opacity: 0.85;
 }
 
-/* 댓글 등록도 목록·수정 버튼처럼 기본은 흰색, hover 시 검은색으로 반전한다. */
+/* 댓글 등록은 기본 검은색, hover 시 흰색으로 반전한다. */
 .post-detail-page .comment-form button[type='submit'] {
-  border: 1px solid var(--pd-line);
-  background: #fff;
-  color: var(--pd-ink);
+  border: 1px solid #000;
+  background: #000;
+  color: #fff;
   transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
 
 .post-detail-page .comment-form button[type='submit']:hover:not(:disabled) {
   border-color: #000;
-  background: #000;
-  color: #fff;
+  background: #fff;
+  color: #000;
   opacity: 1;
 }
 
@@ -473,10 +473,9 @@
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-/* 답글/수정 버튼은 마우스를 올리면(호버) 파란 배경 + 굵은 글씨로 바뀐다. 삭제 버튼은
-   아래 .danger-button:hover 규칙이 이 규칙보다 우선순위가 높아서 계속 빨간색으로 유지된다. */
-.post-detail-page .comment-body__actions button:hover {
-  background: var(--pd-focus);
+/* 답글/수정 버튼은 마우스를 올리면 검은 배경과 흰 글씨로 반전한다. */
+.post-detail-page .comment-body__actions button:not(.danger-button):hover {
+  background: #000;
   color: #fff;
   font-weight: 700;
 }
@@ -488,9 +487,9 @@
   outline-offset: 2px;
 }
 
-/* 답글/수정 버튼만 포커스 시 배경까지 파란색으로 채우고 글씨를 굵게 한다. 삭제 버튼은 빨간색을 유지한다. */
+/* 키보드 포커스 상태도 답글/수정 버튼의 hover와 같은 검은색으로 표시한다. */
 .post-detail-page .comment-body__actions button:not(.danger-button):focus {
-  background: var(--pd-focus);
+  background: #000;
   color: #fff;
   font-weight: 700;
 }

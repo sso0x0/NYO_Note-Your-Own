@@ -19,6 +19,9 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     // 삭제된 댓글도 함께 조회해서, 답글이 남아있는 삭제된 댓글은 "삭제된 댓글입니다" 자리표시자로 보여준다.
     List<Comment> findByPostIdOrderByCreatedAtAsc(Long postId);
 
+    // 커뮤니티 목록 제목 옆에 표시할 삭제되지 않은 댓글 수를 조회한다.
+    long countByPostIdAndIsDeleted(Long postId, Integer isDeleted);
+
     List<Comment> findByLectureIdOrderByCreatedAtAsc(Long lectureId);
 
     Optional<Comment> findByIdAndIsDeleted(Long id, Integer isDeleted);
