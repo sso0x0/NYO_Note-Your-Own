@@ -334,7 +334,24 @@
     flex: none;
     position: sticky;
     top: 24px;
+    border-radius: 20px;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
+}
+
+.note-detail-page .note-detail-chat.is-collapsed {
+    width: 48px;
+    height: 180px;
+    align-self: flex-end;
+}
+
+.note-detail-page .note-detail-chat__expand {
+    color: var(--text);
+    /* 세로 접힘 바에서도 AI 영문이 옆으로 눕지 않고 똑바로 보이게 한다. */
+    text-orientation: upright;
+}
+
+.note-detail-page .note-detail-chat__expand:hover {
+    color: var(--nd-primary);
 }
 
 /* mia의 노트 상세 뽀모도로 기능은 유지하되 노트 상세 전용 범위 안에서만 스타일을 적용한다. */
@@ -346,6 +363,20 @@
     background: var(--bg);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
     box-sizing: border-box;
+    /* 접기 시 중간 크기를 거치지 않고 바로 접힌 크기로 변경한다. */
+    transition: none;
+}
+
+.note-detail-page .note-detail-chat {
+    transition: none;
+}
+
+.note-detail-page .note-detail-pomodoro.is-collapsed {
+    width: 48px;
+    height: 180px;
+    align-self: flex-end;
+    padding: 0;
+    overflow: hidden;
 }
 
 .note-detail-page .note-detail-pomodoro__header {
@@ -395,6 +426,37 @@
     opacity: 1;
 }
 
+.note-detail-page .note-detail-pomodoro__collapse {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.note-detail-page .note-detail-pomodoro__collapse:hover,
+.note-detail-page .note-detail-pomodoro__expand:hover {
+    color: var(--nd-primary);
+}
+
+.note-detail-page .note-detail-pomodoro__expand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    writing-mode: vertical-rl;
+    cursor: pointer;
+}
+
 .note-detail-page .note-detail-pomodoro__history-toggle svg {
     width: 20px;
     height: 20px;
@@ -429,6 +491,17 @@
     .note-detail-page .note-detail-pomodoro,
     .note-detail-page .note-detail-chat {
         width: 100%;
+    }
+
+    .note-detail-page .note-detail-pomodoro.is-collapsed,
+    .note-detail-page .note-detail-chat.is-collapsed {
+        width: 100%;
+        height: 48px;
+    }
+
+    .note-detail-page .note-detail-pomodoro__expand,
+    .note-detail-page .note-detail-chat__expand {
+        writing-mode: horizontal-tb;
     }
 
     .note-detail-page .note-detail-chat {
