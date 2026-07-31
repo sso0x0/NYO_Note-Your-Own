@@ -334,8 +334,8 @@
   text-align: right;
 }
 
-/* 강의 관리 "번호·ID·카테고리·강의명·강사·수강·인기·관리" 8열도 같은 이유로
-   강의명만 남은 공간을 쓰게 두고 나머지 열 폭을 고정한다. */
+/* 강의 관리 "번호·ID·카테고리·강의명·강사·등록자·수강·상태·관리" 9열도 같은 이유로
+   강의명만 남은 공간을 쓰게 두고 나머지 열 폭을 고정한다. (인기 여부는 상세 펼침에서 확인) */
 .admin-table--lecture {
   table-layout: fixed;
 }
@@ -363,16 +363,23 @@
 
 .admin-table--lecture th:nth-child(6),
 .admin-table--lecture td:nth-child(6) {
-  width: 100px;
+  width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-table--lecture th:nth-child(7),
 .admin-table--lecture td:nth-child(7) {
-  width: 70px;
+  width: 90px;
 }
 
 .admin-table--lecture th:nth-child(8),
 .admin-table--lecture td:nth-child(8) {
+  width: 110px;
+}
+
+.admin-table--lecture th:nth-child(9),
+.admin-table--lecture td:nth-child(9) {
   width: 170px;
 }
 

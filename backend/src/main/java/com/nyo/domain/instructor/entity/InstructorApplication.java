@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -40,6 +41,31 @@ public class InstructorApplication extends BaseEntity {
     @Column(name = "portfolio_url", length = 1000)
     private String portfolioUrl;
 
+    @Column(name = "career_years")
+    private Integer careerYears;
+
+    @Column(length = 100)
+    private String company;
+
+    @Lob
+    @Column
+    private String curriculum;
+
+    // 첨부파일(이력서/자격증 등)은 별도 도메인 없이 기존 이미지 업로드(GCS) API로 올린 뒤 URL만 저장한다. 필수 제출 항목.
+    @Column(name = "attachment_url", nullable = false, length = 1000)
+    private String attachmentUrl;
+
+    @Column(name = "attachment_name", length = 255)
+    private String attachmentName;
+
+    @Lob
+    @Column(nullable = false)
+    private String motivation;
+
+    // 신청 시점의 동의 여부를 그대로 기록해 둔다 (개인정보 수집·이용 동의 증빙).
+    @Column(name = "privacy_consent", nullable = false)
+    private boolean privacyConsent;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 15)
     private InstructorApplicationStatus status;
@@ -50,14 +76,27 @@ public class InstructorApplication extends BaseEntity {
     @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
 
-    public static InstructorApplication create(Long userId, Long categoryId, String bio, String portfolioUrl) {
-        InstructorApplication application = new InstructorApplication();
-        application.userId = userId;
-        application.categoryId = categoryId;
-        application.bio = bio.trim();
-        application.portfolioUrl = portfolioUrl;
-        application.status = InstructorApplicationStatus.PENDING;
-        return application;
+    @Lob
+    @Column(name = "reject_reason")
+    private String rejectReason;
+
+    @Builder
+    public InstructorApplication(Long userId, Long categoryId, String bio, String portfolioUrl,
+                                  Integer careerYears, String company, String curriculum,
+                                  String attachmentUrl, String attachmentName,
+                                  String motivation, boolean privacyConsent) {
+        this.userId = userId;
+        this.categoryId = categoryId;
+        this.bio = bio.trim();
+        this.portfolioUrl = portfolioUrl;
+        this.careerYears = careerYears;
+        this.company = company;
+        this.curriculum = curriculum;
+        this.attachmentUrl = attachmentUrl;
+        this.attachmentName = attachmentName;
+        this.motivation = motivation.trim();
+        this.privacyConsent = privacyConsent;
+        this.status = InstructorApplicationStatus.PENDING;
     }
 
     public void approve(Long adminId) {
@@ -66,9 +105,10 @@ public class InstructorApplication extends BaseEntity {
         this.reviewedAt = LocalDateTime.now();
     }
 
-    public void reject(Long adminId) {
+    public void reject(Long adminId, String reason) {
         this.status = InstructorApplicationStatus.REJECTED;
         this.reviewedBy = adminId;
         this.reviewedAt = LocalDateTime.now();
+        this.rejectReason = reason;
     }
 }

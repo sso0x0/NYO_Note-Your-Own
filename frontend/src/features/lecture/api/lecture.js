@@ -4,6 +4,16 @@ export function getLectureList({ page = 0, size = 20, categoryId, sort } = {}) {
   return apiGet('/api/lectures', { page, size, categoryId, sort });
 }
 
+// 강사(승인된 계정)가 강의 등록을 신청한다. 관리자 승인 전까지는 PENDING 상태로 본인/관리자에게만 보인다.
+export function createMyLecture(request) {
+  return apiPost('/api/lectures', request);
+}
+
+// 마이페이지 "강의 등록" 탭: 내가 등록 신청한 강의 목록(심사 상태 무관 전체).
+export function getMyLectures(params = {}) {
+  return apiGet('/api/lectures/mine', params);
+}
+
 export function getLecture(id) {
   return apiGet(`/api/lectures/${id}`);
 }

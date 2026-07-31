@@ -36,8 +36,19 @@ public class InstructorApplicationService {
         if (!categoryRepository.existsById(request.categoryId())) {
             throw new BusinessException(ErrorCode.CATEGORY_NOT_FOUND);
         }
-        instructorApplicationRepository.save(
-                InstructorApplication.create(userId, request.categoryId(), request.bio(), request.portfolioUrl()));
+        instructorApplicationRepository.save(InstructorApplication.builder()
+                .userId(userId)
+                .categoryId(request.categoryId())
+                .bio(request.bio())
+                .portfolioUrl(request.portfolioUrl())
+                .careerYears(request.careerYears())
+                .company(request.company())
+                .curriculum(request.curriculum())
+                .attachmentUrl(request.attachmentUrl())
+                .attachmentName(request.attachmentName())
+                .motivation(request.motivation())
+                .privacyConsent(request.privacyConsent())
+                .build());
     }
 
     @Transactional(readOnly = true)
@@ -66,8 +77,8 @@ public class InstructorApplicationService {
     }
 
     @Transactional
-    public void reject(Long applicationId, Long adminId) {
-        getPendingOrThrow(applicationId).reject(adminId);
+    public void reject(Long applicationId, Long adminId, String reason) {
+        getPendingOrThrow(applicationId).reject(adminId, reason);
     }
 
     private InstructorApplication getPendingOrThrow(Long applicationId) {
@@ -86,7 +97,15 @@ public class InstructorApplicationService {
                 findCategoryName(application.getCategoryId()),
                 application.getBio(),
                 application.getPortfolioUrl(),
+                application.getCareerYears(),
+                application.getCompany(),
+                application.getCurriculum(),
+                application.getAttachmentUrl(),
+                application.getAttachmentName(),
+                application.getMotivation(),
+                application.isPrivacyConsent(),
                 application.getStatus(),
+                application.getRejectReason(),
                 application.getReviewedAt(),
                 application.getCreatedAt());
     }
@@ -101,7 +120,15 @@ public class InstructorApplicationService {
                 findCategoryName(application.getCategoryId()),
                 application.getBio(),
                 application.getPortfolioUrl(),
+                application.getCareerYears(),
+                application.getCompany(),
+                application.getCurriculum(),
+                application.getAttachmentUrl(),
+                application.getAttachmentName(),
+                application.getMotivation(),
+                application.isPrivacyConsent(),
                 application.getStatus(),
+                application.getRejectReason(),
                 application.getReviewedBy(),
                 application.getReviewedAt(),
                 application.getCreatedAt());

@@ -86,6 +86,21 @@ public class Lecture {
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted;
 
+    // 심사 상태. 관리자가 등록하면 즉시 APPROVED, 강사가 등록 신청하면 PENDING으로 시작한다.
+    // PENDING/REJECTED 강의는 일반 조회/검색 목록에서 제외되고, 등록한 강사 본인과 관리자만 볼 수 있다.
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 15)
+    private LectureStatus status;
+
+    // 반려 사유 (REJECTED 상태일 때만 값이 있음)
+    @Lob
+    @Column(name = "reject_reason")
+    private String rejectReason;
+
+    // 심사(승인/반려) 처리 시각
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
     // 등록일 (자동 생성)
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -98,7 +113,8 @@ public class Lecture {
 
     @Builder
     public Lecture(Category category, User createdBy, String title, String description,
-                   String lectureUrl, String thumbnailUrl, String instructor, Integer capacity) {
+                   String lectureUrl, String thumbnailUrl, String instructor, Integer capacity,
+                   LectureStatus status) {
         this.category = category;
         this.createdBy = createdBy;
         this.title = title;
@@ -112,6 +128,7 @@ public class Lecture {
         this.likeCount = 0L;
         this.isPopular = false;
         this.isDeleted = false;
+        this.status = status;
     }
     // 강의 정보 수정 (관리자만 호출 가능)
     public void update(Category category, String title, String description,
@@ -128,6 +145,19 @@ public class Lecture {
     // 강의 삭제 처리
     public void delete() {
         this.isDeleted = true;
+    }
+
+    // 강사가 등록 신청한 강의를 관리자가 승인 (일반 목록/검색에 노출)
+    public void approve() {
+        this.status = LectureStatus.APPROVED;
+        this.reviewedAt = LocalDateTime.now();
+    }
+
+    // 강사가 등록 신청한 강의를 관리자가 반려
+    public void reject(String reason) {
+        this.status = LectureStatus.REJECTED;
+        this.rejectReason = reason;
+        this.reviewedAt = LocalDateTime.now();
     }
 
     // 인기 강의 여부 갱신
