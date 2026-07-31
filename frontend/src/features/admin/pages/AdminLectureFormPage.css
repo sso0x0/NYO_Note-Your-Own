@@ -13,6 +13,15 @@
   font-weight: 700;
 }
 
+.admin-lecture-form__hint {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: var(--bg-subtle, rgba(0, 0, 0, 0.04));
+  color: var(--text);
+  font-size: 13px;
+}
+
 .admin-lecture-form__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -24,7 +24,6 @@
 
 .admin-table--instructor-application th:nth-child(5),
 .admin-table--instructor-application td:nth-child(5) {
-  width: 160px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -37,7 +36,7 @@
 
 .admin-table--instructor-application th:nth-child(7),
 .admin-table--instructor-application td:nth-child(7) {
-  width: 100px;
+  width: 110px;
 }
 
 .admin-table--instructor-application th:nth-child(8),
@@ -53,6 +52,7 @@
   font-size: 12px;
   font-weight: 700;
   color: #fff;
+  white-space: nowrap;
 }
 
 .admin-instructor-application__status-badge--pending {
@@ -68,8 +68,11 @@
 }
 
 .admin-instructor-application__reviewed-at {
+  padding: 6px 12px 6px 0;
+  border: 1px solid transparent;
   color: var(--text);
   font-size: 12px;
+  line-height: 19px;
 }
 
 .admin-instructor-application__empty {

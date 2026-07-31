@@ -94,6 +94,16 @@ public class AdminLectureController {
         return ApiResponse.ok();
     }
 
+    // 삭제된 강의 복구
+    @Operation(summary = "삭제된 강의 복구", description = "관리자가 삭제 처리한 강의를 복구하여 다시 노출합니다.")
+    @PostMapping("/{id}/restore")
+    public ApiResponse<Void> restoreLecture(
+            @Parameter(description = "복구할 강의 ID") @PathVariable Long id) {
+        Long adminId = SecurityUtil.getCurrentUserId();
+        lectureService.restoreLecture(id, adminId);
+        return ApiResponse.ok();
+    }
+
     // 검색 색인 재구축
     @Operation(summary = "강의 검색 색인 재구축", description = "DB의 전체 강의로 Elasticsearch 색인을 다시 만듭니다. 색인 유실 복구, 기존 데이터 최초 반영 등에 사용합니다.")
     @PostMapping("/reindex")
