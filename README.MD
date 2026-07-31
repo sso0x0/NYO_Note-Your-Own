@@ -82,6 +82,43 @@ nyo/
 
 ## 흐름도
 
+### 프로젝트 전체 플로우차트
+
+```mermaid
+flowchart TD
+    Start([접속]) --> Landing["랜딩 페이지 '/'"]
+    Landing --> Login["로그인 '/login'"]
+    Landing --> Signup["회원가입 '/signup'"]
+    Signup --> Login
+
+    Login -->|이메일 로그인| Auth{인증 성공?}
+    Login -->|구글 로그인| OAuth["구글 OAuth2 인가"]
+    OAuth --> Redirect["OAuth2 리다이렉트<br/>'/oauth2/redirect'"]
+    Redirect --> Auth
+    Auth -->|실패| Login
+    Auth -->|성공: JWT 발급| Protected["ProtectedRoute 통과"]
+
+    Protected --> Main["메인 대시보드<br/>'/main'"]
+    Main --> Lecture["강의 목록/상세<br/>'/main/lectures'"]
+    Main --> Note["노트<br/>'/main/notes'"]
+    Main --> Community["커뮤니티<br/>'/main/community'"]
+    Main --> Chat["AI 챗봇<br/>'/main/chat'"]
+    Main --> MyPage["마이페이지<br/>'/main/mypage'"]
+    Main --> InstructorApply["강사 지원<br/>'/main/instructor/apply'"]
+
+    Lecture --> LectureWatch["강의 수강 화면<br/>'/main/lectures/:id/watch'"]
+    Note --> NoteSearch["Elasticsearch 노트 검색"]
+    Community --> Post["게시글 작성/조회"]
+    Post --> Comment["댓글 작성"]
+    Post --> Report["신고 처리"]
+    Chat --> AIStream["OpenAI 스트리밍 응답"]
+    MyPage --> InstructorApply
+
+    Protected --> AdminCheck{관리자 권한?}
+    AdminCheck -->|Yes| Admin["관리자 콘솔<br/>'/admin'"]
+    AdminCheck -->|No| Denied["접근 거부"]
+```
+
 ### 전체 아키텍처
 
 ```mermaid
@@ -252,9 +289,3 @@ npm run dev
 - **검색이 안 될 때**: `docker-compose up -d`로 Elasticsearch가 떠 있는지, `ELASTICSEARCH_URI`가 맞는지 확인하세요.
 - **AI 챗봇 응답이 안 올 때**: `OPENAI_API_KEY`가 설정됐는지 확인하세요.
 - **포트 충돌 (8080 / 5173 / 9200 / 5601)**: 다른 프로세스가 해당 포트를 쓰고 있지 않은지 확인하세요.
-
-## 5. 브랜치 / 협업 규칙
-
-- 브랜치 전략: `main` / `develop` / `feature/기능명`
-- 커밋 메시지 컨벤션: `feat`, `fix`, `refactor`, `docs`, `chore` 등
-- PR 시 리뷰어 최소 1인 이상 지정
