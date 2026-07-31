@@ -61,17 +61,20 @@ const validators = {
   },
 };
 
+// 회원가입 페이지. 필드별 실시간 검증 + 제출 시 전체 재검증 후 회원가입 API를 호출한다.
 function SignupPage() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState(INITIAL_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
+  // blur를 거친 필드만 실시간 에러를 보여주기 위한 추적 상태
   const [touched, setTouched] = useState({});
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
 
+  // 이름에 해당하는 validators[name]을 최신 form 값으로 실행하는 헬퍼
   const runValidator = (name, nextForm) => validators[name](nextForm[name], nextForm);
 
   const handleChange = (e) => {

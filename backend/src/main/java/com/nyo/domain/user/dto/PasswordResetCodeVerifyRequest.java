@@ -22,6 +22,7 @@ public class PasswordResetCodeVerifyRequest {
     @Pattern(regexp = "^01[0-9]-?\\d{3,4}-?\\d{4}$", message = "올바른 휴대폰 번호 형식이 아닙니다.")
     private String phone;
 
+    // sendPasswordResetCode로 발송된 6자리 인증코드
     @NotBlank(message = "인증코드는 필수입니다.")
     private String code;
 }

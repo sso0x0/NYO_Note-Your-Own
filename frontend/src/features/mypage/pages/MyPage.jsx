@@ -31,17 +31,19 @@ const TABS = [
     { id: 'likedNotes', label: '좋아요 노트' },
 ];
 
-const LIST_SIZE = 8;
-const POST_SCAN_SIZE = 50;
-const LECTURE_SCAN_SIZE = 30;
+const LIST_SIZE = 8;          // 노트/게시글/댓글 목록 초기 조회 개수
+const POST_SCAN_SIZE = 50;    // 전체 게시글 중 내가 쓴 글만 걸러내기 위해 넉넉히 가져오는 개수
+const LECTURE_SCAN_SIZE = 30; // 전체 강의 중 내가 수강신청한 것만 걸러내기 위해 넉넉히 가져오는 개수
 const POMODORO_PERIOD_SIZE = 100;
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 5;          // 탭 안에서 클라이언트 사이드 페이징 단위
 const CHAT_HISTORY_SIZE = 8; // 필요한 값으로 조정
 
+// 이미 불러온 배열을 프론트에서 PAGE_SIZE 단위로 잘라 보여주는 클라이언트 사이드 페이징 헬퍼
 function paginate(items, page) {
     return items.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
 }
 
+// 탭 콘텐츠 하단에 붙는 공용 이전/다음 페이지 버튼
 function Pager({ page, totalPages, onChange }) {
     if (totalPages <= 1) return null;
     return (
@@ -57,6 +59,7 @@ function Pager({ page, totalPages, onChange }) {
     );
 }
 
+// 뽀모도로 차트 기본 조회 기간: 오늘 포함 최근 14일
 function defaultPomodoroRange() {
     const end = new Date();
     const start = new Date();
@@ -64,6 +67,7 @@ function defaultPomodoroRange() {
     return { start: toLocalDateString(start), end: toLocalDateString(end) };
 }
 
+// 해당 날짜가 속한 주의 월요일을 반환 (일요일은 그 전주로 취급)
 function startOfWeek(date) {
     const d = new Date(date);
     const day = d.getDay();
@@ -72,36 +76,43 @@ function startOfWeek(date) {
     return d;
 }
 
+// 해당 날짜가 속한 달의 1일을 반환
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
 }
 
+// 마이페이지: 내 정보 조회/수정, 회원 탈퇴, 그리고 학습기록·수강강의·게시글·댓글·노트·좋아요 노트를
+// 탭으로 묶어 한 화면에서 보여준다. 탭별 데이터는 최초 마운트 시 한 번에 병렬로 불러온다.
 function MyPage() {
     const { logout, updateNickname } = useAuth();
     const navigate = useNavigate();
 
     const [profile, setProfile] = useState(null);
-    const [status, setStatus] = useState('idle');
+    const [status, setStatus] = useState('idle'); // idle | loading | success | error (전체 초기 데이터 로딩 상태)
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState(TABS[0].id);
 
+    // 내 정보 수정 폼
     const [editing, setEditing] = useState(false);
     const [form, setForm] = useState({ name: '', nickname: '', phone: '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
     const [saveError, setSaveError] = useState(null);
     const [saving, setSaving] = useState(false);
 
+    // 탭별로 보여줄 목록 데이터 (전부 최초 로딩 시 한 번에 가져와서 클라이언트에서 페이징)
     const [myNotes, setMyNotes] = useState([]);
     const [likedNotes, setLikedNotes] = useState([]);
     const [myPosts, setMyPosts] = useState([]);
     const [myLectures, setMyLectures] = useState([]);
     const [myComments, setMyComments] = useState([]);
 
+    // 위 목록들의 클라이언트 사이드 페이지 번호 (paginate 헬퍼와 함께 사용)
     const [notesPage, setNotesPage] = useState(0);
     const [likedNotesPage, setLikedNotesPage] = useState(0);
     const [lecturesPage, setLecturesPage] = useState(0);
     const [postsPage, setPostsPage] = useState(0);
     const [commentsPage, setCommentsPage] = useState(0);
 
+    // AI 챗봇 대화 기록 - 서버 페이징(무한 스크롤 방식 "더 보기")을 사용하고, 질문/답변 쌍 선택 삭제도 지원
     const [chatHistories, setChatHistories] = useState([]);
     const [chatHistoryPage, setChatHistoryPage] = useState(0);
     const [chatHistoryHasMore, setChatHistoryHasMore] = useState(false);
@@ -110,8 +121,10 @@ function MyPage() {
     const [selectedChatId, setSelectedChatId] = useState(null);
     const [selectedChatPairIds, setSelectedChatPairIds] = useState([]);
     const [chatHistoryDeleting, setChatHistoryDeleting] = useState(false);
+    // 대화 중 언급된 lectureId -> 강의 제목 캐시 (매번 다시 조회하지 않도록)
     const [lectureTitleMap, setLectureTitleMap] = useState({});
 
+    // 뽀모도로(학습 타이머) 통계/기록
     const [pomodoroToday, setPomodoroToday] = useState(0);
     const [pomodoroWeek, setPomodoroWeek] = useState(0);
     const [pomodoroMonth, setPomodoroMonth] = useState(0);
@@ -125,6 +138,7 @@ function MyPage() {
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showNewPasswordConfirm, setShowNewPasswordConfirm] = useState(false);
+    // 정보수정 폼에서 각 입력란을 한 번이라도 건드렸는지(blur) 추적 - 건드린 필드만 경고 문구를 보여줌
     const [touched, setTouched] = useState({
         nickname: false,
         phone: false,
@@ -134,12 +148,15 @@ function MyPage() {
     });
     const [saveSuccess, setSaveSuccess] = useState(false);
 
+    // 저장 성공 메시지를 3초 뒤 자동으로 숨김
     useEffect(() => {
         if (!saveSuccess) return;
         const timer = setTimeout(() => setSaveSuccess(false), 3000);
         return () => clearTimeout(timer);
     }, [saveSuccess]);
 
+    // 대화 기록(chatHistories)은 시간순 flat 배열로 오므로, USER 메시지 기준으로
+    // 바로 앞 ASSISTANT 메시지를 답변으로 짝지어 질문/답변 쌍 목록을 만든다.
     const chatPairs = useMemo(() => {
         const pairs = [];
         chatHistories.forEach((entry, index) => {
@@ -151,17 +168,20 @@ function MyPage() {
         return pairs;
     }, [chatHistories]);
 
+    // 현재 상세보기로 선택된 질문/답변 쌍
     const selectedChatPair = useMemo(
         () => chatPairs.find((pair) => pair.question.id === selectedChatId) ?? null,
         [chatPairs, selectedChatId]
     );
 
+    // 선택돼 있던 대화가 삭제 등으로 목록에서 사라지면 첫 번째 대화로 선택을 되돌림
     useEffect(() => {
         if (chatPairs.length === 0) return;
         const stillExists = chatPairs.some((pair) => pair.question.id === selectedChatId);
         if (!stillExists) setSelectedChatId(chatPairs[0].question.id);
     }, [chatPairs, selectedChatId]);
 
+    // 대화에서 언급된 강의 ID 중 아직 제목을 모르는 것만 골라 한 번에 조회 후 캐시에 채워 넣는다
     useEffect(() => {
         const missingIds = [...new Set(
             chatPairs.map((pair) => pair.question.lectureId).filter((id) => id != null)
@@ -186,6 +206,7 @@ function MyPage() {
         };
     }, [chatPairs, lectureTitleMap]);
 
+    // 날짜별 집중 시간(분) 합계를 시간 단위로 환산해 라인 차트용 데이터로 변환
     const pomodoroChartData = useMemo(() => {
         const grouped = {};
         pomodoroRecords.forEach((record) => {
@@ -197,6 +218,7 @@ function MyPage() {
             .map((date) => ({ label: date, value: grouped[date] }));
     }, [pomodoroRecords]);
 
+    // 날짜 필터(pomodoroRange)를 바꿔 조회할 때 재사용하는 뽀모도로 기록 조회 함수
     const fetchPomodoroRecords = useCallback((range) => {
         setPomodoroStatus('loading');
         setPomodoroError(null);
@@ -213,6 +235,8 @@ function MyPage() {
             });
     }, []);
 
+    // 최초 마운트 시 마이페이지에 필요한 데이터를 한 번에 병렬로 불러온다.
+    // (posts/lectures는 "전체 목록"만 API로 제공되므로 넉넉히 가져온 뒤 클라이언트에서 본인 것만 필터링한다)
     useEffect(() => {
         let cancelled = false;
         setStatus('loading');
@@ -244,11 +268,13 @@ function MyPage() {
                 setPomodoroStatus('success');
                 setMyComments(comments?.content ?? []);
 
+                // 게시글 목록 API는 작성자 필터를 지원하지 않아, 최근 글 중에서 내 닉네임과 일치하는 것만 골라낸다
                 const mineOnly = (posts?.content ?? []).filter(
                     (post) => post.authorNickname === me.nickname
                 );
                 setMyPosts(mineOnly.slice(0, LIST_SIZE));
 
+                // 마찬가지로 강의 목록도 수강 여부 필터가 없어, 각 강의별로 수강 여부를 개별 조회해서 걸러낸다
                 const lectureList = lectures?.content ?? [];
                 const enrolledFlags = await Promise.all(
                     lectureList.map((lecture) => isEnrolled(lecture.id).catch(() => false))
@@ -274,6 +300,7 @@ function MyPage() {
         setForm((prev) => ({ ...prev, [name]: value }));
     };
 
+    // 정보 수정 모드 진입: 이전 저장 결과/에러 상태를 초기화
     const handleStartEdit = () => {
         setSaveError(null);
         setSaveSuccess(false);
@@ -281,6 +308,7 @@ function MyPage() {
         setEditing(true);
     };
 
+    // 수정 취소: 입력값을 서버에서 받아온 원본 profile 값으로 되돌린다
     const handleCancelEdit = () => {
         setForm({
             name: profile.name ?? '',
@@ -295,6 +323,7 @@ function MyPage() {
         setEditing(false);
     };
 
+    // 정보 수정 폼 제출. 닉네임이 바뀌면 헤더 등에서 쓰는 AuthContext의 닉네임도 함께 갱신한다.
     const handleSaveProfile = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -314,6 +343,7 @@ function MyPage() {
         }
     };
 
+    // 회원 탈퇴: 확인창 통과 시 탈퇴 API 호출 후 로그아웃 처리하며 로그인 페이지로 이동
     const handleWithdraw = async () => {
         if (!window.confirm('정말로 탈퇴하시겠습니까? 작성한 노트는 유지되지만 작성자 표시가 "탈퇴한 사용자"로 바뀝니다.')) {
             return;
@@ -328,29 +358,34 @@ function MyPage() {
         }
     };
 
+    // 날짜 필터 폼 제출 시 해당 기간의 뽀모도로 기록을 다시 조회
     const handlePomodoroFilterSubmit = (e) => {
         e.preventDefault();
         fetchPomodoroRecords(pomodoroRange);
     };
 
+    // 대화 삭제용 체크박스 선택 토글 (질문 단위로 선택하며, 삭제 시 연결된 답변도 함께 지운다)
     const toggleChatPairSelected = (questionId) => {
         setSelectedChatPairIds((prev) =>
             prev.includes(questionId) ? prev.filter((id) => id !== questionId) : [...prev, questionId]
         );
     };
 
+    // 전체 선택/해제 토글
     const toggleAllChatPairsSelected = () => {
         setSelectedChatPairIds((prev) =>
             prev.length === chatPairs.length ? [] : chatPairs.map((pair) => pair.question.id)
         );
     };
 
+    // 삭제된 id들을 로컬 state에서도 제거해 서버 재조회 없이 화면을 갱신
     const removeChatHistoryEntries = (deletedIds) => {
         const deletedSet = new Set(deletedIds);
         setChatHistories((prev) => prev.filter((entry) => !deletedSet.has(entry.id)));
         setSelectedChatPairIds((prev) => prev.filter((id) => !deletedSet.has(id)));
     };
 
+    // 체크된 질문/답변 쌍만 삭제
     const handleDeleteSelectedChatHistory = async () => {
         if (selectedChatPairIds.length === 0) return;
         if (!window.confirm(`선택한 ${selectedChatPairIds.length}개 질문(답변 포함)을 삭제할까요?`)) return;
@@ -370,6 +405,7 @@ function MyPage() {
         }
     };
 
+    // 전체 대화 기록 삭제
     const handleDeleteAllChatHistory = async () => {
         if (chatHistories.length === 0) return;
         if (!window.confirm('전체 대화 기록을 삭제할까요? 되돌릴 수 없어요.')) return;
@@ -390,6 +426,7 @@ function MyPage() {
         }
     };
 
+    // 대화 기록 "더 보기" - 다음 페이지를 이어서 조회해 기존 목록 뒤에 append
     const handleLoadMoreChatHistory = async () => {
         setChatHistoryLoadingMore(true);
         setChatHistoryError(null);
@@ -406,6 +443,7 @@ function MyPage() {
         }
     };
 
+    // 소셜(구글 등) 로그인 계정은 비밀번호가 없으므로 정보수정 폼에서 비밀번호 변경 영역 자체를 숨긴다
     const isSocialAccount = profile?.oauthProvider && profile.oauthProvider !== 'NONE';
 
     return (
@@ -608,6 +646,7 @@ function MyPage() {
                         ))}
                     </nav>
 
+                    {/* 선택된 탭에 해당하는 섹션만 렌더링 (탭 전환 시 데이터는 이미 다 불러온 상태라 재요청 없음) */}
                     <div className="mypage__panel">
                         {activeTab === 'pomodoro' && (
                             <section className="mypage__section">

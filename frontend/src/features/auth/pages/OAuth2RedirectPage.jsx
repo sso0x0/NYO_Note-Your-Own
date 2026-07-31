@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { apiGet } from '../../../api/client';
 import { useAuth } from '../../../context/AuthContext';
 
+// 구글 OAuth 로그인 완료 후 백엔드가 리다이렉트시키는 콜백 페이지.
+// 성공/실패 모두 쿼리스트링·해시로 결과를 받아 처리한 뒤 최종 목적지로 이동시킨다.
 function OAuth2RedirectPage() {
     const navigate = useNavigate();
     const { login } = useAuth();
+    // StrictMode(개발 모드)에서 useEffect가 두 번 실행되어 토큰 처리가 중복되는 것을 막기 위한 가드
     const handled = useRef(false);
 
     useEffect(() => {
