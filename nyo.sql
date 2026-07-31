@@ -66,7 +66,7 @@ CREATE TABLE users (
 
                        CONSTRAINT chk_users_role CHECK (role IN ('USER', 'ADMIN', 'INSTRUCTOR')), -- role 허용 값 제한
                        CONSTRAINT chk_users_status CHECK (status IN ('ACTIVE', 'SUSPENDED', 'WITHDRAWN')), -- status 허용 값 제한
-                       CONSTRAINT chk_users_oauth CHECK (oauth_provider IN ('NONE', 'GOOGLE', 'KAKAO', 'INSTAGRAM')) -- oauth_provider 허용 값 제한
+                       CONSTRAINT chk_users_oauth CHECK (oauth_provider IN ('NONE', 'GOOGLE')) -- oauth_provider 허용 값 제한
 );
 CREATE INDEX idx_users_login_status ON users(login_id, status); -- 로그인 시 아이디+상태 조합 조회 최적화
 
