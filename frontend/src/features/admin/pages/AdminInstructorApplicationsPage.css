@@ -1,0 +1,109 @@
+/* 강사 신청 관리: 다른 관리 목록(신고/댓글)과 같은 admin-table/admin-detail 톤을 그대로 쓰고,
+   상태 배지와 상세 요약만 이 페이지 전용으로 추가한다. */
+.admin-table--instructor-application {
+  table-layout: fixed;
+}
+
+.admin-table--instructor-application th:nth-child(2),
+.admin-table--instructor-application td:nth-child(2) {
+  width: 140px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.admin-table--instructor-application th:nth-child(3),
+.admin-table--instructor-application td:nth-child(3) {
+  width: 120px;
+}
+
+.admin-table--instructor-application th:nth-child(4),
+.admin-table--instructor-application td:nth-child(4) {
+  width: 80px;
+}
+
+.admin-table--instructor-application th:nth-child(5),
+.admin-table--instructor-application td:nth-child(5) {
+  width: 160px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.admin-table--instructor-application th:nth-child(6),
+.admin-table--instructor-application td:nth-child(6) {
+  width: 110px;
+}
+
+.admin-table--instructor-application th:nth-child(7),
+.admin-table--instructor-application td:nth-child(7) {
+  width: 100px;
+}
+
+.admin-table--instructor-application th:nth-child(8),
+.admin-table--instructor-application td:nth-child(8) {
+  width: 150px;
+}
+
+/* 마이페이지/신청 페이지에서 쓰는 상태 배지와 같은 색(회색/초록/빨강)을 관리자 화면에도 그대로 쓴다. */
+.admin-instructor-application__status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.admin-instructor-application__status-badge--pending {
+  background: #999;
+}
+
+.admin-instructor-application__status-badge--approved {
+  background: #2e9e5b;
+}
+
+.admin-instructor-application__status-badge--rejected {
+  background: #d92d20;
+}
+
+.admin-instructor-application__reviewed-at {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.admin-instructor-application__empty {
+  padding: 24px 12px;
+  color: var(--text);
+  text-align: center;
+}
+
+.admin-instructor-application__summary {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  row-gap: 10px;
+  column-gap: 16px;
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--code-bg);
+  color: var(--text-h);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.admin-instructor-application__summary dt {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.admin-instructor-application__summary dd {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.admin-instructor-application__reject-reason {
+  color: #d92d20;
+  font-weight: 600;
+}

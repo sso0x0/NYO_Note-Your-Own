@@ -11,7 +11,15 @@ public record InstructorApplicationResponse(
         String categoryName,
         String bio,
         String portfolioUrl,
+        Integer careerYears,
+        String company,
+        String curriculum,
+        String attachmentUrl,
+        String attachmentName,
+        String motivation,
+        boolean privacyConsent,
         InstructorApplicationStatus status,
+        String rejectReason,
         LocalDateTime reviewedAt,
         LocalDateTime createdAt
 ) {

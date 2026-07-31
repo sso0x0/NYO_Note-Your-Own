@@ -25,7 +25,8 @@ public class GcsFileStorageService implements FileStorageService {
     @Value("${gcp.storage.bucket}")
     private String bucket;
 
-    private static final List<String> ALLOWED_EXT = List.of("jpg", "jpeg", "png", "gif", "webp");
+    // 강사 신청 첨부(이력서 등)도 같은 업로드 엔드포인트를 쓰므로 pdf도 허용한다.
+    private static final List<String> ALLOWED_EXT = List.of("jpg", "jpeg", "png", "gif", "webp", "pdf");
     private static final long MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
     @Override

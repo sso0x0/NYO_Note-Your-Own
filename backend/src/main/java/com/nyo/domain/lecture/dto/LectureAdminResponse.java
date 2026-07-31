@@ -1,6 +1,7 @@
 package com.nyo.domain.lecture.dto;
 
 import com.nyo.domain.lecture.entity.Lecture;
+import com.nyo.domain.lecture.entity.LectureStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -31,6 +32,21 @@ public class LectureAdminResponse {
 
     @Schema(description = "강사명", example = "김강사")
     private String instructor;
+
+    @Schema(description = "등록한 회원 FK", example = "1")
+    private Long createdById;
+
+    @Schema(description = "등록한 회원 닉네임 (관리자가 직접 등록한 경우 관리자 닉네임)", example = "김강사")
+    private String createdByNickname;
+
+    @Schema(description = "심사 상태 (관리자 등록은 즉시 APPROVED, 강사 등록 신청은 PENDING부터 시작)", example = "APPROVED")
+    private LectureStatus status;
+
+    @Schema(description = "반려 사유 (REJECTED일 때만 값이 있음)")
+    private String rejectReason;
+
+    @Schema(description = "심사(승인/반려) 처리 시각")
+    private LocalDateTime reviewedAt;
 
     @Schema(description = "수강 정원", example = "30")
     private Integer capacity;
@@ -66,6 +82,11 @@ public class LectureAdminResponse {
                 .categoryName(lecture.getCategory().getName())
                 .title(lecture.getTitle())
                 .instructor(lecture.getInstructor())
+                .createdById(lecture.getCreatedBy().getId())
+                .createdByNickname(lecture.getCreatedBy().getNickname())
+                .status(lecture.getStatus())
+                .rejectReason(lecture.getRejectReason())
+                .reviewedAt(lecture.getReviewedAt())
                 .capacity(lecture.getCapacity())
                 .currentEnrolled(lecture.getCurrentEnrolled())
                 .viewCount(lecture.getViewCount())

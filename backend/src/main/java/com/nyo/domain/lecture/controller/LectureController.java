@@ -1,5 +1,6 @@
 package com.nyo.domain.lecture.controller;
 
+import com.nyo.domain.lecture.dto.LectureRequest;
 import com.nyo.domain.lecture.dto.LectureResponse;
 import com.nyo.domain.lecture.service.LectureService;
 import com.nyo.global.config.WebConfig;
@@ -8,6 +9,7 @@ import com.nyo.global.security.SecurityUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -62,12 +64,27 @@ public class LectureController {
         return ApiResponse.ok(lectureService.searchLectures(keyword, searchType, pageable));
     }
 
+    // 강사가 강의 등록을 신청 (INSTRUCTOR 권한만 가능, 관리자 승인 전까지는 본인/관리자에게만 보임)
+    @Operation(summary = "강의 등록 신청 (강사 전용)", description = "승인된 강사가 강의를 등록 신청합니다. 관리자 승인 전까지는 PENDING 상태입니다.")
+    @PostMapping
+    public ApiResponse<LectureResponse> createInstructorLecture(@Valid @RequestBody LectureRequest request) {
+        return ApiResponse.ok(lectureService.createInstructorLecture(request, SecurityUtil.getCurrentUserId()));
+    }
+
+    // 강사 본인이 등록 신청한 강의 목록 (마이페이지 "강의 등록" 탭)
+    @Operation(summary = "내 강의 등록 신청 목록 (강사 전용)", description = "현재 로그인한 강사가 등록 신청한 강의를 심사 상태와 무관하게 모두 조회합니다.")
+    @GetMapping("/mine")
+    public ApiResponse<Page<LectureResponse>> getMyLectures(
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ApiResponse.ok(lectureService.getMyLectures(SecurityUtil.getCurrentUserId(), pageable));
+    }
+
     // 하나의 강의만 조회 (id 기준, 삭제된 강의는 404)
     @Operation(summary = "강의 단건 조회", description = "id로 강의를 조회합니다. 삭제된 강의는 조회되지 않습니다(404).")
     @GetMapping("/{id}")
     public ApiResponse<LectureResponse> getLecture(
             @Parameter(description = "조회할 강의 ID") @PathVariable Long id) {
-        return ApiResponse.ok(lectureService.getLecture(id));
+        return ApiResponse.ok(lectureService.getLecture(id, SecurityUtil.getCurrentUserId()));
     }
 
     // 조회수 증가 (상세 페이지 진입 시 호출)

@@ -4,6 +4,7 @@
   --mp-accent-bg: #fdeef2;
   --mp-ink: #1c1c1a;
   --mp-line: #eaeaea;
+  --mp-badge: #ff4f4f;
 
   position: relative;
   z-index: 0;
@@ -331,6 +332,12 @@
   border-bottom: none;
 }
 
+.mypage__lecture-list .lecture-card__badge {
+  /* 메인 화면 인기 강의 뱃지와 동일한 색/그림자로 통일한다. */
+  background: var(--mp-badge);
+  box-shadow: 0 4px 5px rgba(255, 79, 79, 0.35);
+}
+
 .mypage__lecture-list .lecture-card__body {
   padding: 0;
   flex: 1;
@@ -569,308 +576,162 @@
   flex-shrink: 0;
 }
 
-/* ===== 챗봇 대화 기록 ===== */
-.mypage__chat-history-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.mypage__chat-select-all {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--text);
-  cursor: pointer;
-}
-
-.mypage__chat-history-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.mypage__chat-select-delete-btn {
-  padding: 8px 16px;
-  border-radius: 999px;
-  border: 1px solid var(--mp-line);
-  background: transparent;
-  color: var(--text-h);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-
-.mypage__chat-select-delete-btn:hover:not(:disabled) {
-  border-color: var(--mp-ink);
-  background: var(--mp-ink);
-  color: #fff;
-}
-
-.mypage__chat-select-delete-btn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.mypage__chat-delete-all-btn {
-  padding: 8px 16px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: #d92d20;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.mypage__chat-delete-all-btn:hover:not(:disabled) {
-  background: rgba(217, 45, 32, 0.08);
-}
-
-.mypage__chat-delete-all-btn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-/* 질문 목록과 대화 상세가 따로 떨어진 두 개의 박스처럼 보이지 않도록,
-   하나의 테두리 안에 세로 구분선만 두고 한 화면(채팅창)처럼 묶는다.
-   높이는 질문 목록이 대략 5개까지 보이는 정도로 고정해, 그보다 많으면
-   목록 안에서만 스크롤되고 "더 보기"로 불러온 항목도 이 안에서 스크롤해 본다. */
-.mypage__chat-layout {
-  display: flex;
-  align-items: stretch;
-  height: 320px;
-  margin-top: 14px;
-  border: 1px solid var(--mp-line);
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.mypage__chat-sidebar {
-  display: flex;
-  flex-direction: column;
-  flex: 0 0 270px;
-  height: 100%;
-  min-height: 0;
-  border-right: 1px solid var(--mp-line);
-  background: var(--bg);
-}
-
-/* 대화끼리는 카드로 띄우지 않고 실선 구분선으로만 나눈다. */
-.mypage__chat-question-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 스크롤바를 얇고 둥글게, 카드 톤과 어울리는 은은한 색으로 바꾼다. */
-.mypage__chat-question-list,
-.mypage__chat-detail {
-  scrollbar-width: thin;
-  scrollbar-color: #dcd3d8 transparent;
-}
-
-.mypage__chat-question-list::-webkit-scrollbar,
-.mypage__chat-detail::-webkit-scrollbar {
-  width: 6px;
-}
-
-.mypage__chat-question-list::-webkit-scrollbar-track,
-.mypage__chat-detail::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.mypage__chat-question-list::-webkit-scrollbar-thumb,
-.mypage__chat-detail::-webkit-scrollbar-thumb {
-  background: #dcd3d8;
-  border-radius: 999px;
-}
-
-.mypage__chat-question-list::-webkit-scrollbar-thumb:hover,
-.mypage__chat-detail::-webkit-scrollbar-thumb:hover {
-  background: #c6b9c1;
-}
-
-.mypage__chat-question-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 10px;
-  border-bottom: 1px solid var(--mp-line);
-}
-
-.mypage__chat-question-item:last-child {
-  border-bottom: none;
-}
-
-.mypage__chat-question-btn {
+.mypage__post-link--btn {
   width: 100%;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 10px 8px;
   border: none;
-  background: transparent;
-  color: inherit;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
   cursor: pointer;
-  text-align: left;
-  transition: background 0.15s ease;
 }
 
-.mypage__chat-question-btn:hover {
-  background: rgba(0, 0, 0, 0.04);
+/* ===== 강사 신청 내역 상세 =====
+   신청 페이지(InstructorApplyPage)의 요약 dl(instructor-apply-page__summary)과
+   같은 96px/1fr 그리드·15px 본문 크기로 통일한다. */
+.mypage__application-detail {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  row-gap: 12px;
+  column-gap: 16px;
+  margin: 0;
+  padding: 4px 10px 16px;
+  font-size: 15px;
 }
 
-.mypage__chat-question-btn--active {
-  /* 회색 배경(hover)과 겹쳐 보이지 않도록, 선택 표시도 핑크 대신 조금 더 짙은 회색만 쓴다. */
-  background: rgba(0, 0, 0, 0.08);
+.mypage__application-detail dt {
+  color: var(--text);
+  font-weight: 500;
 }
 
-.mypage__chat-question-text {
-  width: 100%;
-  font-size: 13px;
-  font-weight: 600;
+.mypage__application-detail dd {
+  margin: 0;
   color: var(--text-h);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.mypage__chat-question-meta {
-  width: 100%;
-  font-size: 11px;
-  color: #999;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* 체크박스는 기본 브라우저 모양보다 살짝 키우되, 핑크 대신 회색 톤만 쓴다. */
-.mypage__chat-checkbox {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  accent-color: var(--mp-ink);
-  cursor: pointer;
-}
-
-/* 실제 챗봇 위젯(chat.css)과 같은 파스텔 말풍선 톤으로 대화 상세를 보여준다. */
-.mypage__chat-detail {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  padding: 18px 20px;
-  background: #fffbfd;
-}
-
-.mypage__chat-thread {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.mypage__chat-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.mypage__chat-row--user {
-  justify-content: flex-end;
-}
-
-.mypage__chat-row--assistant {
-  justify-content: flex-start;
-}
-
-.mypage__chat-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  flex: 0 0 auto;
-  background: linear-gradient(135deg, #8ec9ff 0%, #ffb3d1 100%);
-  color: #fff;
-}
-
-.mypage__chat-avatar svg {
-  width: 16px;
-  height: 16px;
-}
-
-.mypage__chat-bubble {
-  max-width: 80%;
-  padding: 10px 14px;
-  border-radius: 16px;
+.mypage__application-detail-text {
   white-space: pre-wrap;
-  font-size: 13px;
   line-height: 1.5;
 }
 
-.mypage__chat-bubble--user {
-  background: #d9ecff;
-  color: #274a6b;
-  border-bottom-right-radius: 4px;
+.mypage__application-reject-reason {
+  color: #d92d20;
+  font-weight: 600;
 }
 
-.mypage__chat-bubble--assistant {
-  background: #ffe4ef;
-  color: #6b3550;
-  border-bottom-left-radius: 4px;
+/* ===== 강의 등록(강사 전용) ===== */
+.mypage__lecture-form {
+  margin-top: 14px;
+  padding: 20px 22px;
+  border: 1px solid var(--mp-line);
+  border-radius: 14px;
+  background: var(--bg);
 }
 
-.mypage__chat-bubble--pending {
-  font-style: italic;
-  opacity: 0.75;
+.mypage__lecture-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
 }
 
-.mypage__chat-detail-empty {
-  margin: auto;
-  color: var(--text);
+.mypage__lecture-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
 }
 
-/* 사이드바 하단에 붙어, 질문 목록을 늘려도 카드 전체가 아니라 목록 안에서만
-   스크롤로 이어지게 하는 푸터 버튼. */
-.mypage__chat-load-more {
-  flex: 0 0 auto;
-  margin: 0;
+.mypage__lecture-form input,
+.mypage__lecture-form select,
+.mypage__lecture-form textarea {
   padding: 10px 12px;
-  border: none;
-  border-top: 1px solid var(--mp-line);
-  border-radius: 0;
-  background: transparent;
+  border-radius: 10px;
+  border: 1px solid var(--mp-line);
+  background: var(--bg);
   color: var(--text-h);
+  font: inherit;
+  font-size: 14px;
+  transition: border-color 0.15s ease;
+}
+
+.mypage__lecture-form input:focus,
+.mypage__lecture-form select:focus,
+.mypage__lecture-form textarea:focus {
+  outline: none;
+  border-color: var(--mp-accent);
+}
+
+.mypage__lecture-form textarea {
+  resize: vertical;
+}
+
+.mypage__lecture-form-full {
+  grid-column: 1 / -1;
+}
+
+.mypage__lecture-form-hint {
+  margin: 14px 0 0;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.mypage__lecture-form button[type='submit'] {
+  margin-top: 14px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--mp-ink);
+  background: var(--mp-ink);
+  color: #fff;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: opacity 0.15s ease;
 }
 
-.mypage__chat-load-more:hover:not(:disabled) {
-  background: var(--mp-ink);
+.mypage__lecture-form button[type='submit']:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.mypage__lecture-form button[type='submit']:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.mypage__lecture-list-title {
+  margin: 28px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+@media (max-width: 720px) {
+  .mypage__lecture-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== 강사 신청 내역 상태 배지 ===== */
+.mypage__status-badge {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
   color: #fff;
 }
 
-.mypage__chat-load-more:disabled {
-  opacity: 0.6;
-  cursor: default;
+.mypage__status-badge--pending {
+  background: #999;
+}
+
+.mypage__status-badge--approved {
+  background: #2e9e5b;
+}
+
+.mypage__status-badge--rejected {
+  background: #d92d20;
 }
 
 /* ===== 위험 구역(탈퇴) ===== */
@@ -923,25 +784,118 @@
     grid-template-columns: 72px 1fr;
   }
 
-  .mypage__chat-layout {
-    flex-direction: column;
-    height: auto;
-  }
+}
+.mypage__password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
 
-  .mypage__chat-sidebar {
-    flex: none;
-    width: 100%;
-    height: auto;
-    border-right: none;
-    border-bottom: 1px solid var(--mp-line);
-  }
+.mypage__password-field input {
+  width: 100%;
+  padding-right: 40px;
+}
 
-  .mypage__chat-question-list {
-    max-height: 200px;
-  }
+.mypage__password-toggle {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  padding: 4px;
+}
 
-  .mypage__chat-detail {
-    height: auto;
-    max-height: 360px;
-  }
+.mypage__password-toggle:hover {
+  color: #555;
+}
+
+.mypage__password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.mypage__password-field input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.mypage__password-toggle {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: #999;
+  padding: 0;
+}
+
+.mypage__password-toggle:hover {
+  color: #333;
+}
+
+/* 입력 그룹 래퍼 */
+.mypage__input-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.5rem;
+}
+
+.mypage__input-group label {
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+/* 비밀번호 입력 & 눈 아이콘 감싸는 래퍼 */
+.mypage__password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.mypage__password-wrapper input {
+  width: 100%;
+  padding-right: 40px; /* 눈 모양 아이콘이 들어갈 공간 확보 */
+}
+
+/* 눈 모양 아이콘 버튼 */
+.mypage__eye-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.mypage__eye-btn:hover {
+  color: #333;
+}
+
+/* 유효성 검사 에러 상태 (입력창 빨간 테두리) */
+input.input-error {
+  border: 1px solid #ff4d4f;
+  outline: none;
+}
+
+input.input-error:focus {
+  border-color: #ff4d4f;
+  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2);
+}
+
+/* 하단 빨간색 경고 텍스트 */
+.mypage__warning-text {
+  color: #ff4d4f;
+  font-size: 0.85rem;
+  margin-top: 0.4rem;
 }

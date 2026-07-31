@@ -1,10 +1,12 @@
 package com.nyo.domain.instructor.controller;
 
 import com.nyo.domain.instructor.dto.InstructorApplicationAdminResponse;
+import com.nyo.domain.instructor.dto.InstructorApplicationRejectRequest;
 import com.nyo.domain.instructor.entity.InstructorApplicationStatus;
 import com.nyo.domain.instructor.service.InstructorApplicationService;
 import com.nyo.global.response.ApiResponse;
 import com.nyo.global.security.SecurityUtil;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,8 +38,9 @@ public class AdminInstructorApplicationController {
     }
 
     @PostMapping("/{applicationId}/reject")
-    public ApiResponse<Void> reject(@PathVariable Long applicationId) {
-        instructorApplicationService.reject(applicationId, SecurityUtil.getCurrentUserId());
+    public ApiResponse<Void> reject(@PathVariable Long applicationId,
+                                     @Valid @RequestBody InstructorApplicationRejectRequest request) {
+        instructorApplicationService.reject(applicationId, SecurityUtil.getCurrentUserId(), request.reason());
         return ApiResponse.ok();
     }
 }
