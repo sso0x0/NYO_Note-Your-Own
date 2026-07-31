@@ -140,6 +140,14 @@ function LectureWatchPage() {
     const [showQuestionList, setShowQuestionList] = useState(false);
     const [questionListExpanded, setQuestionListExpanded] = useState(false);
 
+    // 이 강의를 보는 동안 이어서 물어본 질문들이 서버에 하나의 대화(rootQuestionId)로 묶이게 한다 —
+    // AI 챗봇 페이지(/main/chat)의 전체 대화 목록에서 이어서 물어본 질문들이 새 항목으로 따로따로
+    // 안 뜨고 하나로 묶여 보이게 하기 위함. 강의가 바뀌면 이어가던 대화도 새로 시작한다.
+    const rootQuestionIdRef = useRef(null);
+    useEffect(() => {
+        rootQuestionIdRef.current = null;
+    }, [lectureId]);
+
     const [comments, setComments] = useState([]);
     const [commentForm, setCommentForm] = useState({ content: '', parentCommentId: null });
     const [commentMessage, setCommentMessage] = useState('');
@@ -462,7 +470,8 @@ function LectureWatchPage() {
         setChatMessages((prev) => [...prev, { id: `pending-${Date.now()}`, senderRole: 'USER', message }]);
 
         try {
-            const answer = await sendMessage({ lectureId, message });
+            const answer = await sendMessage({ lectureId, message, rootQuestionId: rootQuestionIdRef.current });
+            rootQuestionIdRef.current = answer.rootQuestionId;
             setChatMessages((prev) => [...prev, answer]);
         } catch (err) {
             setChatError(err.message);

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 // 웃는 얼굴 아이콘. 챗봇 토글 버튼과 아바타 원 모두 이 아이콘 하나로 통일해서 쓴다
@@ -9,6 +10,52 @@ export function SmileIcon() {
         <path d="M9 10.5v.01M15 10.5v.01" />
         <path d="M9 14Q12 16.3 15 14" />
       </svg>
+  )
+}
+
+function CopyIcon() {
+  return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="9" y="9" width="12" height="12" rx="2" />
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+      </svg>
+  )
+}
+
+function CheckIcon() {
+  return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M20 6 9 17l-5-5" />
+      </svg>
+  )
+}
+
+// 답변 말풍선 오른쪽 위 복사 버튼. 코드블럭(```)만 골라내지 않고 답변 전체(마크다운 표시 그대로)를 복사한다.
+function CopyButton({ text }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      return // 클립보드 권한이 없는 환경 등에서는 조용히 무시
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+      <button
+          type="button"
+          className="chat-bubble__copy-btn"
+          onClick={handleCopy}
+          aria-label={copied ? '복사됨' : '답변 복사'}
+          title={copied ? '복사됨' : '답변 복사'}
+      >
+        {copied ? <CheckIcon /> : <CopyIcon />}
+      </button>
   )
 }
 
@@ -53,6 +100,7 @@ export default function ChatMessage({ senderRole, message, recommendedLectures }
       <div className={`chat-row ${isUser ? 'chat-row-user' : 'chat-row-assistant'}`}>
         {!isUser && <span className="chat-avatar" aria-hidden="true"><SmileIcon /></span>}
         <div className={`chat-bubble ${isUser ? 'chat-bubble-user' : 'chat-bubble-assistant'}`}>
+          {!isUser && message && <CopyButton text={message} />}
           {message.includes('```') ? renderMessageContent(message) : message}
           {recommendedLectures?.length > 0 && (
               <div className="chat-bubble__lectures">
