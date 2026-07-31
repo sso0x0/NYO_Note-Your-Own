@@ -16,7 +16,10 @@ export function sendMessage({ lectureId, noteId, noteIds, message, rootQuestionI
 // EventSource는 커스텀 헤더(Authorization)를 못 보내 fetch로 직접 SSE를 읽는다.
 // 반환값은 서버에 최종 저장된 답변(sendMessage와 동일한 형태) — 스트리밍이 끝나면
 // 화면에 누적해온 원문을 이 최종본으로 바꿔치기해서 따옴표 치환 등이 반영되게 한다.
-export async function streamMessage({ lectureId, noteId, noteIds, message, rootQuestionId }, onChunk) {
+// signal: AbortSignal을 넘기면 응답을 기다리는 도중이든 스트리밍을 읽는 도중이든
+// 언제든 중단할 수 있다 (fetch가 AbortError를 던지며 즉시 정리됨). 호출부(ChatPage)가
+// "중단" 버튼에서 이 signal의 컨트롤러를 abort()한다.
+export async function streamMessage({ lectureId, noteId, noteIds, message, rootQuestionId }, onChunk, { signal } = {}) {
   const token = getStoredToken()
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers.Authorization = `Bearer ${token}`
@@ -26,6 +29,7 @@ export async function streamMessage({ lectureId, noteId, noteIds, message, rootQ
     headers,
     credentials: 'include',
     body: JSON.stringify({ lectureId, noteId, noteIds, message, rootQuestionId }),
+    signal,
   })
   if (res.status === 401 && token) {
     // apiGet/apiPost 등과 동일하게, 토큰을 실어 보냈는데도 401이면 세션 만료로 보고 로그인 화면으로 보낸다.
