@@ -48,6 +48,8 @@ public class OpenAiClient {
 
 
 
+
+
     
     /**
      * JSON 형식 응답을 강제(response_format: json_object)하여 질의합니다.

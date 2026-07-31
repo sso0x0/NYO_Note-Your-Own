@@ -8,7 +8,8 @@ import { toLocalDateTimeString } from './dateUtil'
 // 진행 중에는 서버에 아무것도 남기지 않으므로, 새로고침이나 탭 닫기로 세션이 끊기면 그
 // 세션은 기록되지 않는다 — "진행 중" 상태로 어정쩡하게 남는 기록을 만들지 않기 위한 선택.
 // 휴식 타이머는 일시정지 기능과 역할이 겹쳐서 제거함 — 쉬고 싶으면 일시정지를 쓰면 된다.
-// lectureId/noteId: PomodoroWidget이 현재 페이지(강의 시청/노트 상세)에서 뽑아 넘겨준다.
+// lectureId/noteId: 이 컴포넌트를 직접 임베드하는 페이지(강의 시청/노트 상세/AI 챗봇)가
+// 각자 자기 화면의 값을 그대로 넘겨준다 (PomodoroWidget을 거치지 않음 — 아래 참고).
 // status: 'idle'(시작 전) | 'running'(진행 중) | 'paused'(일시정지)
 //
 // 카운트다운은 매 tick마다 "1초씩 감소"가 아니라 anchorRef(기준 시각+그때 남은 초)와
@@ -125,8 +126,8 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
   const minutes = String(Math.floor(remainingSeconds / 60)).padStart(2, '0')
   const seconds = String(remainingSeconds % 60).padStart(2, '0')
 
-  // 링 진행률 계산용 기준 시간: 시작 전에는 지금 설정한 분(focusMinutes), 시작 후에는
-  // 세션 시작 시점에 고정된 분(session.focusMinutes)을 쓴다 — 설정 입력이 사라진 뒤에도
+  // 링 진행률 계산용 기준 시간(초): 시작 전에는 지금 설정한 분/초, 시작 후에는
+  // 세션 시작 시점에 고정된 총 시간(session.durationSeconds)을 쓴다 — 설정 입력이 사라진 뒤에도
   // 진행률이 흔들리지 않게 하기 위함.
   const totalSeconds = status === 'idle'
       ? focusMinutes * 60 + focusSeconds

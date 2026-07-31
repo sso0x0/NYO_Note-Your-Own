@@ -167,7 +167,11 @@ public class ChatService {
                 .rootQuestionId(rootQuestionId) // 질문과 같은 대화로 묶이도록 답변 행에도 같은 루트를 단다
                 .build());
 
-        return toResponse(saved, recommendedLectures, questionId);
+        String lectureTitle = lectureId != null
+                ? lectureRepository.findByIdAndIsDeletedFalse(lectureId).map(Lecture::getTitle).orElse(null)
+                : null;
+
+        return toResponse(saved, recommendedLectures, questionId, lectureTitle);
     }
 
     /**
@@ -227,7 +231,20 @@ public class ChatService {
         var page = lectureId != null
                 ? chatHistoryRepository.findByUserIdAndLectureId(userId, lectureId, pageable)
                 : chatHistoryRepository.findByUserId(userId, pageable);
-        return PageResponse.of(page.map(this::toResponse));
+
+        // 목록 화면에 강의 id 대신 강의명을 보여주기 위해, 이 페이지에 등장하는 강의 id들의
+        // 제목을 한 번에 모아 조회한다 (행마다 따로 조회하지 않도록).
+        List<Long> lectureIds = page.getContent().stream()
+                .map(ChatHistory::getLectureId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, String> lectureTitles = lectureIds.isEmpty()
+                ? Map.of()
+                : lectureRepository.findAllByIdInAndIsDeletedFalse(lectureIds).stream()
+                        .collect(Collectors.toMap(Lecture::getId, Lecture::getTitle));
+
+        return PageResponse.of(page.map(history -> toResponse(history, lectureTitles.get(history.getLectureId()))));
     }
 
     private List<ChatHistory> findRecentHistory(Long userId, Long lectureId) {
@@ -443,15 +460,16 @@ public class ChatService {
 
     // 지난 대화 기록을 다시 불러올 때는, 저장해둔 recommendedLectureIds를 다시 강의로 풀어서
     // 실시간 응답과 똑같이 추천 링크 버튼이 그대로 남아있게 한다.
-    private ChatHistoryResponse toResponse(ChatHistory history) {
-        return toResponse(history, resolveRecommendedLectures(history.getRecommendedLectureIds()), null);
+    private ChatHistoryResponse toResponse(ChatHistory history, String lectureTitle) {
+        return toResponse(history, resolveRecommendedLectures(history.getRecommendedLectureIds()), null, lectureTitle);
     }
 
-    private ChatHistoryResponse toResponse(ChatHistory history, List<Lecture> recommendedLectures, Long questionId) {
+    private ChatHistoryResponse toResponse(ChatHistory history, List<Lecture> recommendedLectures, Long questionId, String lectureTitle) {
         return ChatHistoryResponse.builder()
                 .id(history.getId())
                 .userId(history.getUserId())
                 .lectureId(history.getLectureId())
+                .lectureTitle(lectureTitle)
                 .senderRole(history.getSenderRole().name())
                 .message(history.getMessage())
                 .createdAt(history.getCreatedAt())
