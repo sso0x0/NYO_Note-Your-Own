@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { streamMessage, getHistories, deleteHistories, deleteAllHistories } from '../api/chat';
 import { getMyNotes } from '../../note/api/note';
 import ChatMessage, { SmileIcon } from '../ChatMessage';
@@ -65,9 +66,8 @@ export default function ChatPage() {
     const [selectedNoteIds, setSelectedNoteIds] = useState([]);
     const [noteContextOpen, setNoteContextOpen] = useState(false);
 
-    // 뽀모도로: NoteDetail.jsx와 같은 방식(페이지에 직접 임베드)을 따르되, 이 페이지는
-    // 특정 노트/강의에 매인 화면이 아니라 헤더에 배지 버튼 하나로 접어두고 필요할 때만 펼친다.
-    const [pomodoroOpen, setPomodoroOpen] = useState(false);
+    // 뽀모도로: NoteDetail.jsx와 같은 방식(페이지에 직접 임베드)을 따르되, 아이콘을 눌러야
+    // 나타나는 대신 항상 펼쳐진 상태(아이콘 클릭 후 화면)로 고정해서 보여준다.
     const [pomodoroRefreshKey, setPomodoroRefreshKey] = useState(0);
 
     // chatHistories는 id 내림차순(최신순)으로 온다. 답변은 항상 질문 바로 다음에 저장되므로
@@ -111,7 +111,7 @@ export default function ChatPage() {
 
     // 새 메시지가 이어지거나 스트리밍 중일 때 항상 대화창 맨 아래로 따라간다.
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, [visibleChatPairs, sending]);
 
     useEffect(() => {
@@ -299,23 +299,14 @@ export default function ChatPage() {
     };
 
     return (
-        <section className={'chat-page' + (pomodoroOpen ? ' chat-page--with-pomodoro' : '')}>
-            <header className="chat-page__header">
-                <span className="chat-header__avatar" aria-hidden="true"><SmileIcon /></span>
-                <div className="chat-page__title">
-                    <h1>AI 챗봇</h1>
-                    <p>강의나 노트 화면과 달리, 지금까지 작성한 모든 노트를 넘나들며 답변합니다.</p>
-                </div>
-
-                <button
-                    type="button"
-                    className={'chat-page__pomodoro-toggle' + (pomodoroOpen ? ' chat-page__pomodoro-toggle--active' : '')}
-                    onClick={() => setPomodoroOpen((v) => !v)}
-                    aria-expanded={pomodoroOpen}
-                >
-                    <ClockIcon /> 타이머
-                </button>
-            </header>
+        <section className="chat-page">
+            <nav className="chat-page__crumbs" aria-label="현재 위치">
+                <Link to="/main">메인</Link>
+                <span>/</span>
+                <span className="is-current">AI 챗봇</span>
+            </nav>
+            <h2>AI 챗봇</h2>
+            <p className="chat-page__subtitle">강의나 노트 화면과 달리, 지금까지 작성한 모든 노트를 넘나들며 답변합니다.</p>
 
             <div className="chat-page__body">
                 <aside className="chat-page__sidebar">
@@ -388,8 +379,10 @@ export default function ChatPage() {
                                                     onClick={() => setSelectedRootId(pair.question.id)}
                                                 >
                                                     <span className="chat-page__question-text">{pair.question.message}</span>
+                                                    {pair.question.lectureTitle && (
+                                                        <span className="chat-page__question-lecture">{pair.question.lectureTitle}</span>
+                                                    )}
                                                     <span className="chat-page__question-meta">
-                                                        {pair.question.lectureId && `강의 #${pair.question.lectureId} · `}
                                                         {pair.question.createdAt && pair.question.createdAt.replace('T', ' ').slice(0, 16)}
                                                     </span>
                                                 </button>
@@ -497,18 +490,16 @@ export default function ChatPage() {
                     <ChatInput sending={sending} onSend={handleSend} />
                 </div>
 
-                {pomodoroOpen && (
-                    <aside className="chat-page__pomodoro-panel">
-                        <div className="chat-page__pomodoro-panel-header">
-                            <span className="chat-page__pomodoro-panel-badge"><ClockIcon /></span>
-                            <span className="chat-page__pomodoro-panel-title">타이머</span>
-                        </div>
-                        <Timer onFinished={() => setPomodoroRefreshKey((k) => k + 1)} />
-                        <div className="chat-page__pomodoro-history">
-                            <StatsAndHistory refreshKey={pomodoroRefreshKey} />
-                        </div>
-                    </aside>
-                )}
+                <aside className="chat-page__pomodoro-panel">
+                    <div className="chat-page__pomodoro-panel-header">
+                        <span className="chat-page__pomodoro-panel-badge"><ClockIcon /></span>
+                        <span className="chat-page__pomodoro-panel-title">타이머</span>
+                    </div>
+                    <Timer onFinished={() => setPomodoroRefreshKey((k) => k + 1)} />
+                    <div className="chat-page__pomodoro-history">
+                        <StatsAndHistory refreshKey={pomodoroRefreshKey} />
+                    </div>
+                </aside>
             </div>
         </section>
     );

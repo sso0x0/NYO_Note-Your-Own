@@ -19,8 +19,10 @@ function ClockIcon() {
 }
 
 // 뽀모도로 아이콘 + 팝업창. "시작"을 누른 시점의 페이지를 곧 "지금 공부 중인 대상"으로 본다.
-// ChatWidget과 같은 방식(WidgetDock)으로 모든 페이지에서 접근할 수 있고, 타이머/통계 로직은
-// 페이지였을 때 쓰던 Timer·StatsAndHistory를 그대로 재사용한다.
+// 원래 ChatWidget과 같은 방식(WidgetDock)으로 모든 페이지에서 접근하는 구조였으나, 지금은
+// WidgetDock이 빈 div만 렌더링해서 이 컴포넌트도 실제로는 어디서도 마운트되지 않는다 —
+// 강의 시청/노트 상세/AI 챗봇 페이지는 각자 Timer·StatsAndHistory를 직접 임베드해서 쓴다
+// (되돌리려면 WidgetDock.jsx 참고).
 export default function PomodoroWidget({ stacked = false, onOpenChange } = {}) {
   const [open, setOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)

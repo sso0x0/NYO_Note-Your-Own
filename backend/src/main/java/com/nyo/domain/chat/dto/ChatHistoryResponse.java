@@ -27,6 +27,9 @@ public class ChatHistoryResponse {
     @Schema(description = "질문의 맥락이 된 관련 강의 FK", example = "1")
     private Long lectureId;
 
+    @Schema(description = "위 lectureId에 해당하는 강의명 (삭제된 강의거나 lectureId가 없으면 null)")
+    private String lectureTitle;
+
     @Schema(description = "발신자 구분", example = "ASSISTANT")
     private String senderRole;
 
