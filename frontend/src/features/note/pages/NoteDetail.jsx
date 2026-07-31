@@ -216,6 +216,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
     const [tagSubmitting, setTagSubmitting] = useState(false)
     const [pomodoroRefreshKey, setPomodoroRefreshKey] = useState(0)
     const [showPomodoroHistory, setShowPomodoroHistory] = useState(false)
+    const [pomodoroOpen, setPomodoroOpen] = useState(true)
     const userId = auth?.userId
 
     const loadTags = async () => {
@@ -770,29 +771,48 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
                 </article>
                 {note && (
                     <div className="note-detail-side">
-                        <div className="note-detail-pomodoro">
-                            <div className="note-detail-pomodoro__header">
-                                <span className="note-detail-pomodoro__badge"><ClockBadgeIcon /></span>
-                                <span className="note-detail-pomodoro__title">타이머</span>
+                        <div className={`note-detail-pomodoro${pomodoroOpen ? '' : ' is-collapsed'}`}>
+                            {pomodoroOpen ? (
+                                <>
+                                    <div className="note-detail-pomodoro__header">
+                                        <span className="note-detail-pomodoro__badge"><ClockBadgeIcon /></span>
+                                        <span className="note-detail-pomodoro__title">타이머</span>
+                                        <button
+                                            type="button"
+                                            className="note-detail-pomodoro__history-toggle"
+                                            onClick={() => setShowPomodoroHistory((v) => !v)}
+                                            aria-label={showPomodoroHistory ? '기록 닫기' : '기록 보기'}
+                                        >
+                                            <QuestionListIcon />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="note-detail-pomodoro__collapse"
+                                            onClick={() => setPomodoroOpen(false)}
+                                        >
+                                            접기 ›
+                                        </button>
+                                        {showPomodoroHistory && (
+                                            <div className="note-detail-pomodoro__history-popover">
+                                                <StatsAndHistory refreshKey={pomodoroRefreshKey} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <Timer
+                                        lectureId={note.lectureId ?? null}
+                                        noteId={noteId}
+                                        onFinished={() => setPomodoroRefreshKey((k) => k + 1)}
+                                    />
+                                </>
+                            ) : (
                                 <button
                                     type="button"
-                                    className="note-detail-pomodoro__history-toggle"
-                                    onClick={() => setShowPomodoroHistory((v) => !v)}
-                                    aria-label={showPomodoroHistory ? '기록 닫기' : '기록 보기'}
+                                    className="note-detail-pomodoro__expand"
+                                    onClick={() => setPomodoroOpen(true)}
                                 >
-                                    <QuestionListIcon />
+                                    ‹ 타이머
                                 </button>
-                                {showPomodoroHistory && (
-                                    <div className="note-detail-pomodoro__history-popover">
-                                        <StatsAndHistory refreshKey={pomodoroRefreshKey} />
-                                    </div>
-                                )}
-                            </div>
-                            <Timer
-                                lectureId={note.lectureId ?? null}
-                                noteId={noteId}
-                                onFinished={() => setPomodoroRefreshKey((k) => k + 1)}
-                            />
+                            )}
                         </div>
                         <NoteDetailChat key={noteId} lectureId={note.lectureId ?? null} noteId={noteId} />
                     </div>

@@ -82,7 +82,8 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
       setError(err.message)
     }
     sessionRef.current = null
-    onFinished() // 부모(PomodoroPage)에 알려서 오늘/전체 통계와 기록 목록을 다시 불러오게 한다
+    // 자동 만료인지 직접 종료인지 부모가 구분할 수 있도록 종료 원인을 함께 전달한다.
+    onFinished({ auto })
   }
 
   // "시작" 클릭: 서버에는 아직 아무것도 저장하지 않고 화면 카운트다운만 바로 시작한다.

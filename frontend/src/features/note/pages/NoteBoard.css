@@ -209,8 +209,8 @@
 /* 카드는 공용 NoteCard를 그대로 쓰되, 메인 페이지의 "인기 노트" 목록과 같은
    가로형(썸네일 + 본문) 레이아웃으로 덮어써서 노트 표시 형식을 통일한다. */
 .note-board-page__list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   margin-top: 20px;
 }
@@ -297,6 +297,21 @@
   min-width: 0;
 }
 
+/* 노트 게시판 카드의 태그는 한 줄만 표시하고 넘치는 부분은 말줄임표로 처리한다. */
+.note-board-page__list .note-card__tags {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #2563eb;
+}
+
+.note-board-page__list .note-card__tag {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
 .note-board-page__list .note-card__category {
   color: var(--nb-accent);
 }
@@ -369,6 +384,10 @@
 }
 
 @media (max-width: 720px) {
+  .note-board-page__list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .note-board-page__list .note-card__link {
     align-items: flex-start;
   }

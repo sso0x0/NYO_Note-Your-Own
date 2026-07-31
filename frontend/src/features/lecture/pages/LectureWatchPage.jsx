@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getLecture, increaseLectureViewCount, isEnrolled as fetchIsEnrolled } from '../api/lecture';
+import {
+    getLecture,
+    increaseLectureViewCount,
+    isEnrolled as fetchIsEnrolled,
+    isLectureLiked,
+    likeLecture,
+    unlikeLecture,
+} from '../api/lecture';
 import {
     getLectureComments,
     createLectureComment,
@@ -23,11 +30,29 @@ import '../../chat/chat.css';
 // (학습용 챗봇 바로 위). WidgetDock에서는 PomodoroWidget을 뺐다.
 import Timer from '../../pomodoro/Timer';
 import StatsAndHistory from '../../pomodoro/StatsAndHistory';
+import NoteCard from '../../note/components/NoteCard';
 import '../../pomodoro/pomodoro.css';
 import './LectureWatchPage.css';
 
 const emptyForm = { title: '', content: '' };
 const QUESTION_LIST_PREVIEW_COUNT = 4;
+const OTHER_NOTES_PER_PAGE = 5;
+const EMPTY_HEART_IMAGE = '/images/heart.png';
+const FILLED_HEART_IMAGE = '/images/hearts.png';
+
+const getPageNumbers = (current, totalPages) => {
+    const pageWindow = 5;
+    if (totalPages <= pageWindow) {
+        return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+    let start = Math.max(1, current - Math.floor(pageWindow / 2));
+    let end = start + pageWindow - 1;
+    if (end > totalPages) {
+        end = totalPages;
+        start = end - pageWindow + 1;
+    }
+    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+};
 
 // 타이머 헤더의 배지 아이콘. 학습용 챗봇 헤더의 "AI" 배지와 시각적 무게를 맞추기 위한
 // 단색 아웃라인 시계 아이콘 (뽀모도로 링과 같은 라벤더 톤으로 색을 입힌다).
@@ -66,11 +91,37 @@ function getYoutubeEmbedUrl(url) {
     return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
 }
 
+const formatCommentDate = (value) => {
+    if (!value) return '';
+    return new Intl.DateTimeFormat('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(new Date(value));
+};
+
+const countLectureComments = (items) => items.reduce(
+    (total, comment) => total
+        + (comment.isDeleted ? 0 : 1)
+        + (comment.replies?.length ? countLectureComments(comment.replies) : 0),
+    0,
+);
+
+const autoGrowCommentTextarea = (element) => {
+    if (!element) return;
+    element.style.height = 'auto';
+    element.style.height = `${element.scrollHeight}px`;
+};
+
 function LectureCommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
     const [editing, setEditing] = useState(false);
     const [editContent, setEditContent] = useState(comment.content);
     const isOwner = auth && String(comment.userId) === String(auth.userId);
     const canDelete = !comment.isDeleted && (isOwner || auth?.role === 'ADMIN');
+    const isEdited = !comment.isDeleted && comment.createdAt && comment.updatedAt
+        && comment.createdAt !== comment.updatedAt;
 
     const saveEdit = async () => {
         const saved = await onUpdate(comment, editContent);
@@ -78,19 +129,34 @@ function LectureCommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
     };
 
     return (
-        <li className="comment-item">
+        <li className={`comment-item${comment.isDeleted ? ' comment-item--deleted' : ''}`}>
+            <div className="comment-item__avatar" aria-hidden="true">
+                {(comment.authorNickname || '?').charAt(0)}
+            </div>
             <div className="comment-body">
-                {editing ? (
-                    <div className="comment-edit-form">
-                        <textarea value={editContent} onChange={(event) => setEditContent(event.target.value)} rows="3" />
-                        <button type="button" onClick={saveEdit}>저장</button>
-                        <button type="button" onClick={() => setEditing(false)}>취소</button>
+                <div className="comment-body__main">
+                    <div className="comment-body__header">
+                        <span className="comment-body__author">{comment.authorNickname || '알 수 없는 사용자'}</span>
+                        {!comment.isDeleted && (
+                            <time className="comment-body__date" dateTime={comment.createdAt}>
+                                {formatCommentDate(comment.createdAt)}
+                            </time>
+                        )}
+                        {isEdited && <span className="comment-body__edited">(수정됨)</span>}
                     </div>
-                ) : <p>{comment.content}</p>}
-                <span>작성자 {comment.authorNickname || '알 수 없는 사용자'}</span>
-                {!comment.isDeleted && <button type="button" onClick={() => onReply(comment)}>답글</button>}
-                {!comment.isDeleted && isOwner && !editing && <button type="button" onClick={() => setEditing(true)}>수정</button>}
-                {canDelete && <button type="button" className="danger-button" onClick={() => onDelete(comment)}>삭제</button>}
+                    {editing ? (
+                        <div className="comment-edit-form">
+                            <textarea value={editContent} onChange={(event) => setEditContent(event.target.value)} rows="3" />
+                            <button type="button" onClick={saveEdit}>저장</button>
+                            <button type="button" onClick={() => setEditing(false)}>취소</button>
+                        </div>
+                    ) : <p className={comment.isDeleted ? 'comment-body__deleted-text' : undefined}>{comment.content}</p>}
+                </div>
+                <div className="comment-body__actions">
+                    {!comment.isDeleted && <button type="button" onClick={() => onReply(comment)}>답글</button>}
+                    {!comment.isDeleted && isOwner && !editing && <button type="button" onClick={() => setEditing(true)}>수정</button>}
+                    {canDelete && <button type="button" className="danger-button" onClick={() => onDelete(comment)}>삭제</button>}
+                </div>
             </div>
 
             {comment.replies?.length > 0 && (
@@ -113,9 +179,12 @@ function LectureWatchPage() {
     const [status, setStatus] = useState('idle'); // idle | loading | success | error | locked
     const [error, setError] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [liked, setLiked] = useState(false);
+    const [likeLoading, setLikeLoading] = useState(false);
 
     const [activeTab, setActiveTab] = useState('others'); // others | comments
     const [notes, setNotes] = useState([]);
+    const [otherNotesPage, setOtherNotesPage] = useState(1);
     const [myNote, setMyNote] = useState(null);
     const [form, setForm] = useState(emptyForm);
     const [contentImageFiles, setContentImageFiles] = useState([]);
@@ -137,7 +206,7 @@ function LectureWatchPage() {
     const [chatMessages, setChatMessages] = useState([]);
     const [chatSending, setChatSending] = useState(false);
     const [chatError, setChatError] = useState(null);
-    const chatBottomRef = useRef(null);
+    const chatMessagesRef = useRef(null);
     const [showQuestionList, setShowQuestionList] = useState(false);
     const [questionListExpanded, setQuestionListExpanded] = useState(false);
 
@@ -150,6 +219,7 @@ function LectureWatchPage() {
     }, [lectureId]);
 
     const [comments, setComments] = useState([]);
+    const [visibleCommentCount, setVisibleCommentCount] = useState(10);
     const [commentForm, setCommentForm] = useState({ content: '', parentCommentId: null });
     const [commentMessage, setCommentMessage] = useState('');
     const [commentSaving, setCommentSaving] = useState(false);
@@ -164,10 +234,15 @@ function LectureWatchPage() {
         // 조회수 증가를 먼저 처리한 뒤 상세 정보를 조회해야 갱신된 숫자가 바로 표시된다.
         increaseLectureViewCount(id)
             .catch(() => {})
-            .then(() => Promise.all([getLecture(id), fetchIsEnrolled(id)]))
-            .then(([data, enrolled]) => {
+            .then(() => Promise.all([
+                getLecture(id),
+                fetchIsEnrolled(id),
+                isLectureLiked(id).catch(() => false),
+            ]))
+            .then(([data, enrolled, likedStatus]) => {
                 if (cancelled) return;
                 setLecture(data);
+                setLiked(Boolean(likedStatus));
                 // 수강신청을 하지 않았다면 정원이 찬 강의처럼 시청 화면 자체를 막는다.
                 setStatus(enrolled ? 'success' : 'locked');
             })
@@ -182,10 +257,35 @@ function LectureWatchPage() {
         };
     }, [id]);
 
+    const handleToggleLectureLike = async () => {
+        if (likeLoading) return;
+        setLikeLoading(true);
+        try {
+            if (liked) {
+                await unlikeLecture(id);
+                setLiked(false);
+                setLecture((current) => current
+                    ? { ...current, likeCount: Math.max(0, (current.likeCount ?? 0) - 1) }
+                    : current);
+            } else {
+                await likeLecture(id);
+                setLiked(true);
+                setLecture((current) => current
+                    ? { ...current, likeCount: (current.likeCount ?? 0) + 1 }
+                    : current);
+            }
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLikeLoading(false);
+        }
+    };
+
     const loadNotes = useCallback(async () => {
         try {
             const list = await getNotesByLecture(id);
             setNotes(list ?? []);
+            setOtherNotesPage(1);
             // 로그인 ID의 자료형이 달라도 같은 사용자의 기존 노트를 찾아 수정 모드로 유지합니다.
             const own = (list ?? []).find((note) => String(note.userId) === String(auth?.userId)) ?? null;
             setMyNote(own);
@@ -279,20 +379,31 @@ function LectureWatchPage() {
     const askedQuestions = chatMessages.filter((message) => message.senderRole === 'USER');
 
     useEffect(() => {
-        chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+        // AI 답변이 추가돼도 페이지 전체는 움직이지 않고 챗봇 대화창 내부만 아래로 이동한다.
+        const chatContainer = chatMessagesRef.current;
+        if (chatMessages.length > 0 && chatContainer) {
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+        }
     }, [chatMessages]);
 
     // 질문 목록에서 항목을 누르면 대화창에서 그 질문이 있는 위치로 스크롤해서 보여주고, 팝오버는 닫는다.
     const scrollToQuestion = (questionId) => {
         setShowQuestionList(false);
-        document.getElementById(`lecture-chat-message-${questionId}`)
-            ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const chatContainer = chatMessagesRef.current;
+        const questionElement = document.getElementById(`lecture-chat-message-${questionId}`);
+        if (chatContainer && questionElement) {
+            chatContainer.scrollTo({
+                top: questionElement.offsetTop - chatContainer.offsetTop,
+                behavior: 'smooth',
+            });
+        }
     };
 
     const loadComments = useCallback(async () => {
         try {
             const list = await getLectureComments(lectureId);
             setComments(list ?? []);
+            setVisibleCommentCount(10);
         } catch (err) {
             setCommentMessage(`댓글을 불러오지 못했습니다: ${err.message}`);
         }
@@ -489,6 +600,11 @@ function LectureWatchPage() {
             if (likeDifference !== 0) return likeDifference;
             return new Date(second.createdAt ?? 0) - new Date(first.createdAt ?? 0);
         });
+    const otherNotesTotalPages = Math.max(1, Math.ceil(othersNotes.length / OTHER_NOTES_PER_PAGE));
+    const visibleOtherNotes = othersNotes.slice(
+        (otherNotesPage - 1) * OTHER_NOTES_PER_PAGE,
+        otherNotesPage * OTHER_NOTES_PER_PAGE,
+    );
     const youtubeEmbedUrl = getYoutubeEmbedUrl(lecture?.lectureUrl);
 
     return (
@@ -508,7 +624,7 @@ function LectureWatchPage() {
             )}
 
             {status === 'success' && lecture && (
-                <div className={`lecture-watch-page__content${!pomodoroOpen && !chatDrawerOpen ? ' is-widgets-collapsed' : ''}`}>
+                <div className={`lecture-watch-page__content${!pomodoroOpen && !chatDrawerOpen ? ' is-widgets-collapsed' : ''}${pomodoroOpen || chatDrawerOpen ? ' is-tools-open' : ''}${pomodoroOpen ? ' is-timer-open' : ''}${chatDrawerOpen ? ' is-chat-open' : ''}`}>
                         <div className="lecture-watch-page__top">
                             <div className="lecture-watch-page__top-info">
                                 {lecture.categoryName && (
@@ -517,7 +633,18 @@ function LectureWatchPage() {
                                 <h1 className="lecture-watch-page__title">{lecture.title}</h1>
                                 <div className="lecture-watch-page__top-meta">
                                     <div className="lecture-watch-page__stats">
-                                        <span>♡ 좋아요 {lecture.likeCount ?? 0}</span>
+                                        {/* 단순 문구 대신 커뮤니티 상세와 같은 하트 이미지 좋아요 버튼을 사용한다. */}
+                                        <button
+                                            type="button"
+                                            className={`lecture-watch-page__like-btn${liked ? ' is-liked' : ''}`}
+                                            onClick={handleToggleLectureLike}
+                                            disabled={likeLoading}
+                                            aria-label={liked ? '좋아요 취소' : '좋아요'}
+                                            aria-pressed={liked}
+                                        >
+                                            <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" />
+                                            <span>{lecture.likeCount ?? 0}</span>
+                                        </button>
                                         <span>조회 {lecture.viewCount ?? 0}</span>
                                         <span>노트 {notes.length}개</span>
                                     </div>
@@ -600,7 +727,13 @@ function LectureWatchPage() {
                                     <Timer
                                         lectureId={lectureId}
                                         noteId={null}
-                                        onFinished={() => setPomodoroRefreshKey((k) => k + 1)}
+                                        onFinished={({ auto } = {}) => {
+                                            setPomodoroRefreshKey((k) => k + 1);
+                                            // 시간이 0초가 되어 자동 종료되면 접힌 타이머를 바로 펼쳐 완료 상태를 보여준다.
+                                            if (auto) {
+                                                setPomodoroOpen(true);
+                                            }
+                                        }}
                                     />
                                 </div>
                                 {!pomodoroOpen && (
@@ -747,37 +880,49 @@ function LectureWatchPage() {
                         {activeTab === 'others' && (
                             <div className="lecture-watch-page__others">
                                 {othersNotes.length === 0 && <p>아직 다른 학습자의 노트가 없습니다.</p>}
-                                {othersNotes.map((note) => (
-                                    <Link
-                                        key={note.id}
-                                        to={`/main/notes/${note.id}`}
-                                        className="lecture-watch-page__other-note"
-                                    >
-                                        <strong>{note.title}</strong>
-                                        <span className="lecture-watch-page__other-note-author">{note.authorNickname}</span>
-                                        {note.tags?.length > 0 && (
-                                            <span className="lecture-watch-page__other-note-tags">
-                                                {note.tags.map((tag) => (
-                                                    <span className="lecture-watch-page__other-note-tag" key={tag.tagId}>
-                                                        {tag.isAiGenerated && (
-                                                            <span className="lecture-watch-page__other-note-tag-ai">AI</span>
-                                                        )}
-                                                        #{tag.tagName}
-                                                    </span>
-                                                ))}
-                                            </span>
-                                        )}
-                                        <span className="lecture-watch-page__other-note-meta">
-                      ♡ {note.likeCount ?? 0} · 조회 {note.viewCount ?? 0}
-                    </span>
-                                    </Link>
+                                {visibleOtherNotes.map((note) => (
+                                    <NoteCard key={note.id} note={note} />
                                 ))}
+                                {otherNotesTotalPages > 1 && (
+                                    <nav className="lecture-watch-page__pagination" aria-label="다른 학습자 노트 페이지">
+                                        <button
+                                            type="button"
+                                            className="lecture-watch-page__page-btn lecture-watch-page__page-btn--nav"
+                                            onClick={() => setOtherNotesPage((page) => Math.max(1, page - 1))}
+                                            disabled={otherNotesPage === 1}
+                                        >
+                                            이전
+                                        </button>
+                                        {getPageNumbers(otherNotesPage, otherNotesTotalPages).map((page) => (
+                                            <button
+                                                key={page}
+                                                type="button"
+                                                className={`lecture-watch-page__page-btn${page === otherNotesPage ? ' is-active' : ''}`}
+                                                aria-current={page === otherNotesPage ? 'page' : undefined}
+                                                onClick={() => setOtherNotesPage(page)}
+                                            >
+                                                {page}
+                                            </button>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            className="lecture-watch-page__page-btn lecture-watch-page__page-btn--nav"
+                                            onClick={() => setOtherNotesPage((page) => Math.min(otherNotesTotalPages, page + 1))}
+                                            disabled={otherNotesPage === otherNotesTotalPages}
+                                        >
+                                            다음
+                                        </button>
+                                    </nav>
+                                )}
                             </div>
                         )}
 
                         {activeTab === 'comments' && (
                             <section className="comment-panel">
-                                <h2>댓글</h2>
+                                <h2>
+                                    댓글
+                                    <span className="comment-panel__count">{countLectureComments(comments)}</span>
+                                </h2>
                                 <form className="comment-form" onSubmit={handleCreateComment}>
                                     {commentForm.parentCommentId && (
                                         <div className="reply-target">
@@ -786,9 +931,10 @@ function LectureWatchPage() {
                                         </div>
                                     )}
                                     <textarea
-                                        rows="4"
+                                        rows="1"
                                         value={commentForm.content}
                                         onChange={(event) => setCommentForm((prev) => ({ ...prev, content: event.target.value }))}
+                                        onInput={(event) => autoGrowCommentTextarea(event.currentTarget)}
                                         placeholder="댓글 내용"
                                     />
                                     <button type="submit" disabled={commentSaving}>댓글 등록</button>
@@ -796,7 +942,7 @@ function LectureWatchPage() {
                                 {commentMessage && <p className="lecture-watch-page__note-message">{commentMessage}</p>}
 
                                 <ul className="comment-list">
-                                    {comments.map((comment) => (
+                                    {comments.slice(0, visibleCommentCount).map((comment) => (
                                         <LectureCommentItem
                                             key={comment.id}
                                             comment={comment}
@@ -807,6 +953,17 @@ function LectureWatchPage() {
                                         />
                                     ))}
                                 </ul>
+                                {comments.length > visibleCommentCount && (
+                                    <div className="comment-panel__more-row">
+                                        <button
+                                            type="button"
+                                            className="comment-panel__more"
+                                            onClick={() => setVisibleCommentCount((count) => count + 10)}
+                                        >
+                                            더보기
+                                        </button>
+                                    </div>
+                                )}
                             </section>
                         )}
                     </div>
@@ -868,13 +1025,12 @@ function LectureWatchPage() {
                                         </div>
                                     )}
                                 </div>
-                                <div className="chat-messages">
+                                <div className="chat-messages" ref={chatMessagesRef}>
                                     {chatMessages.map((message) => (
                                         <div key={message.id} id={`lecture-chat-message-${message.id}`}>
                                             <ChatMessage senderRole={message.senderRole} message={message.message} recommendedLectures={message.recommendedLectures} />
                                         </div>
                                     ))}
-                                    <div ref={chatBottomRef} />
                                 </div>
                                 {chatError && <p className="chat-error">{chatError}</p>}
                                 <ChatInput sending={chatSending} onSend={handleChatSend} />
