@@ -2,8 +2,9 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAdminLectureList } from '../api/lecture';
 import { getCategoryList } from '../../lecture/api/category';
-import { approveLecture, deleteLecture, rejectLecture } from '../api/admin';
+import { approveLecture, deleteLecture, rejectLecture, restoreLecture } from '../api/admin';
 import { usePagedList } from '../hooks/usePagedList';
+import RejectReasonModal from '../components/RejectReasonModal';
 import './AdminLecturesPage.css';
 
 const PAGE_SIZE = 10;
@@ -24,6 +25,7 @@ function AdminLecturesPage() {
   );
   const [expandedLectureId, setExpandedLectureId] = useState(null);
   const [processingId, setProcessingId] = useState(null);
+  const [rejectTarget, setRejectTarget] = useState(null);
 
   useEffect(() => {
     getCategoryList().then(setCategories).catch(() => setCategories([]));
@@ -57,6 +59,17 @@ function AdminLecturesPage() {
     }
   };
 
+  const handleRestore = async (lecture) => {
+    if (!window.confirm('복구하시겠습니까?')) return;
+
+    try {
+      await restoreLecture(lecture.id);
+      lectures.reload();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const handleApprove = async (lecture) => {
     if (!window.confirm(`"${lecture.title}" 강의 등록 신청을 승인할까요?`)) return;
     setProcessingId(lecture.id);
@@ -70,17 +83,16 @@ function AdminLecturesPage() {
     }
   };
 
-  const handleReject = async (lecture) => {
-    const reason = window.prompt(`"${lecture.title}" 강의 등록 신청을 반려하는 사유를 입력해 주세요.`);
-    if (reason === null) return; // 취소
-    if (!reason.trim()) {
-      alert('반려 사유를 입력해 주세요.');
-      return;
-    }
+  const handleReject = (lecture) => {
+    setRejectTarget(lecture);
+  };
 
+  const confirmReject = async (reason) => {
+    const lecture = rejectTarget;
     setProcessingId(lecture.id);
     try {
-      await rejectLecture(lecture.id, reason.trim());
+      await rejectLecture(lecture.id, reason);
+      setRejectTarget(null);
       lectures.reload();
     } catch (err) {
       alert(err.message);
@@ -140,13 +152,13 @@ function AdminLecturesPage() {
             <tbody>
               {lectures.pageData.content.map((lecture, index) => (
                 <Fragment key={lecture.id}>
-                  <tr>
+                  <tr className={lecture.isDeleted ? 'admin-row--deleted' : undefined}>
                     <td>{lectures.page * PAGE_SIZE + index + 1}</td>
                     <td>{lecture.id}</td>
                     <td>{lecture.categoryName}</td>
                     <td>
                       <button type="button" className="admin-table__title-btn" onClick={() => handleToggle(lecture.id)}>
-                        {lecture.title}
+                        {lecture.title} {lecture.isDeleted && <span className="admin-deleted-label">(삭제됨)</span>}
                       </button>
                     </td>
                     <td>{lecture.instructor}</td>
@@ -162,7 +174,9 @@ function AdminLecturesPage() {
                       </span>
                     </td>
                     <td className="admin-actions">
-                      {lecture.status === 'PENDING' ? (
+                      {lecture.isDeleted ? (
+                        <button type="button" className="admin-deleted-button" onClick={() => handleRestore(lecture)}>삭제됨</button>
+                      ) : lecture.status === 'PENDING' ? (
                         <>
                           <button
                             type="button"
@@ -192,40 +206,71 @@ function AdminLecturesPage() {
                   {expandedLectureId === lecture.id && (
                     <tr>
                       <td colSpan={9}>
-                        <dl className="admin-author-info">
-                          <div>
-                            <dt>노트 개수</dt>
-                            <dd>{lecture.noteCount ?? 0}</dd>
+                        <div className="admin-detail-wrap">
+                          <div className="admin-lecture__detail">
+                            {lecture.thumbnailUrl && (
+                              <img
+                                className="admin-lecture__thumbnail"
+                                src={lecture.thumbnailUrl}
+                                alt={`${lecture.title} 썸네일`}
+                              />
+                            )}
+                            <dl className="admin-lecture__summary">
+                              <dt>강의 설명</dt>
+                              <dd>{lecture.description || '-'}</dd>
+                              <dt>강의 URL</dt>
+                              <dd>
+                                {lecture.lectureUrl ? (
+                                  <a href={lecture.lectureUrl} target="_blank" rel="noreferrer">{lecture.lectureUrl}</a>
+                                ) : (
+                                  '-'
+                                )}
+                              </dd>
+                              <dt>복습용 URL</dt>
+                              <dd>
+                                {lecture.reviewUrl ? (
+                                  <a href={lecture.reviewUrl} target="_blank" rel="noreferrer">{lecture.reviewUrl}</a>
+                                ) : (
+                                  '-'
+                                )}
+                              </dd>
+                            </dl>
                           </div>
-                          <div>
-                            <dt>댓글 개수</dt>
-                            <dd>{lecture.commentCount ?? 0}</dd>
-                          </div>
-                          <div>
-                            <dt>조회수</dt>
-                            <dd>{lecture.viewCount ?? 0}</dd>
-                          </div>
-                          <div>
-                            <dt>좋아요수</dt>
-                            <dd>{lecture.likeCount ?? 0}</dd>
-                          </div>
-                          <div>
-                            <dt>인기 강의</dt>
-                            <dd>{lecture.isPopular ? '예' : '아니오'}</dd>
-                          </div>
-                          {lecture.status !== 'PENDING' && (
+                          <dl className="admin-author-info">
                             <div>
-                              <dt>심사일</dt>
-                              <dd>{lecture.reviewedAt?.slice(0, 10) ?? '-'}</dd>
+                              <dt>노트 개수</dt>
+                              <dd>{lecture.noteCount ?? 0}</dd>
                             </div>
-                          )}
-                          {lecture.status === 'REJECTED' && (
                             <div>
-                              <dt>반려 사유</dt>
-                              <dd className="admin-lecture__reject-reason">{lecture.rejectReason || '-'}</dd>
+                              <dt>댓글 개수</dt>
+                              <dd>{lecture.commentCount ?? 0}</dd>
                             </div>
-                          )}
-                        </dl>
+                            <div>
+                              <dt>조회수</dt>
+                              <dd>{lecture.viewCount ?? 0}</dd>
+                            </div>
+                            <div>
+                              <dt>좋아요수</dt>
+                              <dd>{lecture.likeCount ?? 0}</dd>
+                            </div>
+                            <div>
+                              <dt>인기 강의</dt>
+                              <dd>{lecture.isPopular ? '예' : '아니오'}</dd>
+                            </div>
+                            {lecture.status !== 'PENDING' && (
+                              <div>
+                                <dt>심사일</dt>
+                                <dd>{lecture.reviewedAt?.slice(0, 10) ?? '-'}</dd>
+                              </div>
+                            )}
+                            {lecture.status === 'REJECTED' && (
+                              <div>
+                                <dt>반려 사유</dt>
+                                <dd className="admin-lecture__reject-reason">{lecture.rejectReason || '-'}</dd>
+                              </div>
+                            )}
+                          </dl>
+                        </div>
                       </td>
                     </tr>
                   )}
@@ -254,6 +299,14 @@ function AdminLecturesPage() {
           </button>
         </div>
       )}
+
+      <RejectReasonModal
+        open={!!rejectTarget}
+        title={rejectTarget ? `"${rejectTarget.title}" 강의 등록 신청을 반려하는 사유를 입력해 주세요.` : ''}
+        submitting={processingId === rejectTarget?.id}
+        onCancel={() => setRejectTarget(null)}
+        onSubmit={confirmReject}
+      />
     </div>
   );
 }

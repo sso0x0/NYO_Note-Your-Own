@@ -49,9 +49,13 @@ public class Lecture {
     @Column(name = "lecture_url", length = 1000)
     private String lectureUrl;
 
-    // 강의 대표 썸네일 이미지 URL
+    // 강의 대표 썸네일 이미지 URL (사용자 입력이 아닌, lectureUrl에서 서버가 자동으로 뽑아 저장)
     @Column(name = "thumbnail_url", length = 1000)
     private String thumbnailUrl;
+
+    // 복습용 자료 URL (선택, 강의 신청 시 참고자료/자료실 링크 등을 남길 수 있음)
+    @Column(name = "review_url", length = 1000)
+    private String reviewUrl;
 
     // 강사명
     @Column(name = "instructor", length = 100)
@@ -113,7 +117,7 @@ public class Lecture {
 
     @Builder
     public Lecture(Category category, User createdBy, String title, String description,
-                   String lectureUrl, String thumbnailUrl, String instructor, Integer capacity,
+                   String lectureUrl, String thumbnailUrl, String reviewUrl, String instructor, Integer capacity,
                    LectureStatus status) {
         this.category = category;
         this.createdBy = createdBy;
@@ -121,6 +125,7 @@ public class Lecture {
         this.description = description;
         this.lectureUrl = lectureUrl;
         this.thumbnailUrl = thumbnailUrl;
+        this.reviewUrl = reviewUrl;
         this.instructor = instructor;
         this.capacity = capacity;
         this.currentEnrolled = 0;
@@ -132,12 +137,13 @@ public class Lecture {
     }
     // 강의 정보 수정 (관리자만 호출 가능)
     public void update(Category category, String title, String description,
-                       String lectureUrl, String thumbnailUrl, String instructor, Integer capacity) {
+                       String lectureUrl, String thumbnailUrl, String reviewUrl, String instructor, Integer capacity) {
         this.category = category;
         this.title = title;
         this.description = description;
         this.lectureUrl = lectureUrl;
         this.thumbnailUrl = thumbnailUrl;
+        this.reviewUrl = reviewUrl;
         this.instructor = instructor;
         this.capacity = capacity;
     }
@@ -145,6 +151,11 @@ public class Lecture {
     // 강의 삭제 처리
     public void delete() {
         this.isDeleted = true;
+    }
+
+    // 관리자가 삭제한 강의를 복구 (DB에서 완전히 삭제되기 전까지 다시 되돌릴 수 있음)
+    public void restore() {
+        this.isDeleted = false;
     }
 
     // 강사가 등록 신청한 강의를 관리자가 승인 (일반 목록/검색에 노출)

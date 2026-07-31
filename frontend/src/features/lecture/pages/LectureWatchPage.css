@@ -7,9 +7,10 @@
     --lw-surface-alt: #f8f9fa;
 
     width: 100%;
-    max-width: 1200px;
+    /* 노트·커뮤니티 게시판 목록과 같은 화면 폭과 양옆 여백을 사용한다. */
+    max-width: 1560px;
     margin: 0 auto;
-    padding: 24px 20px 40px;
+    padding: 24px 32px 40px;
     text-align: left;
     box-sizing: border-box;
     font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -42,20 +43,35 @@
 
 .lecture-watch-page__layout {
     display: flex;
-    gap: 20px;
+    gap: 44px;
     align-items: flex-start;
+    transition: gap 0.2s ease;
 }
 
 .lecture-watch-page__main {
-    flex: 1;
+    flex: 1 1 0;
     min-width: 0;
+}
+
+/* 영상과 강의 정보는 화면 위쪽 전체 너비를 사용한다. */
+.lecture-watch-page__top {
+    width: 100%;
+}
+
+/* 영상 아래부터 왼쪽은 노트·댓글, 오른쪽은 타이머·챗봇 영역으로 나눈다. */
+.lecture-watch-page__tabs,
+.lecture-watch-page__note-form,
+.lecture-watch-page__others,
+.comment-panel {
+    width: 100%;
 }
 
 /* ===== 상단: PIP 영상 + 강의 정보 (2a안: 영상+노트 대형 병치 톤) ===== */
 .lecture-watch-page__top {
     display: flex;
+    flex-direction: column;
     gap: 20px;
-    align-items: flex-start;
+    align-items: stretch;
     padding-bottom: 22px;
     margin-bottom: 20px;
     border-bottom: 1px solid var(--lw-line);
@@ -63,13 +79,29 @@
 
 .lecture-watch-page__pip {
     position: relative;
-    width: 260px;
-    flex: none;
-    aspect-ratio: 16 / 9;
+    width: auto;
+    height: clamp(360px, 33.333vw, 520px);
+    flex: 1 1 0;
     border-radius: 16px;
     overflow: hidden;
     background: var(--code-bg);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+.lecture-watch-page__media-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    width: 100%;
+}
+
+.lecture-watch-page__media-row > .lecture-watch-page__pomodoro {
+    width: min(36%, 520px);
+    flex: none;
+}
+
+.lecture-watch-page__media-row > .lecture-watch-page__pomodoro.is-collapsed {
+    width: 48px;
 }
 
 .lecture-watch-page__pip img {
@@ -178,7 +210,7 @@
 .lecture-watch-page__tabs {
     display: flex;
     gap: 8px;
-    margin-bottom: 18px;
+    margin-bottom: 0;
 }
 
 .lecture-watch-page__tabs button {
@@ -278,10 +310,25 @@
 }
 
 .lecture-watch-page__note-editor {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
     border: 1px solid var(--lw-line);
     border-radius: 14px;
     padding: 4px 4px 4px 0;
     background: var(--bg);
+}
+
+/* 노트 작성 카드가 세로로 늘어난 만큼 실제 본문 입력 영역도 남은 높이를 모두 사용한다. */
+.lecture-watch-page__note-editor .rich-text-editor {
+    flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
 }
 
 .lecture-watch-page__note-submit {
@@ -430,8 +477,21 @@
 .lecture-watch-page__side {
     display: flex;
     flex-direction: column;
+    align-items: flex-end;
     gap: 20px;
+    width: min(36%, 520px);
+    min-width: 0;
     flex: none;
+    transition: width 0.2s ease;
+}
+
+/* 타이머와 챗봇이 모두 접히면 오른쪽 폭을 줄여 남은 공간을 노트 영역에 돌려준다. */
+.lecture-watch-page__layout.is-side-collapsed .lecture-watch-page__side {
+    width: 48px;
+}
+
+.lecture-watch-page__layout.is-side-collapsed {
+    gap: 16px;
 }
 
 /* 챗봇 헤더(배지 + flex:1 제목 + 아이콘 버튼)와 같은 방식 — justify-content: space-between을
@@ -528,18 +588,60 @@
 }
 
 .lecture-watch-page__pomodoro {
-    width: 320px;
+    width: 100%;
     padding: 20px;
     border: 1px solid var(--lw-line);
     border-radius: 20px;
     background: var(--bg);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
     box-sizing: border-box;
+    transition: width 0.2s ease, padding 0.2s ease;
+}
+
+.lecture-watch-page__pomodoro.is-collapsed {
+    width: 48px;
+    height: 180px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.lecture-watch-page__pomodoro.is-collapsed .lecture-watch-page__pomodoro-content {
+    display: none;
+}
+
+.lecture-watch-page__pomodoro-collapse {
+    border: none;
+    background: none;
+    padding: 0;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.lecture-watch-page__pomodoro-collapse:hover,
+.lecture-watch-page__pomodoro-expand:hover {
+    color: var(--lw-accent);
+}
+
+.lecture-watch-page__pomodoro-expand {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    writing-mode: vertical-rl;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 1px;
 }
 
 /* ===== 오른쪽: 접이식 AI 챗봇 드로어 (2a안) ===== */
 .lecture-watch-page__chat {
-    width: 320px;
+    width: 100%;
     flex: none;
     display: flex;
     flex-direction: column;
@@ -616,6 +718,142 @@
 
 .lecture-watch-page__chat .chat-messages {
     flex: 1;
+}
+
+/* 데스크톱에서는 영상 60%, 노트 작성 40% 비율로 배치한다.
+   접힌 타이머와 챗봇은 콘텐츠 바깥쪽 여백에 놓인다. */
+@media (min-width: 901px) {
+    .lecture-watch-page__content {
+        --lecture-note-form-height: calc(clamp(360px, 33.333vw, 520px) + 150px);
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+        column-gap: 24px;
+        row-gap: 14px;
+        align-items: start;
+        /* min-height의 남는 높이를 각 행 사이에 분배하지 않고 콘텐츠 아래에만 남긴다. */
+        align-content: start;
+    }
+
+    .lecture-watch-page__top,
+    .lecture-watch-page__media-row,
+    .lecture-watch-page__layout,
+    .lecture-watch-page__main,
+    .lecture-watch-page__side {
+        display: contents;
+    }
+
+    .lecture-watch-page__top-info {
+        grid-column: 1;
+        grid-row: 2;
+        margin-top: -14px;
+    }
+
+    .lecture-watch-page__pip {
+        grid-column: 1;
+        grid-row: 1;
+        width: 100%;
+    }
+
+    .lecture-watch-page__note-form {
+        grid-column: 2;
+        grid-row: 1 / 4;
+        width: 100%;
+        height: var(--lecture-note-form-height);
+        min-height: var(--lecture-note-form-height);
+        max-height: var(--lecture-note-form-height);
+        min-width: 0;
+        align-self: start;
+        overflow: hidden;
+    }
+
+    .lecture-watch-page__tabs {
+        grid-column: 1;
+        grid-row: 3;
+        width: 100%;
+        /* 강의 정보와 탭 사이에 작은 여백을 둔다. */
+        margin-top: -6px;
+    }
+
+    .lecture-watch-page__others,
+    .comment-panel {
+        grid-column: 1;
+        grid-row: 4;
+        width: 100%;
+        /* 탭과 아래 노트·댓글 내용 사이에도 같은 간격을 둔다. */
+        margin-top: -6px;
+    }
+
+    .lecture-watch-page__media-row > .lecture-watch-page__pomodoro {
+        grid-column: 2;
+        grid-row: 4;
+        width: calc(50% - 10px);
+        justify-self: end;
+    }
+
+    .lecture-watch-page__media-row > .lecture-watch-page__pomodoro.is-collapsed {
+        width: 48px;
+    }
+
+    .lecture-watch-page__chat {
+        grid-column: 2;
+        grid-row: 4;
+        width: calc(50% - 10px);
+        justify-self: start;
+    }
+
+    .lecture-watch-page__chat.is-collapsed {
+        grid-row: 5;
+        width: 48px;
+        height: 180px;
+        justify-self: end;
+    }
+
+    /* 두 도구가 모두 접히면 접힌 바 공간만 남기고 노트 작성 카드가 아래쪽까지 확장된다. */
+    .lecture-watch-page__content.is-widgets-collapsed .lecture-watch-page__note-form {
+        position: absolute;
+        /* grid의 오른쪽 칸 안에서 너비가 다시 절반으로 계산되지 않도록 기준 영역을 해제한다. */
+        grid-column: auto;
+        grid-row: auto;
+        top: 0;
+        left: calc(60% + 9.6px);
+        right: 0;
+        width: auto;
+        height: calc(var(--lecture-note-form-height) + 374px);
+        min-height: calc(var(--lecture-note-form-height) + 374px);
+        max-height: calc(var(--lecture-note-form-height) + 374px);
+        z-index: 1;
+    }
+
+    /* 노트 작성 카드의 끝보다 푸터가 먼저 올라오지 않도록 카드 높이만큼만 확보한다. */
+    .lecture-watch-page__content.is-widgets-collapsed {
+        min-height: calc(var(--lecture-note-form-height) + 374px);
+    }
+
+    .lecture-watch-page__content.is-widgets-collapsed .lecture-watch-page__pomodoro.is-collapsed {
+        /* 접힌 타이머는 스크롤해도 화면 오른쪽에서 계속 보이게 한다. */
+        position: fixed;
+        grid-column: auto;
+        grid-row: auto;
+        top: 120px;
+        /* 1560px 게시판 폭 바깥의 오른쪽 여백 가운데에 배치한다. */
+        right: max(12px, calc((100vw - 1560px) / 4 - 24px));
+        width: 48px;
+        height: 180px;
+        z-index: 40;
+    }
+
+    .lecture-watch-page__content.is-widgets-collapsed .lecture-watch-page__chat.is-collapsed {
+        /* AI 챗봇 바는 타이머 바로 아래에서 함께 화면을 따라온다. */
+        position: fixed;
+        grid-column: auto;
+        grid-row: auto;
+        top: 314px;
+        right: max(12px, calc((100vw - 1560px) / 4 - 24px));
+        width: 48px;
+        height: 180px;
+        z-index: 40;
+    }
 }
 
 /* 이 강의에서 내가 챗봇에게 물어봤던 질문 목록. 헤더의 아이콘 버튼을 누르면
@@ -744,8 +982,26 @@
 }
 
 @media (max-width: 900px) {
+    .lecture-watch-page {
+        padding-inline: 14px;
+    }
+
     .lecture-watch-page__layout {
+        display: flex;
         flex-direction: column;
+    }
+
+    .lecture-watch-page__main {
+        display: block;
+        width: 100%;
+    }
+
+    .lecture-watch-page__side {
+        width: 100%;
+    }
+
+    .lecture-watch-page__layout.is-side-collapsed .lecture-watch-page__side {
+        width: 100%;
     }
 
     .lecture-watch-page__top {
@@ -754,10 +1010,30 @@
 
     .lecture-watch-page__pip {
         width: 100%;
+        height: auto;
+        aspect-ratio: 16 / 9;
+    }
+
+    .lecture-watch-page__media-row {
+        flex-direction: column;
+    }
+
+    .lecture-watch-page__media-row > .lecture-watch-page__pomodoro,
+    .lecture-watch-page__media-row > .lecture-watch-page__pomodoro.is-collapsed {
+        width: 100%;
     }
 
     .lecture-watch-page__pomodoro {
         width: 100%;
+    }
+
+    .lecture-watch-page__pomodoro.is-collapsed {
+        width: 100%;
+        height: 48px;
+    }
+
+    .lecture-watch-page__pomodoro-expand {
+        writing-mode: horizontal-tb;
     }
 
     .lecture-watch-page__chat {

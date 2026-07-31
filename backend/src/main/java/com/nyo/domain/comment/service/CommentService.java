@@ -110,11 +110,11 @@ public class CommentService {
         Map<Long, Post> postsById = postRepository.findAllById(
                 content.stream().map(Comment::getPostId).filter(Objects::nonNull).distinct().toList()
         ).stream().collect(Collectors.toMap(Post::getId, post -> post));
-        Map<Long, String> lectureTitlesById = lectureRepository.findAllById(
+        Map<Long, Lecture> lecturesById = lectureRepository.findAllById(
                 content.stream().map(Comment::getLectureId).filter(Objects::nonNull).distinct().toList()
-        ).stream().collect(Collectors.toMap(Lecture::getId, Lecture::getTitle));
+        ).stream().collect(Collectors.toMap(Lecture::getId, lecture -> lecture));
 
-        return comments.map(comment -> toAdminResponse(comment, usersById, postsById, lectureTitlesById));
+        return comments.map(comment -> toAdminResponse(comment, usersById, postsById, lecturesById));
     }
 
     // 💡 추가: 마이페이지 - 내가 작성한 댓글 목록 (삭제되지 않은 것만, 최신순)
@@ -133,19 +133,24 @@ public class CommentService {
             Comment comment,
             Map<Long, UserResponse> usersById,
             Map<Long, Post> postsById,
-            Map<Long, String> lectureTitlesById
+            Map<Long, Lecture> lecturesById
     ) {
         boolean isPostComment = comment.getPostId() != null;
         UserResponse author = usersById.get(comment.getUserId());
         Post targetPost = isPostComment ? postsById.get(comment.getPostId()) : null;
+        Lecture targetLecture = !isPostComment ? lecturesById.get(comment.getLectureId()) : null;
 
         return CommentAdminResponse.builder()
                 .id(comment.getId())
                 .targetType(isPostComment ? CommentAdminResponse.CommentTargetType.POST : CommentAdminResponse.CommentTargetType.LECTURE)
                 .targetId(isPostComment ? comment.getPostId() : comment.getLectureId())
-                .targetTitle(isPostComment ? (targetPost != null ? targetPost.getTitle() : null) : lectureTitlesById.get(comment.getLectureId()))
-                // 게시글이 없거나 삭제된 상태면 댓글만 먼저 복구하지 못하게 프론트에 상태를 전달한다.
-                .targetDeleted(isPostComment && (targetPost == null || targetPost.isDeleted()))
+                .targetTitle(isPostComment
+                        ? (targetPost != null ? targetPost.getTitle() : null)
+                        : (targetLecture != null ? targetLecture.getTitle() : null))
+                // 댓글 자체 상태와 구분해 연결된 게시글 또는 강의 원본의 삭제 여부만 전달한다.
+                .targetDeleted(isPostComment
+                        ? (targetPost == null || targetPost.isDeleted())
+                        : (targetLecture == null || Boolean.TRUE.equals(targetLecture.getIsDeleted())))
                 .parentCommentId(comment.getParentCommentId())
                 .content(comment.getContent())
                 .isDeleted(comment.isDeleted())

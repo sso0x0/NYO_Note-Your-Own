@@ -24,6 +24,11 @@
   font-family: inherit;
 }
 
+/* 게시글 제목 옆 댓글 수만 빨간색으로 구분한다. */
+.community-board-page__list .post-card__comment-count {
+    color: #ff4f4f;
+}
+
 .community-board-page__crumbs {
   display: flex;
   align-items: center;

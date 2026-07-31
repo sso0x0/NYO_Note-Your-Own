@@ -39,6 +39,30 @@ public interface LectureRepository extends JpaRepository<Lecture, Long> {
             countQuery = "SELECT count(l) FROM Lecture l WHERE l.isDeleted = false")
     Page<Lecture> findByIsDeletedFalse(Pageable pageable);
 
+    // 관리자 강의 관리 목록용: 삭제된 강의도 함께 내려줘 화면에서 삭제 내역을 확인하고 복구할 수 있게 한다.
+    // 심사 대기중(PENDING)인 신청 건을 맨 위로 올려 관리자가 바로 확인할 수 있게 정렬한다.
+    @Query(value = "SELECT l FROM Lecture l JOIN FETCH l.category "
+            + "ORDER BY CASE WHEN l.status = com.nyo.domain.lecture.entity.LectureStatus.PENDING THEN 0 ELSE 1 END, l.createdAt DESC",
+            countQuery = "SELECT count(l) FROM Lecture l")
+    Page<Lecture> findAllForAdmin(Pageable pageable);
+
+    // 관리자 강의 관리 목록: 심사 상태 필터 (삭제 여부 무관)
+    @Query(value = "SELECT l FROM Lecture l JOIN FETCH l.category WHERE l.status = :status",
+            countQuery = "SELECT count(l) FROM Lecture l WHERE l.status = :status")
+    Page<Lecture> findByStatusForAdmin(@Param("status") LectureStatus status, Pageable pageable);
+
+    // 관리자 강의 관리 목록: 카테고리 필터 (삭제 여부 무관). 전체 목록과 동일하게 PENDING 신청 건을 맨 위로 정렬한다.
+    @Query(value = "SELECT l FROM Lecture l JOIN FETCH l.category WHERE l.category.id = :categoryId "
+            + "ORDER BY CASE WHEN l.status = com.nyo.domain.lecture.entity.LectureStatus.PENDING THEN 0 ELSE 1 END, l.createdAt DESC",
+            countQuery = "SELECT count(l) FROM Lecture l WHERE l.category.id = :categoryId")
+    Page<Lecture> findByCategoryIdForAdmin(@Param("categoryId") Long categoryId, Pageable pageable);
+
+    // 관리자 강의 관리 목록: 카테고리 + 심사 상태 필터 (삭제 여부 무관)
+    @Query(value = "SELECT l FROM Lecture l JOIN FETCH l.category WHERE l.category.id = :categoryId AND l.status = :status",
+            countQuery = "SELECT count(l) FROM Lecture l WHERE l.category.id = :categoryId AND l.status = :status")
+    Page<Lecture> findByCategoryIdAndStatusForAdmin(
+            @Param("categoryId") Long categoryId, @Param("status") LectureStatus status, Pageable pageable);
+
     // 일반 회원용 전체 목록: 승인된(APPROVED) 강의만 노출한다 (강사 등록 신청 중/반려된 강의는 숨김).
     @Query(value = "SELECT l FROM Lecture l JOIN FETCH l.category WHERE l.isDeleted = false AND l.status = :status",
             countQuery = "SELECT count(l) FROM Lecture l WHERE l.isDeleted = false AND l.status = :status")

@@ -102,7 +102,7 @@ function AdminCommentsPage() {
                     <td>{comment.parentCommentId ? '답글' : '댓글'}</td>
                     <td>
                       <button type="button" className="admin-table__title-btn" onClick={() => handleToggle(comment.id)}>
-                        {comment.targetTitle ?? '(삭제된 대상)'} {comment.isDeleted && <span className="admin-deleted-label">(삭제됨)</span>}
+                        {comment.targetTitle ?? '(삭제된 대상)'} {comment.targetDeleted && <span className="admin-deleted-label">(삭제됨)</span>}
                       </button>
                     </td>
                     <td>{comment.authorNickname}</td>

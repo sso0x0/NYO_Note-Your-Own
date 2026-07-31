@@ -39,8 +39,11 @@ public class LectureResponse {
     @Schema(description = "강의 링크", example = "https://example.com/lectures/1")
     private String lectureUrl;
 
-    @Schema(description = "강의 대표 썸네일 이미지 URL", example = "https://example.com/thumbnail.jpg")
+    @Schema(description = "강의 대표 썸네일 이미지 URL (lectureUrl에서 서버가 자동으로 추출)", example = "https://img.youtube.com/vi/xxxxxxxxxxx/mqdefault.jpg")
     private String thumbnailUrl;
+
+    @Schema(description = "복습용 자료 URL (선택)", example = "https://example.com/review")
+    private String reviewUrl;
 
     @Schema(description = "강사명", example = "김강사")
     private String instructor;
@@ -89,6 +92,7 @@ public class LectureResponse {
                 .description(lecture.getDescription())
                 .lectureUrl(lecture.getLectureUrl())
                 .thumbnailUrl(lecture.getThumbnailUrl())
+                .reviewUrl(lecture.getReviewUrl())
                 .instructor(lecture.getInstructor())
                 .capacity(lecture.getCapacity())
                 .currentEnrolled(lecture.getCurrentEnrolled())

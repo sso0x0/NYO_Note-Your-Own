@@ -5,6 +5,7 @@ import {
   rejectInstructorApplication,
 } from '../../instructor/api/instructorApplication';
 import { usePagedList } from '../hooks/usePagedList';
+import RejectReasonModal from '../components/RejectReasonModal';
 import './AdminInstructorApplicationsPage.css';
 
 const PAGE_SIZE = 10;
@@ -22,6 +23,7 @@ function AdminInstructorApplicationsPage() {
   );
   const [expandedId, setExpandedId] = useState(null);
   const [processingId, setProcessingId] = useState(null);
+  const [rejectTarget, setRejectTarget] = useState(null);
 
   const firstFilterRender = useRef(true);
   useEffect(() => {
@@ -51,17 +53,16 @@ function AdminInstructorApplicationsPage() {
     }
   };
 
-  const handleReject = async (application) => {
-    const reason = window.prompt(`${application.applicantNickname}님의 강사 신청을 반려하는 사유를 입력해 주세요.`);
-    if (reason === null) return; // 취소
-    if (!reason.trim()) {
-      alert('반려 사유를 입력해 주세요.');
-      return;
-    }
+  const handleReject = (application) => {
+    setRejectTarget(application);
+  };
 
+  const confirmReject = async (reason) => {
+    const application = rejectTarget;
     setProcessingId(application.id);
     try {
-      await rejectInstructorApplication(application.id, reason.trim());
+      await rejectInstructorApplication(application.id, reason);
+      setRejectTarget(null);
       applications.reload();
     } catch (err) {
       alert(err.message);
@@ -99,7 +100,7 @@ function AdminInstructorApplicationsPage() {
                 <th>소속/직함</th>
                 <th>신청일</th>
                 <th>상태</th>
-                <th>관리</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -265,6 +266,14 @@ function AdminInstructorApplicationsPage() {
           </button>
         </div>
       )}
+
+      <RejectReasonModal
+        open={!!rejectTarget}
+        title={rejectTarget ? `${rejectTarget.applicantNickname}님의 강사 신청을 반려하는 사유를 입력해 주세요.` : ''}
+        submitting={processingId === rejectTarget?.id}
+        onCancel={() => setRejectTarget(null)}
+        onSubmit={confirmReject}
+      />
     </div>
   );
 }

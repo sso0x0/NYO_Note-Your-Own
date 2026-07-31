@@ -114,7 +114,7 @@ function LectureWatchPage() {
     const [error, setError] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
 
-    const [activeTab, setActiveTab] = useState('write'); // write | others
+    const [activeTab, setActiveTab] = useState('others'); // others | comments
     const [notes, setNotes] = useState([]);
     const [myNote, setMyNote] = useState(null);
     const [form, setForm] = useState(emptyForm);
@@ -131,8 +131,9 @@ function LectureWatchPage() {
     const [tagSubmitting, setTagSubmitting] = useState(false);
     const [pomodoroRefreshKey, setPomodoroRefreshKey] = useState(0);
     const [showPomodoroHistory, setShowPomodoroHistory] = useState(false);
+    const [pomodoroOpen, setPomodoroOpen] = useState(false);
 
-    const [chatDrawerOpen, setChatDrawerOpen] = useState(true);
+    const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
     const [chatMessages, setChatMessages] = useState([]);
     const [chatSending, setChatSending] = useState(false);
     const [chatError, setChatError] = useState(null);
@@ -507,9 +508,23 @@ function LectureWatchPage() {
             )}
 
             {status === 'success' && lecture && (
-                <div className="lecture-watch-page__layout">
-                    <div className="lecture-watch-page__main">
+                <div className={`lecture-watch-page__content${!pomodoroOpen && !chatDrawerOpen ? ' is-widgets-collapsed' : ''}`}>
                         <div className="lecture-watch-page__top">
+                            <div className="lecture-watch-page__top-info">
+                                {lecture.categoryName && (
+                                    <span className="lecture-watch-page__category">{lecture.categoryName}</span>
+                                )}
+                                <h1 className="lecture-watch-page__title">{lecture.title}</h1>
+                                <div className="lecture-watch-page__top-meta">
+                                    <div className="lecture-watch-page__stats">
+                                        <span>♡ 좋아요 {lecture.likeCount ?? 0}</span>
+                                        <span>조회 {lecture.viewCount ?? 0}</span>
+                                        <span>노트 {notes.length}개</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="lecture-watch-page__media-row">
                             <div className="lecture-watch-page__pip">
                                 {isPlaying && youtubeEmbedUrl ? (
                                     <iframe
@@ -553,39 +568,57 @@ function LectureWatchPage() {
                                 )}
                             </div>
 
-                            <div className="lecture-watch-page__top-info">
-                                {lecture.categoryName && (
-                                    <span className="lecture-watch-page__category">{lecture.categoryName}</span>
-                                )}
-                                <h1 className="lecture-watch-page__title">{lecture.title}</h1>
-                                <div className="lecture-watch-page__top-meta">
-                                    {lecture.lectureUrl && (
-                                        <a
-                                            className="lecture-watch-page__link"
-                                            href={lecture.lectureUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
+                            <div className={`lecture-watch-page__pomodoro${pomodoroOpen ? '' : ' is-collapsed'}`}>
+                                <div className="lecture-watch-page__pomodoro-content">
+                                    <div className="lecture-watch-page__pomodoro-header">
+                                        <span className="lecture-watch-page__pomodoro-badge"><ClockBadgeIcon /></span>
+                                        <span className="lecture-watch-page__pomodoro-title">타이머</span>
+                                        <button
+                                            type="button"
+                                            className="lecture-watch-page__pomodoro-history-toggle"
+                                            onClick={() => setShowPomodoroHistory((v) => !v)}
+                                            aria-label={showPomodoroHistory ? '기록 닫기' : '기록 보기'}
                                         >
-                                            인프런에서 수강하기 ↗
-                                        </a>
-                                    )}
-                                    <div className="lecture-watch-page__stats">
-                                        <span>♡ 좋아요 {lecture.likeCount ?? 0}</span>
-                                        <span>조회 {lecture.viewCount ?? 0}</span>
-                                        <span>노트 {notes.length}개</span>
+                                            <QuestionListIcon />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="lecture-watch-page__pomodoro-collapse"
+                                            onClick={() => {
+                                                setShowPomodoroHistory(false);
+                                                setPomodoroOpen(false);
+                                            }}
+                                        >
+                                            접기 ›
+                                        </button>
+                                        {showPomodoroHistory && (
+                                            <div className="lecture-watch-page__pomodoro-history-popover">
+                                                <StatsAndHistory refreshKey={pomodoroRefreshKey} />
+                                            </div>
+                                        )}
                                     </div>
+                                    <Timer
+                                        lectureId={lectureId}
+                                        noteId={null}
+                                        onFinished={() => setPomodoroRefreshKey((k) => k + 1)}
+                                    />
                                 </div>
+                                {!pomodoroOpen && (
+                                    <button
+                                        type="button"
+                                        className="lecture-watch-page__pomodoro-expand"
+                                        onClick={() => setPomodoroOpen(true)}
+                                    >
+                                        ‹ 타이머
+                                    </button>
+                                )}
+                            </div>
                             </div>
                         </div>
 
+                    <div className={`lecture-watch-page__layout${!chatDrawerOpen ? ' is-side-collapsed' : ''}`}>
+                        <div className="lecture-watch-page__main">
                         <div className="lecture-watch-page__tabs">
-                            <button
-                                type="button"
-                                className={activeTab === 'write' ? 'is-active' : ''}
-                                onClick={() => setActiveTab('write')}
-                            >
-                                노트 작성
-                            </button>
                             <button
                                 type="button"
                                 className={activeTab === 'others' ? 'is-active' : ''}
@@ -602,8 +635,7 @@ function LectureWatchPage() {
                             </button>
                         </div>
 
-                        {activeTab === 'write' && (
-                            <form className="lecture-watch-page__note-form" onSubmit={handleSaveNote}>
+                        <form className="lecture-watch-page__note-form" onSubmit={handleSaveNote}>
                                 <div className="lecture-watch-page__note-titlebar">
                                     <input
                                         className="lecture-watch-page__note-title"
@@ -710,8 +742,7 @@ function LectureWatchPage() {
                                     </div>
                                     {tagError && <p className="note-tag-error">{tagError}</p>}
                                 </div>
-                            </form>
-                        )}
+                        </form>
 
                         {activeTab === 'others' && (
                             <div className="lecture-watch-page__others">
@@ -781,30 +812,6 @@ function LectureWatchPage() {
                     </div>
 
                     <div className="lecture-watch-page__side">
-                    <div className="lecture-watch-page__pomodoro">
-                        <div className="lecture-watch-page__pomodoro-header">
-                            <span className="lecture-watch-page__pomodoro-badge"><ClockBadgeIcon /></span>
-                            <span className="lecture-watch-page__pomodoro-title">타이머</span>
-                            <button
-                                type="button"
-                                className="lecture-watch-page__pomodoro-history-toggle"
-                                onClick={() => setShowPomodoroHistory((v) => !v)}
-                                aria-label={showPomodoroHistory ? '기록 닫기' : '기록 보기'}
-                            >
-                                <QuestionListIcon />
-                            </button>
-                            {showPomodoroHistory && (
-                                <div className="lecture-watch-page__pomodoro-history-popover">
-                                    <StatsAndHistory refreshKey={pomodoroRefreshKey} />
-                                </div>
-                            )}
-                        </div>
-                        <Timer
-                            lectureId={lectureId}
-                            noteId={null}
-                            onFinished={() => setPomodoroRefreshKey((k) => k + 1)}
-                        />
-                    </div>
                     <aside className={`lecture-watch-page__chat${chatDrawerOpen ? '' : ' is-collapsed'}`}>
                         {chatDrawerOpen ? (
                             <>
@@ -883,6 +890,7 @@ function LectureWatchPage() {
                         )}
                     </aside>
                     </div>
+                </div>
                 </div>
             )}
         </section>
