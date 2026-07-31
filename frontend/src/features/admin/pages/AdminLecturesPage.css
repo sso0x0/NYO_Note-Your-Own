@@ -1,0 +1,58 @@
+/* 강의 관리: 심사 상태 배지는 강사 신청 관리(AdminInstructorApplicationsPage)와 같은 팔레트를 쓴다. */
+.admin-lecture__status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.admin-lecture__status-badge--pending {
+  background: #999;
+}
+
+.admin-lecture__status-badge--approved {
+  background: #2e9e5b;
+}
+
+.admin-lecture__status-badge--rejected {
+  background: #d92d20;
+}
+
+.admin-lecture__reject-reason {
+  color: #d92d20;
+  font-weight: 600;
+}
+
+/* 카테고리/상태 필터를 계단식(cascading)으로 이어붙여 하나의 필터 컨트롤처럼 보이게 한다. */
+.admin-lecture-filter {
+  display: flex;
+  align-items: center;
+  margin-right: auto;
+}
+
+.admin-lecture-filter .admin-select {
+  border-radius: 0;
+  border-right: none;
+}
+
+.admin-lecture-filter .admin-select:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.admin-lecture-filter .admin-select:last-child {
+  border-radius: 0 6px 6px 0;
+  border-right: 1px solid var(--border);
+}
+
+.admin-lecture-filter__arrow {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  background: var(--bg);
+}

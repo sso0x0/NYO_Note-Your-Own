@@ -12,10 +12,12 @@ import NoteCard from '../../note/components/NoteCard';
 import LectureCard from '../../lecture/components/LectureCard';
 import { SmileIcon } from '../../chat/ChatMessage';
 import LineChart from '../../../components/charts/LineChart';
+import nyoLogo from '../../../assets/images/nyo_logo.png';
 import eyeOpenIcon from '../../../assets/images/eye.png';
 import eyeCloseIcon from '../../../assets/images/eye_close.png';
 import './MyPage.css';
 
+// 회원가입 페이지와 동일한 눈 모양 아이콘 컴포넌트 적용
 function EyeIcon({ open }) {
     return <img src={open ? eyeOpenIcon : eyeCloseIcon} alt="" width="20" height="20" />;
 }
@@ -27,13 +29,11 @@ const TABS = [
     { id: 'comments', label: '댓글' },
     { id: 'notes', label: '작성 노트' },
     { id: 'likedNotes', label: '좋아요 노트' },
-    { id: 'chat', label: '챗봇 기록' },
 ];
 
 const LIST_SIZE = 8;
 const POST_SCAN_SIZE = 50;
 const LECTURE_SCAN_SIZE = 30;
-const CHAT_HISTORY_SIZE = 10;
 const POMODORO_PERIOD_SIZE = 100;
 const PAGE_SIZE = 5;
 
@@ -63,6 +63,18 @@ function defaultPomodoroRange() {
     return { start: toLocalDateString(start), end: toLocalDateString(end) };
 }
 
+function startOfWeek(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1) - day;
+    d.setDate(d.getDate() + diffToMonday);
+    return d;
+}
+
+function startOfMonth(date) {
+    return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
 function MyPage() {
     const { logout, updateNickname } = useAuth();
     const navigate = useNavigate();
@@ -74,7 +86,6 @@ function MyPage() {
 
     const [editing, setEditing] = useState(false);
     const [form, setForm] = useState({ name: '', nickname: '', phone: '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
-    const [touched, setTouched] = useState({});
     const [saveError, setSaveError] = useState(null);
     const [saving, setSaving] = useState(false);
 
@@ -101,8 +112,8 @@ function MyPage() {
     const [lectureTitleMap, setLectureTitleMap] = useState({});
 
     const [pomodoroToday, setPomodoroToday] = useState(0);
-    const [pomodoroWeek] = useState(0);
-    const [pomodoroMonth] = useState(0);
+    const [pomodoroWeek, setPomodoroWeek] = useState(0);
+    const [pomodoroMonth, setPomodoroMonth] = useState(0);
     const [pomodoroTotal, setPomodoroTotal] = useState(0);
     const [pomodoroRange, setPomodoroRange] = useState(defaultPomodoroRange);
     const [pomodoroRecords, setPomodoroRecords] = useState([]);
@@ -246,12 +257,10 @@ function MyPage() {
     const handleFormChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
-        setTouched((prev) => ({ ...prev, [name]: true }));
     };
 
     const handleStartEdit = () => {
         setSaveError(null);
-        setTouched({});
         setEditing(true);
     };
 
@@ -265,7 +274,6 @@ function MyPage() {
             newPasswordConfirm: ''
         });
         setSaveError(null);
-        setTouched({});
         setEditing(false);
     };
 
@@ -279,7 +287,6 @@ function MyPage() {
             setProfile(updated);
             updateNickname(updated.nickname);
             setForm({ name: updated.name ?? '', nickname: updated.nickname ?? '', phone: updated.phone ?? '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
-            setTouched({});
             setEditing(false);
         } catch (err) {
             setSaveError(err.message);
@@ -430,9 +437,9 @@ function MyPage() {
                                         name="nickname"
                                         value={form.nickname}
                                         onChange={handleFormChange}
-                                        className={touched.nickname && !form.nickname ? 'input-error' : ''}
+                                        className={!form.nickname ? 'input-error' : ''}
                                     />
-                                    {touched.nickname && !form.nickname && <span className="mypage__warning-text">닉네임을 입력해 주세요.</span>}
+                                    {!form.nickname && <span className="mypage__warning-text">닉네임을 입력해 주세요.</span>}
                                 </div>
 
                                 <div className="mypage__input-group">
@@ -456,9 +463,10 @@ function MyPage() {
                                                     id="currentPassword"
                                                     name="currentPassword"
                                                     type={showCurrentPassword ? "text" : "password"}
+
                                                     value={form.currentPassword}
                                                     onChange={handleFormChange}
-                                                    className={touched.currentPassword && !form.currentPassword ? 'input-error' : ''}
+                                                    className={!form.currentPassword ? 'input-error' : ''}
                                                 />
                                                 <button
                                                     type="button"
@@ -471,7 +479,7 @@ function MyPage() {
                                                     <EyeIcon open={showCurrentPassword} />
                                                 </button>
                                             </div>
-                                            {touched.currentPassword && !form.currentPassword && <span className="mypage__warning-text">현재 비밀번호를 입력해 주세요.</span>}
+                                            {!form.currentPassword && <span className="mypage__warning-text">현재 비밀번호를 입력해 주세요.</span>}
                                         </div>
 
                                         <div className="mypage__input-group">
@@ -484,7 +492,7 @@ function MyPage() {
                                                     autoComplete="new-password"
                                                     value={form.newPassword}
                                                     onChange={handleFormChange}
-                                                    className={touched.newPassword && !form.newPassword ? 'input-error' : ''}
+                                                    className={!form.newPassword ? 'input-error' : ''}
                                                 />
                                                 <button
                                                     type="button"
@@ -497,7 +505,7 @@ function MyPage() {
                                                     <EyeIcon open={showNewPassword} />
                                                 </button>
                                             </div>
-                                            {touched.newPassword && !form.newPassword && <span className="mypage__warning-text">새 비밀번호를 입력해 주세요.</span>}
+                                            {!form.newPassword && <span className="mypage__warning-text">새 비밀번호를 입력해 주세요.</span>}
                                         </div>
 
                                         <div className="mypage__input-group">
@@ -511,15 +519,25 @@ function MyPage() {
                                                     value={form.newPasswordConfirm}
                                                     onChange={handleFormChange}
                                                     className={
-                                                        touched.newPasswordConfirm && (!form.newPasswordConfirm || form.newPassword !== form.newPasswordConfirm)
+                                                        (!form.newPasswordConfirm || form.newPassword !== form.newPasswordConfirm)
                                                             ? 'input-error' : ''
                                                     }
                                                 />
-                                                {touched.newPasswordConfirm && !form.newPasswordConfirm && <span className="mypage__warning-text">비밀번호 확인을 입력해 주세요.</span>}
-                                                {touched.newPasswordConfirm && form.newPasswordConfirm && form.newPassword !== form.newPasswordConfirm && (
-                                                    <span className="mypage__warning-text">비밀번호가 일치하지 않습니다.</span>
-                                                )}
+                                                <button
+                                                    type="button"
+                                                    className="mypage__eye-btn"
+                                                    onClick={() => setShowNewPasswordConfirm((v) => !v)}
+                                                    aria-label={showNewPasswordConfirm ? '비밀번호 숨기기' : '비밀번호 보기'}
+                                                    aria-pressed={showNewPasswordConfirm}
+                                                    tabIndex={-1}
+                                                >
+                                                    <EyeIcon open={showNewPasswordConfirm} />
+                                                </button>
                                             </div>
+                                            {!form.newPasswordConfirm && <span className="mypage__warning-text">비밀번호 확인을 입력해 주세요.</span>}
+                                            {form.newPasswordConfirm && form.newPassword !== form.newPasswordConfirm && (
+                                                <span className="mypage__warning-text">비밀번호가 일치하지 않습니다.</span>
+                                            )}
                                         </div>
                                     </>
                                 )}
@@ -613,16 +631,16 @@ function MyPage() {
                                                 <li key={record.id} className="mypage__pomodoro-item">
                                                     <span className="mypage__pomodoro-item-date">{record.recordDate}</span>
                                                     <span className="mypage__pomodoro-item-detail">
-                                                        집중 {record.focusMinutes}분
+                                                집중 {record.focusMinutes}분
                                                         {!record.endedAt && ' (진행 중)'}
-                                                    </span>
+                                            </span>
                                                     <span className="mypage__pomodoro-item-link">
-                                                        {record.lectureId
-                                                            ? `강의 #${record.lectureId}`
-                                                            : record.noteId
-                                                                ? `노트 #${record.noteId}`
-                                                                : '연결된 강의/노트 없음'}
-                                                    </span>
+                                                {record.lectureId
+                                                    ? `강의 #${record.lectureId}`
+                                                    : record.noteId
+                                                        ? `노트 #${record.noteId}`
+                                                        : '연결된 강의/노트 없음'}
+                                            </span>
                                                 </li>
                                             ))}
                                         </ul>
@@ -669,14 +687,14 @@ function MyPage() {
                                             {paginate(myPosts, postsPage).map((post) => (
                                                 <li key={post.id} className="mypage__post-item">
                                                     <Link to={`/main/community/${post.id}`} className="mypage__post-link">
-                                                        <span className="mypage__post-title">
-                                                            {post.notice && <span className="mypage__post-badge">공지</span>}
-                                                            {post.title}
-                                                        </span>
+                          <span className="mypage__post-title">
+                            {post.notice && <span className="mypage__post-badge">공지</span>}
+                              {post.title}
+                          </span>
                                                         <span className="mypage__post-meta">
-                                                            조회 {post.viewCount ?? 0} · 좋아요 {post.likeCount ?? 0}
+                          조회 {post.viewCount ?? 0} · 좋아요 {post.likeCount ?? 0}
                                                             {post.createdAt && ` · ${post.createdAt.slice(0, 10)}`}
-                                                        </span>
+                          </span>
                                                     </Link>
                                                 </li>
                                             ))}
@@ -707,9 +725,9 @@ function MyPage() {
                                                     >
                                                         <span className="mypage__post-title">{comment.content}</span>
                                                         <span className="mypage__post-meta">
-                                                            {comment.postId ? '커뮤니티' : '강의'}
+                                                    {comment.postId ? '커뮤니티' : '강의'}
                                                             {comment.createdAt && ` · ${comment.createdAt.replace('T', ' ').slice(0, 16)}`}
-                                                        </span>
+                                                </span>
                                                     </Link>
                                                 </li>
                                             ))}
@@ -768,121 +786,6 @@ function MyPage() {
                             </section>
                         )}
 
-                        {activeTab === 'chat' && (
-                            <section className="mypage__section">
-                                <h3>챗봇 대화 기록</h3>
-                                {chatHistoryError && <p role="alert">불러오지 못했습니다: {chatHistoryError}</p>}
-                                {chatPairs.length === 0 ? (
-                                    <p>아직 챗봇과 나눈 대화가 없습니다.</p>
-                                ) : (
-                                    <>
-                                        <div className="mypage__chat-history-header">
-                                            <label className="mypage__chat-select-all">
-                                                <input
-                                                    type="checkbox"
-                                                    className="mypage__chat-checkbox"
-                                                    checked={chatPairs.length > 0 && selectedChatPairIds.length === chatPairs.length}
-                                                    disabled={chatHistoryDeleting}
-                                                    onChange={toggleAllChatPairsSelected}
-                                                />
-                                                전체 선택
-                                            </label>
-                                            <div className="mypage__chat-history-actions">
-                                                <button
-                                                    type="button"
-                                                    className="mypage__chat-select-delete-btn"
-                                                    disabled={selectedChatPairIds.length === 0 || chatHistoryDeleting}
-                                                    onClick={handleDeleteSelectedChatHistory}
-                                                >
-                                                    선택 삭제{selectedChatPairIds.length > 0 ? ` (${selectedChatPairIds.length})` : ''}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="mypage__chat-delete-all-btn"
-                                                    disabled={chatHistories.length === 0 || chatHistoryDeleting}
-                                                    onClick={handleDeleteAllChatHistory}
-                                                >
-                                                    전체 삭제
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="mypage__chat-layout">
-                                            <div className="mypage__chat-sidebar">
-                                                <ul className="mypage__chat-question-list">
-                                                    {chatPairs.map((pair) => (
-                                                        <li key={pair.question.id} className="mypage__chat-question-item">
-                                                            <input
-                                                                type="checkbox"
-                                                                className="mypage__chat-checkbox"
-                                                                checked={selectedChatPairIds.includes(pair.question.id)}
-                                                                disabled={chatHistoryDeleting}
-                                                                onChange={() => toggleChatPairSelected(pair.question.id)}
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                className={
-                                                                    'mypage__chat-question-btn' +
-                                                                    (pair.question.id === selectedChatId ? ' mypage__chat-question-btn--active' : '')
-                                                                }
-                                                                onClick={() => setSelectedChatId(pair.question.id)}
-                                                            >
-                                                                <span className="mypage__chat-question-text">{pair.question.message}</span>
-                                                                <span className="mypage__chat-question-meta">
-                                                                    {pair.question.lectureId && (
-                                                                        <>{lectureTitleMap[pair.question.lectureId] ?? `강의 #${pair.question.lectureId}`} · </>
-                                                                    )}
-                                                                    {pair.question.createdAt && pair.question.createdAt.replace('T', ' ').slice(0, 16)}
-                                                                </span>
-                                                            </button>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-
-                                                {chatHistoryHasMore && (
-                                                    <button
-                                                        type="button"
-                                                        className="mypage__chat-load-more"
-                                                        onClick={handleLoadMoreChatHistory}
-                                                        disabled={chatHistoryLoadingMore || chatHistoryDeleting}
-                                                    >
-                                                        {chatHistoryLoadingMore ? '불러오는 중...' : '더 보기'}
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            <div className="mypage__chat-detail">
-                                                {selectedChatPair ? (
-                                                    <div className="mypage__chat-thread">
-                                                        <div className="mypage__chat-row mypage__chat-row--user">
-                                                            <div className="mypage__chat-bubble mypage__chat-bubble--user">
-                                                                {selectedChatPair.question.message}
-                                                            </div>
-                                                        </div>
-                                                        <div className="mypage__chat-row mypage__chat-row--assistant">
-                                                            <span className="mypage__chat-avatar" aria-hidden="true">
-                                                                <SmileIcon />
-                                                            </span>
-                                                            {selectedChatPair.answer ? (
-                                                                <div className="mypage__chat-bubble mypage__chat-bubble--assistant">
-                                                                    {selectedChatPair.answer.message}
-                                                                </div>
-                                                            ) : (
-                                                                <div className="mypage__chat-bubble mypage__chat-bubble--assistant mypage__chat-bubble--pending">
-                                                                    아직 답변이 없습니다.
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <p className="mypage__chat-detail-empty">왼쪽 목록에서 질문을 선택해주세요.</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-                            </section>
-                        )}
                     </div>
 
                     <div className="mypage__danger-zone">

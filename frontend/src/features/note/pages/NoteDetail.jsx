@@ -19,35 +19,36 @@ const QUESTION_LIST_PREVIEW_COUNT = 4
 
 // 질문 목록 아이콘. 강의 시청 페이지의 학습용 챗봇과 톤을 맞춘 단색 아웃라인 SVG.
 function QuestionListIcon() {
-  return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
-           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="4.5" cy="6" r="0.8" fill="currentColor" />
-        <circle cx="4.5" cy="12" r="0.8" fill="currentColor" />
-        <circle cx="4.5" cy="18" r="0.8" fill="currentColor" />
-        <path d="M8.5 6h11M8.5 12h11M8.5 18h11" />
-      </svg>
-  )
+    return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+             strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="4.5" cy="6" r="0.8" fill="currentColor" />
+            <circle cx="4.5" cy="12" r="0.8" fill="currentColor" />
+            <circle cx="4.5" cy="18" r="0.8" fill="currentColor" />
+            <path d="M8.5 6h11M8.5 12h11M8.5 18h11" />
+        </svg>
+    )
 }
 
 // 타이머 헤더의 배지 아이콘. 강의 시청 페이지의 임베드 뽀모도로와 톤을 맞춘 단색 아웃라인 시계.
 function ClockBadgeIcon() {
-  return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 7v5l3.5 2" />
-      </svg>
-  )
+    return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+             strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3.5 2" />
+        </svg>
+    )
 }
 
 // key={noteId}로 노트가 바뀔 때마다 이 컴포넌트를 통째로 새로 마운트해서
 // 대화 기록은 서버(chat_histories)에 계속 쌓이지만, 화면에는 다른 노트의 대화가 이어서 보이지 않는다.
 // 강의 시청 페이지의 학습용 챗봇과 동일하게 접기/펼치기 + 질문 목록 팝오버를 제공한다.
 function NoteDetailChat({ lectureId, noteId }) {
-  const [chatMessages, setChatMessages] = useState([])
-  const [chatSending, setChatSending] = useState(false)
-  const [chatError, setChatError] = useState(null)
+    const [chatMessages, setChatMessages] = useState([])
+    const [chatSending, setChatSending] = useState(false)
+    const [chatError, setChatError] = useState(null)
+    const chatBottomRef = useRef(null)
 
   const [chatDrawerOpen, setChatDrawerOpen] = useState(true)
   const [showQuestionList, setShowQuestionList] = useState(false)
@@ -66,12 +67,19 @@ function NoteDetailChat({ lectureId, noteId }) {
   // (마이페이지 챗봇 기록과는 별개).
   const askedQuestions = chatMessages.filter((message) => message.senderRole === 'USER')
 
-  // 질문 목록에서 항목을 누르면 대화창에서 그 질문이 있는 위치로 스크롤해서 보여주고, 팝오버는 닫는다.
-  const scrollToQuestion = (questionId) => {
-    setShowQuestionList(false)
-    document.getElementById(`note-chat-message-${questionId}`)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
+    useEffect(() => {
+        // 상세 첫 진입에는 화면을 움직이지 않고 실제 메시지가 생긴 뒤에만 마지막 대화로 이동한다.
+        if (chatMessages.length > 0) {
+            chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+        }
+    }, [chatMessages])
+
+    // 질문 목록에서 항목을 누르면 대화창에서 그 질문이 있는 위치로 스크롤해서 보여주고, 팝오버는 닫는다.
+    const scrollToQuestion = (questionId) => {
+        setShowQuestionList(false)
+        document.getElementById(`note-chat-message-${questionId}`)
+            ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
 
   const handleChatSend = async (message) => {
     setChatError(null)
@@ -132,49 +140,50 @@ function NoteDetailChat({ lectureId, noteId }) {
                                     <span className="note-detail-chat__history-date">
                                 {question.createdAt.replace('T', ' ').slice(0, 16)}
                               </span>
+                                                )}
+                                                <span className="note-detail-chat__history-text">{question.message}</span>
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                                {askedQuestions.length > QUESTION_LIST_PREVIEW_COUNT && (
+                                    <button
+                                        type="button"
+                                        className="note-detail-chat__history-more"
+                                        onClick={() => setQuestionListExpanded((v) => !v)}
+                                    >
+                                        {questionListExpanded ? '접기' : `더보기 (${askedQuestions.length - QUESTION_LIST_PREVIEW_COUNT})`}
+                                    </button>
                                 )}
-                                <span className="note-detail-chat__history-text">{question.message}</span>
-                              </button>
-                            </li>
+                            </div>
+                        )}
+                    </div>
+                    <div className="chat-messages">
+                        {chatMessages.map((chatMessage) => (
+                            <div key={chatMessage.id} id={`note-chat-message-${chatMessage.id}`}>
+                                <ChatMessage
+                                    senderRole={chatMessage.senderRole}
+                                    message={chatMessage.message}
+                                    recommendedLectures={chatMessage.recommendedLectures}
+                                />
+                            </div>
                         ))}
-                      </ul>
-                      {askedQuestions.length > QUESTION_LIST_PREVIEW_COUNT && (
-                          <button
-                              type="button"
-                              className="note-detail-chat__history-more"
-                              onClick={() => setQuestionListExpanded((v) => !v)}
-                          >
-                            {questionListExpanded ? '접기' : `더보기 (${askedQuestions.length - QUESTION_LIST_PREVIEW_COUNT})`}
-                          </button>
-                      )}
+                        <div ref={chatBottomRef} />
                     </div>
-                )}
-              </div>
-              <div className="chat-messages">
-                {chatMessages.map((chatMessage) => (
-                    <div key={chatMessage.id} id={`note-chat-message-${chatMessage.id}`}>
-                      <ChatMessage
-                          senderRole={chatMessage.senderRole}
-                          message={chatMessage.message}
-                          recommendedLectures={chatMessage.recommendedLectures}
-                      />
-                    </div>
-                ))}
-              </div>
-              {chatError && <p className="chat-error">{chatError}</p>}
-              <ChatInput sending={chatSending} onSend={handleChatSend} />
-            </>
-        ) : (
-            <button
-                type="button"
-                className="note-detail-chat__expand"
-                onClick={() => setChatDrawerOpen(true)}
-            >
-              ‹ AI 챗봇
-            </button>
-        )}
-      </aside>
-  )
+                    {chatError && <p className="chat-error">{chatError}</p>}
+                    <ChatInput sending={chatSending} onSend={handleChatSend} />
+                </>
+            ) : (
+                <button
+                    type="button"
+                    className="note-detail-chat__expand"
+                    onClick={() => setChatDrawerOpen(true)}
+                >
+                    ‹ AI 챗봇
+                </button>
+            )}
+        </aside>
+    )
 }
 
 function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {

@@ -23,6 +23,7 @@ public enum ErrorCode {
     CAPACITY_LESS_THAN_ENROLLED(HttpStatus.BAD_REQUEST, "정원은 현재 등록 인원보다 작을 수 없습니다."),
     COURSE_ALREADY_ENROLLED(HttpStatus.CONFLICT, "이미 수강신청한 강의입니다."),
     COURSE_ENROLLMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "수강신청 내역이 없습니다."),
+    LECTURE_ALREADY_PROCESSED(HttpStatus.CONFLICT, "이미 처리된 강의 등록 신청입니다."),
 
     // category (박소현)
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."),

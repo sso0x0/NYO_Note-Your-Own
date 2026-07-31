@@ -51,3 +51,11 @@ export function updateLecture(id, request) {
 export function deleteLecture(id) {
   return apiDelete(`/api/admin/lectures/${id}`);
 }
+
+export function approveLecture(id) {
+  return apiPost(`/api/admin/lectures/${id}/approve`);
+}
+
+export function rejectLecture(id, reason) {
+  return apiPost(`/api/admin/lectures/${id}/reject`, { reason });
+}
