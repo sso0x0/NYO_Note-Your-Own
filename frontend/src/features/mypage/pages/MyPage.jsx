@@ -1094,7 +1094,7 @@ function MyPage() {
                                 ) : (
                                     <>
                                         <div className="mypage__note-list">
-                                            {paginate(myNotes, notesPage).map((음표) => (
+                                            {paginate(myNotes, notesPage).map((note) => (
                                                 <NoteCard key={note.id} note={note} />
                                             ))}
                                         </div>
@@ -1116,7 +1116,7 @@ function MyPage() {
                                 ) : (
                                     <>
                                         <div className="mypage__note-list">
-                                            {paginate(likedNotes, likedNotesPage).map((음표) => (
+                                            {paginate(likedNotes, likedNotesPage).map((note) => (
                                                 <NoteCard key={note.id} note={note} />
                                             ))}
                                         </div>
