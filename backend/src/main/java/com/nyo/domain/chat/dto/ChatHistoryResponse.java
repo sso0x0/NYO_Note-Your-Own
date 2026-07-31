@@ -44,4 +44,12 @@ public class ChatHistoryResponse {
     @Builder.Default
     private List<LectureResponse> recommendedLectures = List.of();
 
+    @Schema(description = "이 항목이 속한 대화의 루트 질문 FK. null이면 이 항목 자체가 새 대화의 시작(루트)이다. " +
+            "대화 목록 화면은 이 값이 null인 항목만 최상위로 보여주고, 값이 있는 항목은 그 루트 대화를 열었을 때만 같이 보여준다.")
+    private Long rootQuestionId;
+
+    @Schema(description = "이 답변에 대응하는 질문(USER) 행의 PK. 실시간 응답(chat/chatStream)에만 채워진다 — " +
+            "이어서 질문할 때 이 값을 다음 요청의 rootQuestionId로 그대로 실어 보내면 같은 대화로 묶인다.")
+    private Long questionId;
+
 }

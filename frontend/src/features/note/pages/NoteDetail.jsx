@@ -45,16 +45,16 @@ function ClockBadgeIcon() {
 // 대화 기록은 서버(chat_histories)에 계속 쌓이지만, 화면에는 다른 노트의 대화가 이어서 보이지 않는다.
 // 강의 시청 페이지의 학습용 챗봇과 동일하게 접기/펼치기 + 질문 목록 팝오버를 제공한다.
 function NoteDetailChat({ lectureId, noteId }) {
-<<<<<<< HEAD
-  const [chatMessages, setChatMessages] = useState([])
-  const [chatSending, setChatSending] = useState(false)
-  const [chatError, setChatError] = useState(null)
-=======
+    <<<<<<< HEAD
+        const [chatMessages, setChatMessages] = useState([])
+    const [chatSending, setChatSending] = useState(false)
+    const [chatError, setChatError] = useState(null)
+    =======
     const [chatMessages, setChatMessages] = useState([])
     const [chatSending, setChatSending] = useState(false)
     const [chatError, setChatError] = useState(null)
     const chatBottomRef = useRef(null)
->>>>>>> 092770ad04929b7c4121eab3582a9cac2f66db11
+        >>>>>>> 092770ad04929b7c4121eab3582a9cac2f66db11
 
     const [chatDrawerOpen, setChatDrawerOpen] = useState(true)
     const [showQuestionList, setShowQuestionList] = useState(false)
@@ -73,20 +73,20 @@ function NoteDetailChat({ lectureId, noteId }) {
     // (마이페이지 챗봇 기록과는 별개).
     const askedQuestions = chatMessages.filter((message) => message.senderRole === 'USER')
 
-<<<<<<< HEAD
-  // 질문 목록에서 항목을 누르면 대화창에서 그 질문이 있는 위치로 스크롤해서 보여주고, 팝오버는 닫는다.
-  const scrollToQuestion = (questionId) => {
-    setShowQuestionList(false)
-    document.getElementById(`note-chat-message-${questionId}`)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
+        <<<<<<< HEAD
+            // 질문 목록에서 항목을 누르면 대화창에서 그 질문이 있는 위치로 스크롤해서 보여주고, 팝오버는 닫는다.
+            const scrollToQuestion = (questionId) => {
+        setShowQuestionList(false)
+        document.getElementById(`note-chat-message-${questionId}`)
+            ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
 =======
-    useEffect(() => {
-        // 상세 첫 진입에는 화면을 움직이지 않고 실제 메시지가 생긴 뒤에만 마지막 대화로 이동한다.
-        if (chatMessages.length > 0) {
-            chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-        }
-    }, [chatMessages])
+        useEffect(() => {
+            // 상세 첫 진입에는 화면을 움직이지 않고 실제 메시지가 생긴 뒤에만 마지막 대화로 이동한다.
+            if (chatMessages.length > 0) {
+                chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+            }
+        }, [chatMessages])
 
     // 질문 목록에서 항목을 누르면 대화창에서 그 질문이 있는 위치로 스크롤해서 보여주고, 팝오버는 닫는다.
     const scrollToQuestion = (questionId) => {
@@ -102,7 +102,7 @@ function NoteDetailChat({ lectureId, noteId }) {
             ...previous,
             { id: `pending-${Date.now()}`, senderRole: 'USER', message },
         ])
->>>>>>> 092770ad04929b7c4121eab3582a9cac2f66db11
+        >>>>>>> 092770ad04929b7c4121eab3582a9cac2f66db11
 
         try {
             // 연결된 강의 ID로 저장해 노트와 강의 화면에서 같은 대화를 이어가고,
@@ -119,7 +119,7 @@ function NoteDetailChat({ lectureId, noteId }) {
     return (
         <aside className={`note-detail-chat${chatDrawerOpen ? '' : ' is-collapsed'}`}>
             {chatDrawerOpen ? (
-                <>
+                    <>
                     <div className="note-detail-chat__header">
                         <span className="note-detail-chat__badge">AI</span>
                         <span className="note-detail-chat__title">학습용 챗봇</span>
@@ -185,49 +185,49 @@ function NoteDetailChat({ lectureId, noteId }) {
                         ))}
                         <div ref={chatBottomRef} />
                     </div>
-<<<<<<< HEAD
-                )}
-              </div>
-              <div className="chat-messages">
-                {chatMessages.map((chatMessage) => (
-                    <div key={chatMessage.id} id={`note-chat-message-${chatMessage.id}`}>
-                      <ChatMessage
-                          senderRole={chatMessage.senderRole}
-                          message={chatMessage.message}
-                          recommendedLectures={chatMessage.recommendedLectures}
-                      />
+                    <<<<<<< HEAD
+                    )}
                     </div>
-                ))}
-              </div>
-              {chatError && <p className="chat-error">{chatError}</p>}
-              <ChatInput sending={chatSending} onSend={handleChatSend} />
-            </>
-        ) : (
-            <button
-                type="button"
-                className="note-detail-chat__expand"
-                onClick={() => setChatDrawerOpen(true)}
-            >
-              ‹ AI 챗봇
-            </button>
-        )}
-      </aside>
-  )
+                <div className="chat-messages">
+                    {chatMessages.map((chatMessage) => (
+                        <div key={chatMessage.id} id={`note-chat-message-${chatMessage.id}`}>
+                            <ChatMessage
+                                senderRole={chatMessage.senderRole}
+                                message={chatMessage.message}
+                                recommendedLectures={chatMessage.recommendedLectures}
+                            />
+                        </div>
+                    ))}
+                </div>
+            {chatError && <p className="chat-error">{chatError}</p>}
+    <ChatInput sending={chatSending} onSend={handleChatSend} />
+</>
+) : (
+        <button
+            type="button"
+            className="note-detail-chat__expand"
+            onClick={() => setChatDrawerOpen(true)}
+        >
+            ‹ AI 챗봇
+        </button>
+    )}
+</aside>
+)
 =======
-                    {chatError && <p className="chat-error">{chatError}</p>}
-                    <ChatInput sending={chatSending} onSend={handleChatSend} />
-                </>
-            ) : (
-                <button
-                    type="button"
-                    className="note-detail-chat__expand"
-                    onClick={() => setChatDrawerOpen(true)}
-                >
-                    ‹ AI 챗봇
-                </button>
-            )}
-        </aside>
-    )
+        {chatError && <p className="chat-error">{chatError}</p>}
+    <ChatInput sending={chatSending} onSend={handleChatSend} />
+</>
+) : (
+        <button
+            type="button"
+            className="note-detail-chat__expand"
+            onClick={() => setChatDrawerOpen(true)}
+        >
+            ‹ AI 챗봇
+        </button>
+    )}
+</aside>
+)
 >>>>>>> 092770ad04929b7c4121eab3582a9cac2f66db11
 }
 

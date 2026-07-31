@@ -3,24 +3,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { getMyInfo, updateMyProfile, withdraw } from '../api/mypage';
 import { getMyNotes, getLikedNotes } from '../../note/api/note';
 import { getPostList, getMyComments } from '../../community/api/post';
-import { getLectureList, isEnrolled, createMyLecture, getMyLectures } from '../../lecture/api/lecture';
-import { getCategoryList } from '../../lecture/api/category';
-import { getMyInstructorApplications } from '../../instructor/api/instructorApplication';
+import { getLectureList, isEnrolled } from '../../lecture/api/lecture';
 import { getRecordsByPeriod, getTodayStudyTime, getTotalStudyTime } from '../../pomodoro/api/pomodoro';
 import { toLocalDateString } from '../../pomodoro/dateUtil';
 import { useAuth } from '../../../context/AuthContext';
 import NoteCard from '../../note/components/NoteCard';
 import LectureCard from '../../lecture/components/LectureCard';
 import LineChart from '../../../components/charts/LineChart';
-import nyoLogo from '../../../assets/images/nyo_logo.png';
-import eyeOpenIcon from '../../../assets/images/eye.png';
-import eyeCloseIcon from '../../../assets/images/eye_close.png';
 import './MyPage.css';
-
-// 회원가입 페이지와 동일한 눈 모양 아이콘 컴포넌트 적용
-function EyeIcon({ open }) {
-    return <img src={open ? eyeOpenIcon : eyeCloseIcon} alt="" width="20" height="20" />;
-}
 
 const TABS = [
     { id: 'pomodoro', label: '학습 기록' },
@@ -29,26 +19,13 @@ const TABS = [
     { id: 'comments', label: '댓글' },
     { id: 'notes', label: '작성 노트' },
     { id: 'likedNotes', label: '좋아요 노트' },
-    { id: 'instructorApply', label: '강사 신청 현황' },
-];
-
-const INSTRUCTOR_STATUS_LABEL = {
-    PENDING: '심사 대기중',
-    APPROVED: '승인 완료',
-    REJECTED: '반려됨',
-};
-
-const LECTURE_MANAGE_TABS = [
-    { id: 'apply', label: '강의 등록 신청' },
-    { id: 'myLectures', label: '등록 신청한 강의' },
-    { id: 'status', label: '강사 신청 현황' },
 ];
 
 const LIST_SIZE = 8;
-const POST_SCAN_SIZE = 50;
-const LECTURE_SCAN_SIZE = 30;
-const POMODORO_PERIOD_SIZE = 100;
-const PAGE_SIZE = 5;
+const POST_SCAN_SIZE = 50; // 내 글을 찾기 위해 넉넉히 훑어볼 최근 게시글 수
+const LECTURE_SCAN_SIZE = 30; // 수강신청 여부를 물어볼 최근 강의 수 (개별 API 호출 방식이라 너무 크게 잡지 않습니다)
+const POMODORO_PERIOD_SIZE = 100; // 기간별 조회 시 한 번에 가져올 기록 수
+const PAGE_SIZE = 5; // 노트/강의/게시글/댓글 목록을 한 페이지에 보여줄 개수
 
 function paginate(items, page) {
     return items.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
@@ -72,18 +49,20 @@ function Pager({ page, totalPages, onChange }) {
 function defaultPomodoroRange() {
     const end = new Date();
     const start = new Date();
-    start.setDate(end.getDate() - 13);
+    start.setDate(end.getDate() - 13); // 최근 14일 (관리자 대시보드의 "최근 14일"과 동일한 기본 범위)
     return { start: toLocalDateString(start), end: toLocalDateString(end) };
 }
 
+// 이번 주(월요일 시작) 첫날
 function startOfWeek(date) {
     const d = new Date(date);
-    const day = d.getDay();
+    const day = d.getDay(); // 0=일 ~ 6=토
     const diffToMonday = (day === 0 ? -6 : 1) - day;
     d.setDate(d.getDate() + diffToMonday);
     return d;
 }
 
+// 이번 달 첫날
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
 }
@@ -98,7 +77,7 @@ function MyPage() {
     const [activeTab, setActiveTab] = useState(TABS[0].id);
 
     const [editing, setEditing] = useState(false);
-    const [form, setForm] = useState({ name: '', nickname: '', phone: '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
+    const [form, setForm] = useState({ name: '', nickname: '', phone: '', currentPassword: '', newPassword: '' });
     const [saveError, setSaveError] = useState(null);
     const [saving, setSaving] = useState(false);
 
@@ -107,25 +86,12 @@ function MyPage() {
     const [myPosts, setMyPosts] = useState([]);
     const [myLectures, setMyLectures] = useState([]);
     const [myComments, setMyComments] = useState([]);
-    const [instructorApplications, setInstructorApplications] = useState([]);
-    const [lectureCategories, setLectureCategories] = useState([]);
-    const [myLectureApplications, setMyLectureApplications] = useState([]);
 
     const [notesPage, setNotesPage] = useState(0);
     const [likedNotesPage, setLikedNotesPage] = useState(0);
     const [lecturesPage, setLecturesPage] = useState(0);
     const [postsPage, setPostsPage] = useState(0);
     const [commentsPage, setCommentsPage] = useState(0);
-    const [instructorApplyPage, setInstructorApplyPage] = useState(0);
-    const [lectureApplyPage, setLectureApplyPage] = useState(0);
-    const [lectureManageTab, setLectureManageTab] = useState('apply');
-
-    const [lectureForm, setLectureForm] = useState({
-        categoryId: '', title: '', description: '', lectureUrl: '', reviewUrl: '', instructor: '', capacity: '',
-    });
-    const [lectureFieldErrors, setLectureFieldErrors] = useState({});
-    const [lectureFormError, setLectureFormError] = useState(null);
-    const [lectureSubmitting, setLectureSubmitting] = useState(false);
 
     const [pomodoroToday, setPomodoroToday] = useState(0);
     const [pomodoroWeek, setPomodoroWeek] = useState(0);
@@ -134,12 +100,8 @@ function MyPage() {
     const [pomodoroRange, setPomodoroRange] = useState(defaultPomodoroRange);
     const [pomodoroRecords, setPomodoroRecords] = useState([]);
     const [pomodoroPage, setPomodoroPage] = useState(0);
-    const [pomodoroStatus, setPomodoroStatus] = useState('idle');
+    const [pomodoroStatus, setPomodoroStatus] = useState('idle'); // idle | loading | success | error
     const [pomodoroError, setPomodoroError] = useState(null);
-
-    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-    const [showNewPassword, setShowNewPassword] = useState(false);
-    const [showNewPasswordConfirm, setShowNewPasswordConfirm] = useState(false);
 
     const pomodoroChartData = useMemo(() => {
         const grouped = {};
@@ -151,7 +113,6 @@ function MyPage() {
             .sort()
             .map((date) => ({ label: date, value: grouped[date] }));
     }, [pomodoroRecords]);
-
     const fetchPomodoroRecords = useCallback((range) => {
         setPomodoroStatus('loading');
         setPomodoroError(null);
@@ -183,14 +144,11 @@ function MyPage() {
             getTotalStudyTime(),
             getRecordsByPeriod({ startDate: pomodoroRange.start, endDate: pomodoroRange.end, size: POMODORO_PERIOD_SIZE }).catch(() => ({ content: [] })),
             getMyComments({ size: LIST_SIZE }).catch(() => ({ content: [] })),
-            getMyInstructorApplications({ size: LIST_SIZE }).catch(() => ({ content: [] })),
-            getCategoryList().catch(() => []),
-            getMyLectures({ size: LIST_SIZE }).catch(() => ({ content: [] })),
         ])
-            .then(async ([me, mine, liked, posts, lectures, todayStudyTime, totalStudyTime, initialPomodoroRecords, comments, instructorApplicationList, categoryList, myLectureApplicationList]) => {
+            .then(async ([me, mine, liked, posts, lectures, todayStudyTime, totalStudyTime, initialPomodoroRecords, comments]) => {
                 if (cancelled) return;
                 setProfile(me);
-                setForm({ name: me.name ?? '', nickname: me.nickname ?? '', phone: me.phone ?? '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
+                setForm({ name: me.name ?? '', nickname: me.nickname ?? '', phone: me.phone ?? '', currentPassword: '', newPassword: '' });
                 setMyNotes(mine?.content ?? []);
                 setLikedNotes(liked?.content ?? []);
                 setPomodoroToday(todayStudyTime?.totalFocusMinutes ?? 0);
@@ -198,15 +156,15 @@ function MyPage() {
                 setPomodoroRecords(initialPomodoroRecords?.content ?? []);
                 setPomodoroStatus('success');
                 setMyComments(comments?.content ?? []);
-                setInstructorApplications(instructorApplicationList?.content ?? []);
-                setLectureCategories(categoryList ?? []);
-                setMyLectureApplications(myLectureApplicationList?.content ?? []);
 
+                // 백엔드에 "내 글만" 조회 API가 없어 프론트에서 닉네임으로 걸러냅니다.
+                // 최근 POST_SCAN_SIZE개 안에서만 찾으므로 오래된 글은 누락될 수 있습니다.
                 const mineOnly = (posts?.content ?? []).filter(
                     (post) => post.authorNickname === me.nickname
                 );
                 setMyPosts(mineOnly.slice(0, LIST_SIZE));
 
+                // TODO: 수강신청 목록 API(예: getMyEnrolledLectures)가 생기면 아래 임시 로직을 그걸로 교체하세요.
                 const lectureList = lectures?.content ?? [];
                 const enrolledFlags = await Promise.all(
                     lectureList.map((lecture) => isEnrolled(lecture.id).catch(() => false))
@@ -225,6 +183,7 @@ function MyPage() {
         return () => {
             cancelled = true;
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleFormChange = (e) => {
@@ -244,7 +203,6 @@ function MyPage() {
             phone: profile.phone ?? '',
             currentPassword: '',
             newPassword: '',
-            newPasswordConfirm: ''
         });
         setSaveError(null);
         setEditing(false);
@@ -259,7 +217,7 @@ function MyPage() {
             const updated = await updateMyProfile(form);
             setProfile(updated);
             updateNickname(updated.nickname);
-            setForm({ name: updated.name ?? '', nickname: updated.nickname ?? '', phone: updated.phone ?? '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
+            setForm({ name: updated.name ?? '', nickname: updated.nickname ?? '', phone: updated.phone ?? '', currentPassword: '', newPassword: '' });
             setEditing(false);
         } catch (err) {
             setSaveError(err.message);
@@ -288,338 +246,6 @@ function MyPage() {
     };
 
     const isSocialAccount = profile?.oauthProvider && profile.oauthProvider !== 'NONE';
-    const isInstructor = profile?.role === 'INSTRUCTOR';
-    const latestInstructorApplicationStatus = instructorApplications[0]?.status;
-    const canApplyAsInstructor =
-        !isInstructor && (instructorApplications.length === 0 || latestInstructorApplicationStatus === 'REJECTED');
-
-    const renderInstructorApplicationList = () =>
-        instructorApplications.length === 0 ? (
-            <p>강사 신청 내역이 없습니다.</p>
-        ) : (
-            <>
-                <ul className="mypage__application-list">
-                    {paginate(instructorApplications, instructorApplyPage).map((app) => {
-                        const statusKey = app.status.toLowerCase();
-                        return (
-                            <li
-                                key={app.id}
-                                className={`mypage__application-card mypage__application-card--${statusKey}`}
-                            >
-                                <div className="mypage__application-head">
-                                    <span className={`mypage__status-badge mypage__status-badge--${statusKey}`}>
-                                        {INSTRUCTOR_STATUS_LABEL[app.status] ?? app.status}
-                                    </span>
-                                    <span className="mypage__application-category">{app.categoryName}</span>
-                                    <span className="mypage__application-date">
-                                        {app.createdAt?.slice(0, 10)} 신청
-                                    </span>
-                                </div>
-                                <dl className="mypage__application-detail">
-                                    <dt>경력 연차</dt>
-                                    <dd>{app.careerYears != null ? `${app.careerYears}년` : '-'}</dd>
-                                    <dt>소속/직함</dt>
-                                    <dd>{app.company || '-'}</dd>
-                                    <dt>경력 및 소개</dt>
-                                    <dd className="mypage__application-detail-text">{app.bio || '-'}</dd>
-                                    <dt>신청 동기</dt>
-                                    <dd className="mypage__application-detail-text">{app.motivation || '-'}</dd>
-                                    {app.curriculum && (
-                                        <>
-                                            <dt>강의 계획 소개</dt>
-                                            <dd className="mypage__application-detail-text">{app.curriculum}</dd>
-                                        </>
-                                    )}
-                                    {app.portfolioUrl && (
-                                        <>
-                                            <dt>포트폴리오</dt>
-                                            <dd>
-                                                <a href={app.portfolioUrl} target="_blank" rel="noreferrer">
-                                                    {app.portfolioUrl}
-                                                </a>
-                                            </dd>
-                                        </>
-                                    )}
-                                    {app.attachmentUrl && (
-                                        <>
-                                            <dt>첨부파일</dt>
-                                            <dd>
-                                                <a href={app.attachmentUrl} target="_blank" rel="noreferrer">
-                                                    {app.attachmentName || '첨부파일 보기'}
-                                                </a>
-                                            </dd>
-                                        </>
-                                    )}
-                                    {app.status !== 'PENDING' && (
-                                        <>
-                                            <dt>{app.status === 'APPROVED' ? '승인일' : '반려일'}</dt>
-                                            <dd>{app.reviewedAt?.slice(0, 10) ?? '-'}</dd>
-                                        </>
-                                    )}
-                                    {app.status === 'REJECTED' && (
-                                        <>
-                                            <dt>반려 사유</dt>
-                                            <dd className="mypage__application-detail-text mypage__application-reject-reason">
-                                                {app.rejectReason || '-'}
-                                            </dd>
-                                        </>
-                                    )}
-                                </dl>
-                            </li>
-                        );
-                    })}
-                </ul>
-                <Pager
-                    page={instructorApplyPage}
-                    totalPages={Math.ceil(instructorApplications.length / PAGE_SIZE)}
-                    onChange={setInstructorApplyPage}
-                />
-            </>
-        );
-
-    const renderLectureApplyForm = () => (
-        <form className="mypage__lecture-form" onSubmit={handleLectureSubmit} noValidate>
-            {lectureFormError && <p className="mypage__error" role="alert">{lectureFormError}</p>}
-            <p className="mypage__lecture-form-notice">
-                현재는 유튜브 링크만 강의 URL로 첨부할 수 있습니다. 썸네일은 해당 링크에서 자동으로 추출되며, 다른 영상 플랫폼 지원은 추후 추가될 예정입니다.
-            </p>
-
-            <div className="mypage__lecture-form-grid">
-                <label>
-                    카테고리
-                    <select
-                        name="categoryId"
-                        value={lectureForm.categoryId}
-                        onChange={handleLectureFormChange}
-                        className={lectureFieldErrors.categoryId ? 'input-error' : ''}
-                    >
-                        <option value="">선택</option>
-                        {lectureCategories.map((category) => (
-                            <option key={category.id} value={category.id}>{category.name}</option>
-                        ))}
-                    </select>
-                    {lectureFieldErrors.categoryId && (
-                        <span className="mypage__warning-text">{lectureFieldErrors.categoryId}</span>
-                    )}
-                </label>
-
-                <label>
-                    강의명
-                    <input
-                        name="title"
-                        value={lectureForm.title}
-                        onChange={handleLectureFormChange}
-                        maxLength={200}
-                        className={lectureFieldErrors.title ? 'input-error' : ''}
-                    />
-                    {lectureFieldErrors.title && (
-                        <span className="mypage__warning-text">{lectureFieldErrors.title}</span>
-                    )}
-                </label>
-
-                <label>
-                    강사명
-                    <input
-                        name="instructor"
-                        value={lectureForm.instructor}
-                        onChange={handleLectureFormChange}
-                        maxLength={100}
-                        placeholder="예: 홍길동"
-                        className={lectureFieldErrors.instructor ? 'input-error' : ''}
-                    />
-                    {lectureFieldErrors.instructor && (
-                        <span className="mypage__warning-text">{lectureFieldErrors.instructor}</span>
-                    )}
-                </label>
-
-                <label>
-                    수강 정원 (선택, 미입력 시 무제한)
-                    <input
-                        type="number"
-                        name="capacity"
-                        min={1}
-                        value={lectureForm.capacity}
-                        onChange={handleLectureFormChange}
-                    />
-                </label>
-
-                <label>
-                    강의 URL
-                    <input
-                        name="lectureUrl"
-                        value={lectureForm.lectureUrl}
-                        onChange={handleLectureFormChange}
-                        placeholder="https://..."
-                        className={lectureFieldErrors.lectureUrl ? 'input-error' : ''}
-                    />
-                    {lectureFieldErrors.lectureUrl && (
-                        <span className="mypage__warning-text">{lectureFieldErrors.lectureUrl}</span>
-                    )}
-                </label>
-
-                <label>
-                    복습용 URL (선택)
-                    <input
-                        name="reviewUrl"
-                        value={lectureForm.reviewUrl}
-                        onChange={handleLectureFormChange}
-                        placeholder="https://..."
-                        className={lectureFieldErrors.reviewUrl ? 'input-error' : ''}
-                    />
-                    {lectureFieldErrors.reviewUrl && (
-                        <span className="mypage__warning-text">{lectureFieldErrors.reviewUrl}</span>
-                    )}
-                </label>
-
-                <label className="mypage__lecture-form-full">
-                    강의 설명
-                    <textarea
-                        name="description"
-                        value={lectureForm.description}
-                        onChange={handleLectureFormChange}
-                        rows={6}
-                        maxLength={5000}
-                        className={lectureFieldErrors.description ? 'input-error' : ''}
-                    />
-                    {lectureFieldErrors.description && (
-                        <span className="mypage__warning-text">{lectureFieldErrors.description}</span>
-                    )}
-                </label>
-            </div>
-
-            <p className="mypage__lecture-form-hint">
-                신청한 강의는 관리자 승인 후 강의 목록에 공개됩니다.
-            </p>
-
-            <button type="submit" disabled={lectureSubmitting}>
-                {lectureSubmitting ? '신청 중...' : '강의 등록 신청'}
-            </button>
-        </form>
-    );
-
-    const renderMyLectureList = () =>
-        myLectureApplications.length === 0 ? (
-            <p>등록 신청한 강의가 없습니다.</p>
-        ) : (
-            <>
-                <ul className="mypage__application-list">
-                    {paginate(myLectureApplications, lectureApplyPage).map((lecture) => {
-                        const statusKey = lecture.status.toLowerCase();
-                        const cardBody = (
-                            <>
-                                <div className="mypage__application-head">
-                                    <span className={`mypage__status-badge mypage__status-badge--${statusKey}`}>
-                                        {INSTRUCTOR_STATUS_LABEL[lecture.status] ?? lecture.status}
-                                    </span>
-                                    <span className="mypage__application-category">{lecture.title}</span>
-                                    <span className="mypage__application-date">
-                                        {lecture.createdAt?.slice(0, 10)} 신청
-                                    </span>
-                                </div>
-                                <dl className="mypage__application-detail">
-                                    <dt>카테고리</dt>
-                                    <dd>{lecture.categoryName}</dd>
-                                    <dt>강사명</dt>
-                                    <dd>{lecture.instructor || '-'}</dd>
-                                    <dt>수강 정원</dt>
-                                    <dd>{lecture.capacity != null ? `${lecture.capacity}명` : '무제한'}</dd>
-                                    <dt>강의 설명</dt>
-                                    <dd className="mypage__application-detail-text">{lecture.description || '-'}</dd>
-                                    {lecture.lectureUrl && (
-                                        <>
-                                            <dt>강의 URL</dt>
-                                            <dd className="mypage__application-detail-text">{lecture.lectureUrl}</dd>
-                                        </>
-                                    )}
-                                    {lecture.reviewUrl && (
-                                        <>
-                                            <dt>복습용 URL</dt>
-                                            <dd className="mypage__application-detail-text">{lecture.reviewUrl}</dd>
-                                        </>
-                                    )}
-                                    {lecture.status === 'REJECTED' && (
-                                        <>
-                                            <dt>반려 사유</dt>
-                                            <dd className="mypage__application-detail-text mypage__application-reject-reason">
-                                                {lecture.rejectReason || '-'}
-                                            </dd>
-                                        </>
-                                    )}
-                                </dl>
-                            </>
-                        );
-
-                        return (
-                            <li
-                                key={lecture.id}
-                                className={`mypage__application-card mypage__application-card--${statusKey}`}
-                            >
-                                {lecture.status === 'APPROVED' ? (
-                                    <Link to={`/main/lectures/${lecture.id}`} className="mypage__application-card-link">
-                                        {cardBody}
-                                    </Link>
-                                ) : (
-                                    <div className="mypage__application-card-link mypage__application-card-link--static">
-                                        {cardBody}
-                                    </div>
-                                )}
-                            </li>
-                        );
-                    })}
-                </ul>
-                <Pager
-                    page={lectureApplyPage}
-                    totalPages={Math.ceil(myLectureApplications.length / PAGE_SIZE)}
-                    onChange={setLectureApplyPage}
-                />
-            </>
-        );
-
-    const handleLectureFormChange = (e) => {
-        const { name, value } = e.target;
-        setLectureForm((prev) => ({ ...prev, [name]: value }));
-        setLectureFieldErrors((prev) => (prev[name] ? { ...prev, [name]: null } : prev));
-    };
-
-    const validateLectureForm = () => {
-        const errors = {};
-        if (!lectureForm.categoryId) errors.categoryId = '카테고리를 선택해 주세요.';
-        if (!lectureForm.title.trim()) errors.title = '강의명을 입력해 주세요.';
-        if (!lectureForm.instructor.trim()) errors.instructor = '강사명을 입력해 주세요.';
-        if (!lectureForm.lectureUrl.trim()) errors.lectureUrl = '강의 URL을 입력해 주세요.';
-        if (!lectureForm.description.trim()) errors.description = '강의 설명을 입력해 주세요.';
-        return errors;
-    };
-
-    const handleLectureSubmit = async (e) => {
-        e.preventDefault();
-        const errors = validateLectureForm();
-        setLectureFieldErrors(errors);
-        if (Object.keys(errors).length > 0) return;
-
-        setLectureSubmitting(true);
-        setLectureFormError(null);
-
-        try {
-            const created = await createMyLecture({
-                categoryId: Number(lectureForm.categoryId),
-                title: lectureForm.title,
-                description: lectureForm.description || undefined,
-                lectureUrl: lectureForm.lectureUrl || undefined,
-                reviewUrl: lectureForm.reviewUrl || undefined,
-                instructor: lectureForm.instructor || undefined,
-                capacity: lectureForm.capacity === '' ? undefined : Number(lectureForm.capacity),
-            });
-            setMyLectureApplications((prev) => [created, ...prev]);
-            setLectureApplyPage(0);
-            setLectureForm({ categoryId: '', title: '', description: '', lectureUrl: '', reviewUrl: '', instructor: '', capacity: '' });
-            alert('강의 등록 신청이 완료되었습니다.');
-        } catch (err) {
-            setLectureFormError(err.message);
-        } finally {
-            setLectureSubmitting(false);
-        }
-    };
 
     return (
         <section className="mypage">
@@ -652,7 +278,7 @@ function MyPage() {
                                 <dd>{profile.phone || '-'}</dd>
                             </dl>
                         ) : (
-                            <form className="mypage__profile-form" onSubmit={handleSaveProfile} noValidate>
+                            <form className="mypage__profile-form" onSubmit={handleSaveProfile}>
                                 {saveError && <p className="mypage__error" role="alert">{saveError}</p>}
 
                                 <dl className="mypage__profile-view mypage__profile-view--readonly">
@@ -662,120 +288,42 @@ function MyPage() {
                                     <dd>{profile.name}</dd>
                                 </dl>
 
-                                <div className="mypage__input-group">
-                                    <label htmlFor="nickname">닉네임</label>
-                                    <input
-                                        id="nickname"
-                                        name="nickname"
-                                        value={form.nickname}
-                                        onChange={handleFormChange}
-                                        className={!form.nickname ? 'input-error' : ''}
-                                    />
-                                    {!form.nickname && <span className="mypage__warning-text">닉네임을 입력해 주세요.</span>}
-                                </div>
-
-                                <div className="mypage__input-group">
-                                    <label htmlFor="phone">전화번호 (선택)</label>
-                                    <input
-                                        id="phone"
-                                        name="phone"
-                                        type="tel"
-                                        value={form.phone}
-                                        onChange={handleFormChange}
-                                        placeholder="010-1234-5678"
-                                    />
-                                </div>
+                                <label>
+                                    닉네임
+                                    <input name="nickname" value={form.nickname} onChange={handleFormChange} required />
+                                </label>
+                                <label>
+                                    전화번호
+                                    <input name="phone" value={form.phone} onChange={handleFormChange} placeholder="010-1234-5678" />
+                                </label>
 
                                 {!isSocialAccount && (
                                     <>
-                                        <div className="mypage__input-group">
-                                            <label htmlFor="currentPassword">현재 비밀번호</label>
-                                            <div className="mypage__password-wrapper">
-                                                <input
-                                                    id="currentPassword"
-                                                    name="currentPassword"
-                                                    type={showCurrentPassword ? "text" : "password"}
-
-                                                    value={form.currentPassword}
-                                                    onChange={handleFormChange}
-                                                    className={!form.currentPassword ? 'input-error' : ''}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className="mypage__eye-btn"
-                                                    onClick={() => setShowCurrentPassword((v) => !v)}
-                                                    aria-label={showCurrentPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
-                                                    aria-pressed={showCurrentPassword}
-                                                    tabIndex={-1}
-                                                >
-                                                    <EyeIcon open={showCurrentPassword} />
-                                                </button>
-                                            </div>
-                                            {!form.currentPassword && <span className="mypage__warning-text">현재 비밀번호를 입력해 주세요.</span>}
-                                        </div>
-
-                                        <div className="mypage__input-group">
-                                            <label htmlFor="newPassword">새 비밀번호</label>
-                                            <div className="mypage__password-wrapper">
-                                                <input
-                                                    id="newPassword"
-                                                    name="newPassword"
-                                                    type={showNewPassword ? "text" : "password"}
-                                                    autoComplete="new-password"
-                                                    value={form.newPassword}
-                                                    onChange={handleFormChange}
-                                                    className={!form.newPassword ? 'input-error' : ''}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className="mypage__eye-btn"
-                                                    onClick={() => setShowNewPassword((v) => !v)}
-                                                    aria-label={showNewPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
-                                                    aria-pressed={showNewPassword}
-                                                    tabIndex={-1}
-                                                >
-                                                    <EyeIcon open={showNewPassword} />
-                                                </button>
-                                            </div>
-                                            {!form.newPassword && <span className="mypage__warning-text">새 비밀번호를 입력해 주세요.</span>}
-                                        </div>
-
-                                        <div className="mypage__input-group">
-                                            <label htmlFor="newPasswordConfirm">새 비밀번호 확인</label>
-                                            <div className="mypage__password-wrapper">
-                                                <input
-                                                    id="newPasswordConfirm"
-                                                    name="newPasswordConfirm"
-                                                    type={showNewPasswordConfirm ? "text" : "password"}
-                                                    autoComplete="new-password"
-                                                    value={form.newPasswordConfirm}
-                                                    onChange={handleFormChange}
-                                                    className={
-                                                        (!form.newPasswordConfirm || form.newPassword !== form.newPasswordConfirm)
-                                                            ? 'input-error' : ''
-                                                    }
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className="mypage__eye-btn"
-                                                    onClick={() => setShowNewPasswordConfirm((v) => !v)}
-                                                    aria-label={showNewPasswordConfirm ? '비밀번호 숨기기' : '비밀번호 보기'}
-                                                    aria-pressed={showNewPasswordConfirm}
-                                                    tabIndex={-1}
-                                                >
-                                                    <EyeIcon open={showNewPasswordConfirm} />
-                                                </button>
-                                            </div>
-                                            {!form.newPasswordConfirm && <span className="mypage__warning-text">비밀번호 확인을 입력해 주세요.</span>}
-                                            {form.newPasswordConfirm && form.newPassword !== form.newPasswordConfirm && (
-                                                <span className="mypage__warning-text">비밀번호가 일치하지 않습니다.</span>
-                                            )}
-                                        </div>
+                                        <label>
+                                            현재 비밀번호
+                                            <input
+                                                type="password"
+                                                name="currentPassword"
+                                                value={form.currentPassword}
+                                                onChange={handleFormChange}
+                                                placeholder="비밀번호를 바꿀 때만 입력"
+                                            />
+                                        </label>
+                                        <label>
+                                            새 비밀번호
+                                            <input
+                                                type="password"
+                                                name="newPassword"
+                                                value={form.newPassword}
+                                                onChange={handleFormChange}
+                                                placeholder="바꾸지 않으면 비워두세요"
+                                            />
+                                        </label>
                                     </>
                                 )}
 
                                 <div className="mypage__profile-actions">
-                                    <button type="submit" disabled={saving}>{saving ? '저장 중...' : '수정'}</button>
+                                    <button type="submit" disabled={saving}>{saving ? '저장 중...' : '저장'}</button>
                                     <button type="button" onClick={handleCancelEdit} disabled={saving}>취소</button>
                                 </div>
                             </form>
@@ -783,23 +331,20 @@ function MyPage() {
                     </div>
 
                     <nav className="mypage__tabs" role="tablist" aria-label="마이페이지 메뉴">
-                        {TABS.filter((tab) => tab.id !== 'instructorApply' || instructorApplications.length > 0).map((tab) => {
-                            const label = tab.id === 'instructorApply' && isInstructor ? '강의 관리' : tab.label;
-                            return (
-                                <button
-                                    key={tab.id}
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={activeTab === tab.id}
-                                    className={
-                                        'mypage__tab-btn' + (activeTab === tab.id ? ' mypage__tab-btn--active' : '')
-                                    }
-                                    onClick={() => setActiveTab(tab.id)}
-                                >
-                                    {label}
-                                </button>
-                            );
-                        })}
+                        {TABS.map((tab) => (
+                            <button
+                                key={tab.id}
+                                type="button"
+                                role="tab"
+                                aria-selected={activeTab === tab.id}
+                                className={
+                                    'mypage__tab-btn' + (activeTab === tab.id ? ' mypage__tab-btn--active' : '')
+                                }
+                                onClick={() => setActiveTab(tab.id)}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
                     </nav>
 
                     <div className="mypage__panel">
@@ -1021,54 +566,16 @@ function MyPage() {
                             </section>
                         )}
 
-                        {activeTab === 'instructorApply' && (
-                            <section className="mypage__section">
-                                {!isInstructor ? (
-                                    <>
-                                        <h3>강사 신청 현황</h3>
-                                        {renderInstructorApplicationList()}
-                                    </>
-                                ) : (
-                                    <>
-                                        <h3>강의 관리</h3>
-                                        <nav className="mypage__subtabs" role="tablist" aria-label="강의 관리 메뉴">
-                                            {LECTURE_MANAGE_TABS.map((tab) => (
-                                                <button
-                                                    key={tab.id}
-                                                    type="button"
-                                                    role="tab"
-                                                    aria-selected={lectureManageTab === tab.id}
-                                                    className={
-                                                        'mypage__subtab-btn' +
-                                                        (lectureManageTab === tab.id ? ' mypage__subtab-btn--active' : '')
-                                                    }
-                                                    onClick={() => setLectureManageTab(tab.id)}
-                                                >
-                                                    {tab.label}
-                                                </button>
-                                            ))}
-                                        </nav>
-
-                                        {lectureManageTab === 'status' && renderInstructorApplicationList()}
-                                        {lectureManageTab === 'apply' && renderLectureApplyForm()}
-                                        {lectureManageTab === 'myLectures' && renderMyLectureList()}
-                                    </>
-                                )}
-                            </section>
-                        )}
-
                     </div>
 
                     <div className="mypage__danger-zone">
-                        {canApplyAsInstructor && (
-                            <button
-                                type="button"
-                                className="mypage__instructor-apply-btn"
-                                onClick={() => navigate('/main/instructor/apply')}
-                            >
-                                강사 신청
-                            </button>
-                        )}
+                        <button
+                            type="button"
+                            className="mypage__instructor-apply-btn"
+                            onClick={() => navigate('/main/instructor/apply')}
+                        >
+                            강사 신청
+                        </button>
                         <button type="button" className="mypage__withdraw-btn" onClick={handleWithdraw}>
                             회원 탈퇴
                         </button>
