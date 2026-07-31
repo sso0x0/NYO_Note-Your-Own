@@ -6,6 +6,8 @@ import com.nyo.domain.user.dto.LoginRequest;
 import com.nyo.domain.user.dto.LoginResponse;
 import com.nyo.domain.user.dto.PasswordResetCodeRequest;
 import com.nyo.domain.user.dto.PasswordResetRequest;
+import com.nyo.domain.user.dto.PhoneVerificationCodeVerifyRequest;
+import com.nyo.domain.user.dto.PhoneVerificationSendRequest;
 import com.nyo.domain.user.dto.UserProfileUpdateRequest;
 import com.nyo.domain.user.dto.UserRequest;
 import com.nyo.domain.user.dto.UserResponse;
@@ -119,6 +121,24 @@ public class UserController {
     public ApiResponse<UserResponse> updateMyProfile(@Valid @RequestBody UserProfileUpdateRequest request) {
         Long userId = SecurityUtil.getCurrentUserId();
         return ApiResponse.ok(userService.updateMyProfile(userId, request));
+    }
+
+    // 💡 마이페이지에서 전화번호를 바꿀 때, 새 번호로 인증코드를 보낸다 (비밀번호 찾기와 동일한 SMS 인증 방식)
+    @Operation(summary = "마이페이지 - 전화번호 변경 인증코드 발송")
+    @PostMapping("/me/phone/send-code")
+    public ApiResponse<Void> sendPhoneVerificationCode(@Valid @RequestBody PhoneVerificationSendRequest request) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        userService.sendPhoneVerificationCode(userId, request.getPhone());
+        return ApiResponse.ok();
+    }
+
+    // 💡 개인정보 수정을 최종 제출하기 전에 인증코드가 맞는지 미리 확인
+    @Operation(summary = "마이페이지 - 전화번호 변경 인증코드 확인")
+    @PostMapping("/me/phone/verify-code")
+    public ApiResponse<Void> verifyPhoneVerificationCode(@Valid @RequestBody PhoneVerificationCodeVerifyRequest request) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        userService.verifyPhoneVerificationCode(userId, request.getPhone(), request.getCode());
+        return ApiResponse.ok();
     }
 
     // 💡 추가: 회원 탈퇴 (소프트 딜리트, 노트는 유지)

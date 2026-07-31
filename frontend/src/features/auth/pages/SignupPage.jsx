@@ -22,6 +22,8 @@ const INITIAL_FORM = {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^01[0-9]-?\d{3,4}-?\d{4}$/;
+// 영문 대소문자 + 숫자 + 특수문자를 모두 포함해야 함
+const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).+$/;
 
 // 필드별 실시간 검증 규칙. 두 번째 인자(form)는 비밀번호 확인처럼 다른 필드값이
 // 필요한 경우에 사용합니다.
@@ -34,6 +36,7 @@ const validators = {
   password: (value) => {
     if (!value) return '비밀번호를 입력해 주세요.';
     if (value.length < 8 || value.length > 72) return '비밀번호는 8자 이상 입력해 주세요.';
+    if (!PASSWORD_PATTERN.test(value)) return '비밀번호는 영문 대소문자, 숫자, 특수문자를 모두 포함해야 합니다.';
     return '';
   },
   passwordConfirm: (value, form) => {
@@ -43,10 +46,12 @@ const validators = {
   },
   name: (value) => {
     if (!value.trim()) return '이름을 입력해 주세요.';
+    if (value.trim().length < 2) return '이름은 2자 이상 입력해 주세요.';
     return '';
   },
   nickname: (value) => {
     if (!value.trim()) return '닉네임을 입력해 주세요.';
+    if (value.trim().length < 2) return '닉네임은 2자 이상 입력해 주세요.';
     return '';
   },
   email: (value) => {
@@ -229,6 +234,7 @@ function SignupPage() {
                     name="name"
                     type="text"
                     autoComplete="name"
+                    minLength={2}
                     value={form.name}
                     onChange={handleChange}
                     onBlur={handleBlur}
@@ -244,6 +250,7 @@ function SignupPage() {
                     id="nickname"
                     name="nickname"
                     type="text"
+                    minLength={2}
                     value={form.nickname}
                     onChange={handleChange}
                     onBlur={handleBlur}

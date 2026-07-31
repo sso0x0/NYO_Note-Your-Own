@@ -197,6 +197,23 @@
     margin-top: 4px;
 }
 
+/* 현재 비밀번호란 강조: 튀지 않게 은은한 왼쪽 포인트만 (라벨은 살짝만 굵게) */
+.mypage__input-group--emphasis {
+    padding: 10px 14px;
+    border-left: 3px solid var(--mp-accent);
+    background: var(--mp-accent-bg);
+    border-radius: 8px;
+}
+
+.mypage__input-group--emphasis label {
+    font-weight: 600;
+}
+
+/* 이 칸의 안내 문구는 입력란 아래가 아니라 라벨 위에 오므로, 아래쪽 기본 여백 대신 위아래 간격을 다시 잡아준다 */
+.mypage__input-group--emphasis .mypage__hint-text {
+    margin: 0 0 4px 0;
+}
+
 .mypage__profile-view--readonly {
     margin: 0 0 4px;
     padding-bottom: 16px;
@@ -1123,4 +1140,55 @@ input.input-error:focus {
     font-size: 12px;
     color: #d32f2f;
     margin-top: -2px;
+}
+
+/* 안내 문구 (에러는 아니지만 참고할 정보): 현재 비밀번호 필수 안내, 전화번호 인증 필요 안내 등 */
+.mypage__hint-text {
+    font-size: 12px;
+    color: var(--text, #888);
+    margin-top: -2px;
+}
+
+/* 인증코드 발송/확인 성공 메시지: 로그인/회원가입 페이지(AuthPage)의 auth-page__success와 동일한 디자인 */
+.mypage__success-text {
+    font-size: 12px;
+    color: #2e7d32;
+    margin-top: -2px;
+}
+
+/* 전화번호/인증코드 입력과 발송·확인 버튼을 한 줄에 배치하는 행 (AuthPage의 auth-page__code-row와 동일한 패턴) */
+.mypage__code-row {
+    display: flex;
+    gap: 8px;
+}
+
+.mypage__code-row input {
+    flex: 1;
+    min-width: 0;
+}
+
+.mypage__code-row--verify {
+    margin-top: 8px;
+}
+
+.mypage__code-btn {
+    flex-shrink: 0;
+    padding: 0 14px;
+    border: 1px solid var(--mp-line);
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--text-h);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.mypage__code-btn:hover:not(:disabled) {
+    border-color: var(--mp-accent);
+    color: var(--mp-accent);
+}
+
+.mypage__code-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }

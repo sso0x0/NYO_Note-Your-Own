@@ -53,6 +53,20 @@ public class SmsService {
             throw new BusinessException(ErrorCode.SMS_SEND_FAILED);
         }
     }
+
+    // 마이페이지에서 전화번호를 변경할 때, 새로 입력한 번호가 본인 소유인지 확인하기 위한 인증코드 발송
+    public void sendPhoneVerificationCode(String to, String code) {
+        Message message = new Message();
+        message.setFrom(senderPhone);
+        message.setTo(normalize(to));
+        message.setText("[NYO] 휴대폰 번호 변경 인증번호는 [" + code + "] 입니다. 인증코드는 5분간 유효합니다.");
+        try {
+            messageService.sendOne(new SingleMessageSendingRequest(message));
+        } catch (Exception e) {
+            log.error("SMS 발송 실패: to={}, from={}", to, senderPhone, e);
+            throw new BusinessException(ErrorCode.SMS_SEND_FAILED);
+        }
+    }
     // 솔라피는 하이픈 없는 번호를 요구하므로 010-1234-5678 -> 01012345678 로 변환
     private String normalize(String phone) {
         return phone.replaceAll("-", "");
