@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -70,6 +71,7 @@ public class ChatService {
             노트 안에 코드블럭(```)이 있으면 그 코드 내용도 빠짐없이 정확히 읽고 답변에 반영해라.
 
             - 너는 프로그래밍/컴퓨터공학 개념 설명, 사용자 노트 복습, AI 추천 태그 관련 질문에만 답한다. "노트 안에 관련 내용이 있는가"가 먼저다 — 노트에 있는 내용이면 과목을 가리지 않고 그 노트를 근거로 답해라. 노트에 없고 프로그래밍/컴퓨터공학·태그와도 무관한 질문(일상 대화, 시사, 감정 상담, 다른 과목 일반 지식 등)에는 "저는 노트 복습이나 프로그래밍 관련 질문에 답하는 챗봇이에요. 그 질문에는 답하기 어려워요."라고만 짧게 답하고 끝내라.
+            - 위 판단은 "노트에 있는가"가 아니라 "프로그래밍/컴퓨터공학 개념인가"로 갈린다. 질문이 프로그래밍/컴퓨터공학 개념(예: 백엔드, 프론트엔드, 알고리즘, 자료구조 등)이면, 지금 발췌된 노트에 그 내용이 없어도(다른 주제의 노트만 있어도) 거부하지 말고 반드시 답해라 — 노트에 관련 내용이 있으면 그걸 근거로, 없으면 일반적인 개념 지식으로 설명해라. 답변 거부 문구는 질문 자체가 프로그래밍/컴퓨터공학·태그와 아예 무관할 때만 써라.
             - 질문과 관련된 내용이 노트 안에 있으면 그 내용을 근거로 구체적으로 답변해라. 여러 노트 중 어떤 노트를 참고했는지 언급할 때는 제목을 【 】로 감싸서 표기해라 (예: "노트 【리액트 정리】에 따르면...").
             - 여러 노트에 서로 다르거나 모순되는 내용이 있으면, 어느 노트에 뭐라고 적혀 있는지 각각 제목을 밝혀 차이를 설명해라. 임의로 하나만 맞다고 단정하지 마라.
             - 태그에는 두 종류가 있다: [사용자 노트 발췌]의 노트 제목 옆 (태그: ...)는 그 노트 하나에 등록된 개별 태그고, [강의 정보]의 "주요 주제"는 이 강의에 달린 모든 사용자 노트를 모아 빈도순으로 뽑은 강의 전체 집계다. 질문이 어느 쪽을 묻는지 구분해서 맞는 출처로 답해라.
@@ -92,24 +94,38 @@ public class ChatService {
             %s
             %s""";
 
+    // prepareChat이 만든 프롬프트 메시지 목록과, 그 질문에 대한 강의 추천 후보, 그리고 방금 저장한
+    // 질문의 id/이 대화가 속한 루트 id를 함께 들고 다닌다 (finishChat에서 답변 행에도 같은 루트를
+    // 달아 저장하고, 응답에 questionId/rootQuestionId를 실어 보내 프론트가 다음 질문에 이어 쓰게 한다).
+    private record PreparedChat(
+            List<Map<String, String>> messages,
+            List<Lecture> recommendedLectures,
+            Long questionId,
+            Long rootQuestionId
+    ) {}
+
     /**
-     * 질문을 저장하고, 사용자 노트를 검색해 문맥으로 넣어(RAG) 답변을 생성한 뒤,
-     * 답변도 저장해서 반환합니다.
-     * AI 호출이 실패해도 질문은 저장된 상태로 남습니다 (재질문 시 문맥으로 활용됨).
+     * 질문을 저장하고, 사용자 노트를 검색해 문맥으로 넣어(RAG) OpenAI에 보낼 메시지 목록을 만든다.
+     * chat()/chatStream() 공용 준비 단계 — 실제 답변 생성(동기/스트리밍)만 호출부가 나눠서 한다.
      */
-    public ChatHistoryResponse chat(Long userId, ChatHistoryRequest request) {
+    private PreparedChat prepareChat(Long userId, ChatHistoryRequest request) {
         // 직전 대화는 현재 질문 저장 전에 조회 (질문이 문맥에 중복으로 들어가지 않게)
         List<ChatHistory> recentHistory = findRecentHistory(userId, request.getLectureId());
 
-        chatHistoryRepository.save(ChatHistory.builder()
+        ChatHistory savedQuestion = chatHistoryRepository.save(ChatHistory.builder()
                 .userId(userId)
                 .lectureId(request.getLectureId())
                 .senderRole(SenderRole.USER)
                 .message(request.getMessage())
+                .rootQuestionId(request.getRootQuestionId())
                 .build());
 
+        // rootQuestionId 없이 왔다는 건 이 질문이 새 대화의 시작이라는 뜻 — 그러면 이 질문 자신의 id가
+        // 앞으로 이어질 대화의 루트가 된다. (이미 이어가는 중이면 넘어온 루트를 그대로 유지)
+        Long effectiveRootId = request.getRootQuestionId() != null ? request.getRootQuestionId() : savedQuestion.getId();
+
         String lectureContext = buildLectureContext(request.getLectureId());
-        String noteContext = buildNoteContext(userId, request.getLectureId(), request.getNoteId(), request.getMessage());
+        String noteContext = buildNoteContext(userId, request.getLectureId(), request.getNoteId(), request.getNoteIds(), request.getMessage());
         List<Lecture> recommendedLectures = findRecommendedLectures(request.getMessage());
         String recommendationContext = buildLectureRecommendationContext(recommendedLectures);
 
@@ -122,12 +138,20 @@ public class ChatService {
         }
         messages.add(Map.of("role", "user", "content", request.getMessage()));
 
-        String answer = openAiClient.chat(messages);
+        return new PreparedChat(messages, recommendedLectures, savedQuestion.getId(), effectiveRootId);
+    }
+
+    /**
+     * OpenAI가 돌려준 원문 답변을 다듬어(따옴표 치환, 스코프 거절 시 추천 강의 제거) 저장하고 응답 DTO로 반환한다.
+     * chat()/chatStream() 공용 마무리 단계.
+     */
+    private ChatHistoryResponse finishChat(Long userId, Long lectureId, Long questionId, Long rootQuestionId,
+                                            String rawAnswer, List<Lecture> recommendedLectures) {
         // AI가 프롬프트 지시를 안 지키고 큰따옴표/백틱을 섞어 쓰는 경우가 있어, 화면에 보이기 전에
         // 코드로 확실하게 전부 작은따옴표로 바꿔버린다 (프롬프트만으로는 100% 보장이 안 됨).
         // 단, 코드블럭(```...```)은 펜스 자체가 백틱이라 통째로 치환하면 코드블럭 렌더링이 깨지므로
         // 코드블럭 바깥 텍스트에만 적용한다.
-        answer = sanitizeQuotesOutsideCodeBlocks(answer);
+        String answer = sanitizeQuotesOutsideCodeBlocks(rawAnswer);
         // 질문에 "추천" 등 트리거 키워드가 있어도 AI가 범위 밖이라 거절한 경우엔
         // 추천 강의를 붙이지 않는다 (거절 문구에 링크가 달리는 건 앞뒤가 안 맞는다).
         if (SCOPE_REJECTION_MESSAGE.equals(answer.trim())) {
@@ -136,13 +160,36 @@ public class ChatService {
 
         ChatHistory saved = chatHistoryRepository.save(ChatHistory.builder()
                 .userId(userId)
-                .lectureId(request.getLectureId())
+                .lectureId(lectureId)
                 .senderRole(SenderRole.ASSISTANT)
                 .message(answer)
                 .recommendedLectureIds(joinLectureIds(recommendedLectures))
+                .rootQuestionId(rootQuestionId) // 질문과 같은 대화로 묶이도록 답변 행에도 같은 루트를 단다
                 .build());
 
-        return toResponse(saved, recommendedLectures);
+        return toResponse(saved, recommendedLectures, questionId);
+    }
+
+    /**
+     * 질문을 저장하고, 사용자 노트를 검색해 문맥으로 넣어(RAG) 답변을 생성한 뒤,
+     * 답변도 저장해서 반환합니다.
+     * AI 호출이 실패해도 질문은 저장된 상태로 남습니다 (재질문 시 문맥으로 활용됨).
+     */
+    public ChatHistoryResponse chat(Long userId, ChatHistoryRequest request) {
+        PreparedChat prepared = prepareChat(userId, request);
+        String answer = openAiClient.chat(prepared.messages());
+        return finishChat(userId, request.getLectureId(), prepared.questionId(), prepared.rootQuestionId(), answer, prepared.recommendedLectures());
+    }
+
+    /**
+     * chat()과 동일하지만 답변을 토큰 단위로 받는 즉시 onDelta로 흘려보낸다 (체감 응답 속도 개선용).
+     * onDelta는 원문(따옴표 치환 전) 조각을 그대로 넘기고, 최종 저장/치환된 답변은 반환값에만 담긴다 —
+     * 호출부(ChatController)가 스트리밍이 끝난 뒤 이 반환값으로 화면 표시를 최종본으로 맞춰 치환한다.
+     */
+    public ChatHistoryResponse chatStream(Long userId, ChatHistoryRequest request, Consumer<String> onDelta) {
+        PreparedChat prepared = prepareChat(userId, request);
+        String answer = openAiClient.chatStream(prepared.messages(), onDelta);
+        return finishChat(userId, request.getLectureId(), prepared.questionId(), prepared.rootQuestionId(), answer, prepared.recommendedLectures());
     }
 
     // 코드블럭(```...```) 안쪽은 그대로 두고 바깥 텍스트의 큰따옴표/백틱만 작은따옴표로 바꾼다.
@@ -314,19 +361,29 @@ public class ChatService {
      * 매칭이 없으면 최근 노트로 폴백합니다.
      * noteId가 오면(노트 상세 화면에서 보고 있는 노트) 검색 결과와 무관하게 그 노트를 항상 맨 앞에 넣는다 —
      * "이 노트 설명해줘" 같은 일반적인 질문은 키워드 매칭이 되지 않아 엉뚱한 최근 노트만 잡히기 때문.
+     * noteIds가 오면(사용자가 챗봇 화면에서 직접 노트를 골라 컨텍스트를 좁힌 경우) 검색/최근 노트로
+     * 채우지 않고 고른 노트만 쓴다 — 본인 소유가 아닌 노트가 섞여 와도 조용히 걸러낸다.
      */
-    private String buildNoteContext(Long userId, Long lectureId, Long noteId, String question) {
+    private String buildNoteContext(Long userId, Long lectureId, Long noteId, List<Long> noteIds, String question) {
         List<NoteSnippet> notes = new ArrayList<>();
 
         if (noteId != null) {
             findNoteById(noteId).ifPresent(notes::add);
         }
 
-        List<NoteSnippet> searched = searchNotes(userId, lectureId, question);
-        if (searched.isEmpty()) {
-            searched = recentNotes(userId, lectureId); // 검색 매칭 실패 시 최근 노트
+        List<NoteSnippet> candidates;
+        if (noteIds != null && !noteIds.isEmpty()) {
+            candidates = noteRepository.findAllByIdInAndIsDeleted(noteIds, 0).stream()
+                    .filter(note -> note.getUserId().equals(userId))
+                    .map(NoteSnippet::from)
+                    .toList();
+        } else {
+            candidates = searchNotes(userId, lectureId, question);
+            if (candidates.isEmpty()) {
+                candidates = recentNotes(userId, lectureId); // 검색 매칭 실패 시 최근 노트
+            }
         }
-        for (NoteSnippet candidate : searched) {
+        for (NoteSnippet candidate : candidates) {
             if (notes.size() >= MAX_NOTES) break;
             if (notes.stream().noneMatch(n -> n.id().equals(candidate.id()))) {
                 notes.add(candidate);
@@ -387,10 +444,10 @@ public class ChatService {
     // 지난 대화 기록을 다시 불러올 때는, 저장해둔 recommendedLectureIds를 다시 강의로 풀어서
     // 실시간 응답과 똑같이 추천 링크 버튼이 그대로 남아있게 한다.
     private ChatHistoryResponse toResponse(ChatHistory history) {
-        return toResponse(history, resolveRecommendedLectures(history.getRecommendedLectureIds()));
+        return toResponse(history, resolveRecommendedLectures(history.getRecommendedLectureIds()), null);
     }
 
-    private ChatHistoryResponse toResponse(ChatHistory history, List<Lecture> recommendedLectures) {
+    private ChatHistoryResponse toResponse(ChatHistory history, List<Lecture> recommendedLectures, Long questionId) {
         return ChatHistoryResponse.builder()
                 .id(history.getId())
                 .userId(history.getUserId())
@@ -399,6 +456,8 @@ public class ChatService {
                 .message(history.getMessage())
                 .createdAt(history.getCreatedAt())
                 .recommendedLectures(recommendedLectures.stream().map(LectureResponse::from).toList())
+                .rootQuestionId(history.getRootQuestionId())
+                .questionId(questionId)
                 .build();
     }
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { sendMessage } from './api/chat'
+import { streamMessage } from './api/chat'
 import ChatMessage, { SmileIcon } from './ChatMessage'
 import ChatInput from './ChatInput'
 import { detectStudyContext } from '../../utils/studyContext'
@@ -31,12 +31,17 @@ export default function ChatWidget({ stacked = false, onOpenChange } = {}) {
   const onChatPage = location.pathname.startsWith('/main/chat')
   const hasDedicatedChat = watchingLectureId !== null || viewingNoteId !== null || onChatPage
 
+  // 위젯을 여는 동안 이어서 물어본 질문들이 서버에 하나의 대화(rootQuestionId)로 묶이게 한다 —
+  // AI 챗봇 페이지(/main/chat)의 전체 대화 목록에서 새 항목으로 따로따로 안 뜨고 하나로 묶여 보인다.
+  const rootQuestionIdRef = useRef(null)
+
   // 다른 페이지로 이동하면 이전 페이지에서 열려 있던 대화창은 닫고 화면 상태만 초기화한다.
   // (서버에 저장된 대화 기록 자체는 지우지 않음 — 다시 불러오지 않을 뿐)
   useEffect(() => {
     setOpen(false)
     setMessages([])
     setError(null)
+    rootQuestionIdRef.current = null
   }, [location.pathname])
 
   // 패널이 열려 있을 때만 스크롤 (닫힌 상태에서 굳이 스크롤할 필요 없음)
@@ -64,11 +69,29 @@ export default function ChatWidget({ stacked = false, onOpenChange } = {}) {
     setSending(true)
     setMessages((prev) => [...prev, { id: `pending-${Date.now()}`, senderRole: 'USER', message }])
 
+    // 체감 응답 속도 개선: 토큰이 도착하는 즉시 답변 자리를 만들어(최초 1회) 이어붙인다.
+    // 스트림이 끝나면 서버에 저장된 최종본으로 통째로 바꿔치기한다.
+    const answerId = `pending-answer-${Date.now()}`
+    let streamedText = ''
+    let answerCreated = false
+    const appendChunk = (chunk) => {
+      streamedText += chunk
+      setMessages((prev) => {
+        if (!answerCreated) {
+          answerCreated = true
+          return [...prev, { id: answerId, senderRole: 'ASSISTANT', message: streamedText }]
+        }
+        return prev.map((m) => (m.id === answerId ? { ...m, message: streamedText } : m))
+      })
+    }
+
     try {
-      const answer = await sendMessage({ message })
-      setMessages((prev) => [...prev, answer])
+      const answer = await streamMessage({ message, rootQuestionId: rootQuestionIdRef.current }, appendChunk)
+      rootQuestionIdRef.current = answer.rootQuestionId
+      setMessages((prev) => prev.map((m) => (m.id === answerId ? answer : m)))
     } catch (err) {
       setError(err.message)
+      setMessages((prev) => prev.filter((m) => m.id !== answerId))
     } finally {
       setSending(false)
     }

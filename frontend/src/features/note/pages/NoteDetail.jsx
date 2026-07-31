@@ -50,6 +50,12 @@ function NoteDetailChat({ lectureId, noteId }) {
     const [chatError, setChatError] = useState(null)
     const chatBottomRef = useRef(null)
 
+    // 이 노트를 보는 동안 이어서 물어본 질문들이 서버에 하나의 대화(rootQuestionId)로 묶이게 한다 —
+    // 없으면(null) 다음 질문이 새 대화의 시작이 되고, 그 응답의 rootQuestionId를 저장해두면 이후
+    // 질문들이 계속 같은 대화로 이어진다. 이렇게 해야 AI 챗봇 페이지(/main/chat)의 전체 대화
+    // 목록에서도 이 노트에서 이어서 물어본 질문들이 새 항목으로 따로따로 안 뜨고 하나로 묶여 보인다.
+    const rootQuestionIdRef = useRef(null)
+
     const [chatDrawerOpen, setChatDrawerOpen] = useState(true)
     const [showQuestionList, setShowQuestionList] = useState(false)
     const [questionListExpanded, setQuestionListExpanded] = useState(false)
@@ -61,6 +67,7 @@ function NoteDetailChat({ lectureId, noteId }) {
         setChatError(null)
         setShowQuestionList(false)
         setQuestionListExpanded(false)
+        rootQuestionIdRef.current = null // 노트/강의가 바뀌면 이어가던 대화도 새로 시작한다
     }, [lectureId])
 
     // 서버에서 지난 질문을 다시 불러오지 않고, 위 chatMessages에서 사용자 질문만 걸러서 보여준다
@@ -92,7 +99,8 @@ function NoteDetailChat({ lectureId, noteId }) {
         try {
             // 연결된 강의 ID로 저장해 노트와 강의 화면에서 같은 대화를 이어가고,
             // 지금 보고 있는 노트 ID도 같이 보내 "이 노트 설명해줘" 같은 질문도 이 노트를 근거로 답하게 한다.
-            const answer = await sendMessage({ lectureId, noteId, message })
+            const answer = await sendMessage({ lectureId, noteId, message, rootQuestionId: rootQuestionIdRef.current })
+            rootQuestionIdRef.current = answer.rootQuestionId
             setChatMessages((previous) => [...previous, answer])
         } catch (error) {
             setChatError(error.message)

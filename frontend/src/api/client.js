@@ -4,7 +4,9 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 
 // AuthContext가 로그인 시 이 키로 localStorage에 저장한다. fetch는 React 트리 밖에서
 // 일어나므로 context 대신 여기서 직접 읽는다.
-function getStoredToken() {
+// chat.js의 스트리밍 호출(streamMessage)처럼 이 파일의 apiGet/apiPost 등을 거치지 않고
+// 직접 fetch를 쓰는 곳에서도 같은 토큰 조회/401 처리를 하도록 export한다.
+export function getStoredToken() {
     try {
         const raw = localStorage.getItem('nyo_auth');
         return raw ? JSON.parse(raw)?.accessToken ?? null : null;
@@ -16,7 +18,7 @@ function getStoredToken() {
 // 토큰을 실어 보냈는데도 401이 오면 "세션 만료/무효 토큰"으로 보고 로그인 화면으로 보낸다.
 // 토큰 없이 보낸 요청의 401(예: 로그인 실패)은 여기 해당하지 않는다 — 그건 호출부가 메시지로 보여줘야 한다.
 // AuthContext 밖에서 호출되므로 localStorage를 직접 건드린다.
-function handleUnauthorized() {
+export function handleUnauthorized() {
     localStorage.removeItem('nyo_auth');
     if (window.location.pathname !== '/login') {
         window.location.href = '/login';

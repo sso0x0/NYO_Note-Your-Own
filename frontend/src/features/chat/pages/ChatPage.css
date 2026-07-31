@@ -7,6 +7,13 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+    transition: max-width 0.15s ease;
+}
+
+/* 타이머 패널이 열리면 대화창 폭이 그만큼 줄어들지 않도록 페이지 전체를 조금 넓힌다.
+   100vw를 넘지 않게 min()으로 감싸서, 뷰포트보다 넓어져 가로 스크롤이 생기는 일이 없게 한다. */
+.chat-page--with-pomodoro {
+    max-width: min(1240px, 100vw - 32px);
 }
 
 .chat-page__header {
@@ -38,6 +45,122 @@
     color: var(--text);
 }
 
+/* ===== 뽀모도로: NoteDetail.jsx와 같은 임베드 방식으로, 헤더의 배지 버튼으로 여닫되
+   패널 자체는 팝오버로 대화창 위에 겹쳐 뜨지 않도록 사이드바/대화창과 나란한
+   세 번째 칸(.chat-page__pomodoro-panel)으로 붙인다 — 열려도 뭔가를 가리지 않는다.
+   색은 pomodoro.css의 라벤더 톤을 그대로 두고(챗봇의 블루-핑크와 구분되게),
+   여기서는 뱃지/패널 틀만 챗봇 페이지 톤에 맞춘다. */
+.chat-page__pomodoro-toggle {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid #e2d4fb;
+    background: linear-gradient(135deg, #f3edfd 0%, #fdeef7 100%);
+    color: #6b4fa0;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.chat-page__pomodoro-toggle svg {
+    width: 16px;
+    height: 16px;
+}
+
+.chat-page__pomodoro-toggle:hover {
+    box-shadow: 0 4px 14px -4px rgba(155, 127, 212, 0.4);
+    transform: translateY(-1px);
+}
+
+.chat-page__pomodoro-toggle--active {
+    background: linear-gradient(135deg, #e2d4fb 0%, #ffd9ec 100%);
+    box-shadow: 0 4px 14px -4px rgba(155, 127, 212, 0.4);
+}
+
+.chat-page__pomodoro-panel {
+    /* NoteDetail.jsx의 카드(320px, 20px 패딩)와 비슷한 안쪽 여유폭을 맞춰, 기록 목록의
+       날짜·시간·소요시간 배지가 서로 부대끼며 잘리지 않게 했다. min-width:0이 없으면
+       내용이 이 폭보다 넓어질 때 패널 자체가 밀려나며 페이지 전체에 가로 스크롤이 생겨서
+       폭은 여기서 고정하고, 그래도 넘치는 값은 overflow-x: hidden으로만 안전하게 자른다. */
+    flex: 0 0 320px;
+    min-width: 0;
+    width: 320px;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid #e2d4fb;
+    border-radius: 20px;
+    background: var(--bg);
+    box-shadow: 0 8px 24px -12px rgba(107, 53, 80, 0.18);
+}
+
+/* 사이드바/대화창과 같은 방식으로, 세로 스크롤은 유지하되 스크롤바 자체는 패널
+   배경색과 같게 만들어 눈에 띄지 않게(사실상 투명하게) 한다. */
+.chat-page__pomodoro-panel {
+    scrollbar-width: thin;
+    scrollbar-color: var(--bg) var(--bg);
+}
+
+.chat-page__pomodoro-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-page__pomodoro-panel::-webkit-scrollbar-track {
+    background: var(--bg);
+}
+
+.chat-page__pomodoro-panel::-webkit-scrollbar-thumb {
+    background: var(--bg);
+    border-radius: 4px;
+}
+
+.chat-page__pomodoro-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chat-page__pomodoro-panel-badge {
+    display: inline-flex;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    background: #f3edfd;
+    color: #6b4fa0;
+}
+
+.chat-page__pomodoro-panel-badge svg {
+    width: 14px;
+    height: 14px;
+}
+
+.chat-page__pomodoro-panel-title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-h);
+}
+
+/* 타이머 아래 항상 이어서 보여주는 오늘 공부 시간/기록 목록. */
+.chat-page__pomodoro-history {
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+
 /* ===== 새 대화 + 지난 기록을 합친 2단 레이아웃 ===== */
 .chat-page__body {
     display: flex;
@@ -60,6 +183,8 @@
     border-radius: 16px;
     padding: 12px;
     overflow: hidden;
+    /* 테두리만 있던 평면적인 박스에 은은한 그림자를 얹어 패널이 살짝 떠 있는 듯한 입체감을 준다. */
+    box-shadow: 0 8px 24px -12px rgba(107, 53, 80, 0.18);
 }
 
 .chat-page__new-chat-btn {
@@ -73,21 +198,28 @@
     font-weight: 700;
     cursor: pointer;
     text-align: left;
+    box-shadow: 0 2px 8px -4px rgba(107, 53, 80, 0.15);
+    transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .chat-page__new-chat-btn:hover {
     border-color: #d98cae;
     color: #6b3550;
+    box-shadow: 0 4px 14px -4px rgba(217, 140, 174, 0.35);
+    transform: translateY(-1px);
 }
 
 .chat-page__search {
     flex: 0 0 auto;
     padding: 8px 12px;
     border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--code-bg);
+    /* var(--code-bg)(칙칙한 베이지)는 챗봇의 블루/핑크 파스텔 톤과 안 어울려서,
+       나머지 챗봇 UI와 맞춘 옅은 핑크빛 중립색으로 바꿨다. */
+    border: 1px solid #e7d9e2;
+    background: #fdf9fb;
     font-size: 13px;
     color: var(--text-h);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .chat-page__search:focus {
@@ -205,6 +337,7 @@
     color: inherit;
     cursor: pointer;
     text-align: left;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .chat-page__question-btn:hover {
@@ -213,6 +346,7 @@
 
 .chat-page__question-btn--active {
     background: rgba(229, 115, 145, 0.14);
+    box-shadow: 0 2px 10px -4px rgba(229, 115, 145, 0.35);
 }
 
 .chat-page__question-text {
@@ -253,14 +387,18 @@
     flex-direction: column;
     gap: 0.65rem;
     padding: 12px;
-    border: 1px solid var(--border);
+    border: 1px solid #f0dde5;
     border-radius: 16px;
-    background: var(--code-bg);
+    /* var(--code-bg)(칙칙한 베이지) 대신 블루→핑크로 아주 옅게 번지는 그러데이션을 깔아
+       말풍선 색과 한 팔레트로 어우러지게 했다. */
+    background: linear-gradient(160deg, #f5faff 0%, #fff6fa 100%);
+    /* 사이드바와 같은 톤의 은은한 그림자로 두 패널이 나란히 살짝 떠 보이게 맞춘다. */
+    box-shadow: 0 8px 24px -12px rgba(107, 53, 80, 0.18);
 }
 
 .chat-page__messages {
     scrollbar-width: thin;
-    scrollbar-color: var(--code-bg) var(--code-bg);
+    scrollbar-color: #fff6fa #fff6fa;
 }
 
 .chat-page__messages::-webkit-scrollbar {
@@ -268,11 +406,11 @@
 }
 
 .chat-page__messages::-webkit-scrollbar-track {
-    background: var(--code-bg);
+    background: #fff6fa;
 }
 
 .chat-page__messages::-webkit-scrollbar-thumb {
-    background: var(--code-bg);
+    background: #fff6fa;
     border-radius: 4px;
 }
 
@@ -289,7 +427,131 @@
     max-width: 85%;
 }
 
+/* ===== 컨텍스트 제어: 복습 범위(전체 노트 / 고른 노트) 표시줄 ===== */
+.chat-page__context-bar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.chat-page__context-label {
+    font-size: 12px;
+    color: var(--text);
+    opacity: 0.8;
+    margin-right: 2px;
+}
+
+.chat-page__context-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 160px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(229, 115, 145, 0.12);
+    color: var(--text-h);
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px -4px rgba(229, 115, 145, 0.3);
+}
+
+.chat-page__context-chip--all {
+    background: var(--code-bg);
+    opacity: 0.85;
+}
+
+.chat-page__context-chip button {
+    flex: 0 0 auto;
+    border: none;
+    background: transparent;
+    color: inherit;
+    opacity: 0.6;
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1;
+    padding: 0;
+}
+
+.chat-page__context-chip button:hover {
+    opacity: 1;
+}
+
+.chat-page__context-picker {
+    position: relative;
+    margin-left: auto;
+}
+
+.chat-page__context-pick-btn {
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-h);
+    font-size: 12px;
+    cursor: pointer;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.chat-page__context-pick-btn:hover {
+    border-color: #d98cae;
+    color: #6b3550;
+    box-shadow: 0 3px 10px -4px rgba(217, 140, 174, 0.35);
+}
+
+.chat-page__context-popover {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    right: 0;
+    z-index: 5;
+    width: 240px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+    box-shadow: 0 12px 28px -8px rgba(107, 53, 80, 0.28);
+}
+
+.chat-page__context-note-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.chat-page__context-note-list label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 6px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-h);
+    cursor: pointer;
+}
+
+.chat-page__context-note-list label:hover {
+    background: rgba(229, 115, 145, 0.08);
+}
+
+.chat-page__context-note-list label span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 @media (max-width: 720px) {
+    .chat-page--with-pomodoro {
+        max-width: 960px;
+    }
+
     .chat-page__body {
         flex-direction: column;
         height: auto;
@@ -302,5 +564,11 @@
 
     .chat-page__messages {
         min-height: 320px;
+    }
+
+    .chat-page__pomodoro-panel {
+        flex: none;
+        height: auto;
+        max-height: 320px;
     }
 }
