@@ -90,7 +90,6 @@ public class UserController {
         return ApiResponse.ok();
     }
 
-
     // 💡 비밀번호 찾기 2단계: 인증코드 검증 후 새 비밀번호로 교체
     @Operation(summary = "비밀번호 재설정")
     @PostMapping("/password/reset")
