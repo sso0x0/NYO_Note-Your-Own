@@ -18,8 +18,9 @@ function OAuth2RedirectPage() {
         // 로그인 실패 시 백엔드(OAuth2FailureHandler)가 실패 사유를 쿼리 파라미터(?error=...)로 보낸다
         const errorMessage = new URLSearchParams(window.location.search).get('error');
         if (errorMessage) {
-            alert(errorMessage);
-            navigate('/login', { replace: true });
+            // url 디코딩 후, alert 대신 로그인 페이지로 에러 상태(state)를 전달하며 리다이렉트
+            const decodedError = decodeURIComponent(errorMessage);
+            navigate('/login', { state: { oauthError: decodedError }, replace: true });
             return;
         }
 
@@ -29,8 +30,7 @@ function OAuth2RedirectPage() {
         const accessToken = params.get('token');
 
         if (!accessToken) {
-            alert('로그인 토큰을 받지 못했습니다.');
-            navigate('/login', { replace: true });
+            navigate('/login', { state: { oauthError: '로그인 토큰을 받지 못했습니다.' }, replace: true });
             return;
         }
 
@@ -47,8 +47,7 @@ function OAuth2RedirectPage() {
                 navigate(user.role === 'ADMIN' ? '/admin' : '/main', { replace: true });
             })
             .catch(() => {
-                alert('로그인 처리에 실패했습니다.');
-                navigate('/login', { replace: true });
+                navigate('/login', { state: { oauthError: '로그인 처리에 실패했습니다.' }, replace: true });
             });
     }, [navigate, login]);
 

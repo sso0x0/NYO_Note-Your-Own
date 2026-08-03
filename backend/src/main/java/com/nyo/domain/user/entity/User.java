@@ -124,6 +124,13 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
+    // 탈퇴 유예기간 내 재로그인 시 계정을 되살릴 때 사용 (UserService.reactivateIfWithinGracePeriod)
+    public void restoreFromWithdrawal() {
+        this.status = UserStatus.ACTIVE;
+        this.withdrawnAt = null;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     // 마이페이지 비밀번호 변경 (UserService.updatePassword) - 인코딩은 호출하는 쪽에서 끝내고 결과만 저장
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;

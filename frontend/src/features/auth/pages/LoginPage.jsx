@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { login as loginRequest } from '../api/auth';
 import { useAuth } from '../../../context/AuthContext';
@@ -8,11 +8,12 @@ import eyeCloseIcon from '../../../assets/images/eye_close.png';
 
 import './AuthPage.css';
 
+const WITHDRAWN_MESSAGE = '이미 탈퇴한 회원입니다.';
+
 function EyeIcon({ open }) {
     return <img src={open ? eyeOpenIcon : eyeCloseIcon} alt="" width="20" height="20" />;
 }
 
-// 필드별 실시간 검증 규칙: 값이 바뀔 때마다 이 함수들로 즉시 재검사합니다.
 const validators = {
     loginId: (value) => {
         if (!value.trim()) return '아이디를 입력해 주세요.';
@@ -24,7 +25,6 @@ const validators = {
     },
 };
 
-// 로그인 페이지. 아이디/비밀번호 로그인과 구글 OAuth 로그인 진입점을 함께 제공한다.
 function LoginPage() {
     const { login } = useAuth();
     const navigate = useNavigate();
@@ -32,17 +32,26 @@ function LoginPage() {
 
     const [form, setForm] = useState({ loginId: '', password: '' });
     const [fieldErrors, setFieldErrors] = useState({});
-    // 사용자가 한 번이라도 focus out(blur)한 필드만 기록 - 처음부터 모든 필드에 에러를 띄우지 않기 위함
     const [touched, setTouched] = useState({});
-    // 로그인 실패 등 서버/네트워크 에러 메시지
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
+    // ★ 추가됨: OAuth2RedirectPage에서 넘어온 에러 처리
+    useEffect(() => {
+        if (location.state?.oauthError) {
+            setError(location.state.oauthError);
+
+            // 새로고침 시 에러 메시지가 계속 남아있는 것을 방지하기 위해 state에서 oauthError를 지움
+            const newState = { ...location.state };
+            delete newState.oauthError;
+            navigate(location.pathname, { state: newState, replace: true });
+        }
+    }, [location, navigate]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
-        // 이미 한 번 건드린 필드는 입력할 때마다 바로바로 재검사합니다.
         if (touched[name]) {
             setFieldErrors((prev) => ({ ...prev, [name]: validators[name](value) }));
         }
@@ -54,7 +63,6 @@ function LoginPage() {
         setFieldErrors((prev) => ({ ...prev, [name]: validators[name](value) }));
     };
 
-    // 제출 직전 전체 필드를 한 번에 검증 (blur를 안 거친 필드도 강제로 touched 처리)
     const validateAll = () => {
         const nextErrors = {
             loginId: validators.loginId(form.loginId),
@@ -65,7 +73,6 @@ function LoginPage() {
         return Object.values(nextErrors).every((msg) => !msg);
     };
 
-    // 로그인 폼 제출: 검증 통과 시 로그인 API 호출 후 AuthContext에 세션 저장, 역할별로 이동
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
@@ -76,8 +83,6 @@ function LoginPage() {
         try {
             const response = await loginRequest(form);
             login(response);
-            // 이전에 보던 페이지(location.state.from)로 돌아가지 않고,
-            // 역할에 따라 항상 메인/관리자 페이지로 고정 이동한다.
             navigate(response.role === 'ADMIN' ? '/admin' : '/main', { replace: true });
         } catch (err) {
             setError(err.message);
@@ -87,8 +92,6 @@ function LoginPage() {
     };
 
     const handleGoogleLogin = () => {
-        // 상대 경로로 보내야 ngrok 터널 접속 시에도 같은 origin을 유지하고
-        // vite.config.js의 /oauth2/authorization 프록시를 통해 백엔드로 전달된다.
         window.location.href = '/oauth2/authorization/google';
     };
 
@@ -108,7 +111,25 @@ function LoginPage() {
                     {!error && location.state?.justResetPassword && (
                         <p className="auth-page__success">비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.</p>
                     )}
-                    {error && <p className="auth-page__error" role="alert">{error}</p>}
+
+                    {/* 일반 폼 로그인, 구글 OAuth 로그인 공통 탈퇴 회원 UI */}
+                    {error && (
+                        error === WITHDRAWN_MESSAGE ? (
+                            <div className="auth-page__error" role="alert">
+                                <p>탈퇴한 계정입니다. 다시 가입하시겠습니까?</p>
+                                <button
+                                    type="button"
+                                    className="auth-page__link-btn"
+                                    onClick={() => navigate('/signup')}
+                                    style={{ background: 'none', border: 'none', color: '#007bff', textDecoration: 'underline', cursor: 'pointer', padding: 0, marginTop: '5px' }}
+                                >
+                                    회원가입 하러 가기
+                                </button>
+                            </div>
+                        ) : (
+                            <p className="auth-page__error" role="alert">{error}</p>
+                        )
+                    )}
 
                     <div className="auth-page__field">
                         <label htmlFor="loginId">아이디</label>
