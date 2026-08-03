@@ -14,6 +14,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+// 학습 노트 상세/목록 조회 시 클라이언트에 내려주는 응답 DTO
 @Schema(description = "학습 노트 응답 DTO")
 public class NoteResponse {
 

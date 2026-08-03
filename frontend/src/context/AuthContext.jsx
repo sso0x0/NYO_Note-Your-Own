@@ -1,9 +1,11 @@
+// 로그인 상태(auth)를 localStorage와 동기화하며 로그인/로그아웃/닉네임 갱신을 제공하는 인증 컨텍스트.
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { apiPost } from '../api/client';
 
 const AuthContext = createContext(null);
 const STORAGE_KEY = 'nyo_auth';
 
+// localStorage에 저장된 인증 정보를 읽어 파싱한다. 없거나 파싱에 실패하면 null.
 function loadStoredAuth() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -13,10 +15,12 @@ function loadStoredAuth() {
   }
 }
 
+// 앱 전체에 인증 상태(auth)와 로그인/로그아웃/닉네임 갱신 기능을 공급하는 컨텍스트 프로바이더.
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(loadStoredAuth);
   const warningCheckedTokenRef = useRef(null);
 
+  // auth 상태가 바뀔 때마다 localStorage에도 그대로 반영(로그인 시 저장, 로그아웃 시 삭제)한다.
   useEffect(() => {
     if (auth) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
@@ -25,6 +29,7 @@ export function AuthProvider({ children }) {
     }
   }, [auth]);
 
+  // 같은 토큰으로 이미 확인했으면 다시 요청하지 않도록 하면서, 로그인 시 미확인 경고를 조회한다.
   useEffect(() => {
     if (!auth?.accessToken || warningCheckedTokenRef.current === auth.accessToken) return;
     warningCheckedTokenRef.current = auth.accessToken;
@@ -46,6 +51,7 @@ export function AuthProvider({ children }) {
     () => ({
       auth,
       isAuthenticated: !!auth,
+      // 로그인 응답에서 필요한 필드만 뽑아 auth 상태로 저장한다.
       login: (loginResponse) =>
         setAuth({
           accessToken: loginResponse.accessToken,

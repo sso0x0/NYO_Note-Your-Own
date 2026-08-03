@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "노트/게시글 본문 이미지 저장 요청 DTO")
-// DTO 통합: 기존 ContentImageRequest 역할을 ImageRequest 하나로 통일했습니다.
 public class ImageRequest {
 
     @Size(max = 1000)

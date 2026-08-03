@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Schema(description = "관리자 - 회원 권한 변경 요청 DTO")
 public class UserRoleUpdateRequest {
 
-    // 💡 FIXED: String + @Pattern → Role enum
+    // FIXED: String + @Pattern → Role enum
     @NotNull(message = "권한은 필수입니다.")
     @Schema(example = "ADMIN")
     private Role role;

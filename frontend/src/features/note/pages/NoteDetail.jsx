@@ -13,6 +13,8 @@ import '../../chat/chat.css'
 import '../../pomodoro/pomodoro.css'
 import './NoteDetailDesign.css'
 
+// 노트 상세 페이지. 본문 렌더링, 좋아요/태그/PDF·마크다운 내보내기와 함께
+// 학습용 챗봇, 뽀모도로 타이머를 곁들인 화면을 구성한다.
 const EMPTY_HEART_IMAGE = '/images/heart.png'
 const FILLED_HEART_IMAGE = '/images/hearts.png'
 const QUESTION_LIST_PREVIEW_COUNT = 4
@@ -90,6 +92,7 @@ function NoteDetailChat({ lectureId, noteId }) {
         }
     }
 
+    // 사용자 질문을 대화창에 먼저 낙관적으로 추가한 뒤 챗봇 응답을 요청해 이어 붙인다.
     const handleChatSend = async (message) => {
         setChatError(null)
         setChatSending(true)
@@ -201,6 +204,7 @@ function NoteDetailChat({ lectureId, noteId }) {
     )
 }
 
+// 노트 상세 컴포넌트. 본문 렌더링, 좋아요/태그, PDF·마크다운 내보내기, 챗봇/타이머 패널을 관리한다.
 function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
     const { auth } = useAuth()
     const notePrintRef = useRef(null)
@@ -219,6 +223,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
     const [pomodoroOpen, setPomodoroOpen] = useState(true)
     const userId = auth?.userId
 
+    // 이 노트에 매핑된 태그 목록을 서버에서 다시 불러온다.
     const loadTags = async () => {
         try {
             const response = await getNoteTags(noteId)
@@ -228,6 +233,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
         }
     }
 
+    // AI 태그 생성을 요청하고 완료되면 태그 목록을 새로 불러온다.
     const handleGenerateTags = async () => {
         if (tagGenerating) return
         setTagGenerating(true)
@@ -272,6 +278,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
         }
     }
 
+    // 노트 상세 정보를 서버에서 조회해 상태에 반영한다.
     const loadNote = async () => {
         setLoading(true)
         try {
@@ -294,6 +301,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
         }
     }
 
+    // 로그인 사용자가 이 노트를 좋아요했는지 서버에서 조회해 반영한다.
     const loadLikeStatus = async () => {
         const response = await fetch(`/api/notes/${noteId}/like`, {
             headers: { Authorization: `Bearer ${auth.accessToken}` },
@@ -301,6 +309,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
         if (response.ok) setLiked(await response.json())
     }
 
+    // 노트 진입 시 조회수 증가, 상세/좋아요/태그 조회를 한 번에 실행한다.
     useEffect(() => {
         const increaseViewCount = async () => {
             // 상세 페이지에 들어오면 common.view_logs로 하루 1회만 조회수를 올린다.
@@ -318,6 +327,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
         load()
     }, [noteId])
 
+    // 좋아요 등록/취소를 토글하고 노트 상세를 다시 불러와 좋아요 수를 갱신한다.
     const toggleLike = async () => {
         if (likeLoading) return
         setLikeLoading(true)
@@ -338,6 +348,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
         }
     }
 
+    // 현재 화면에 렌더링된 노트 상세 영역을 새 창에 복제해 PDF로 인쇄한다.
     const exportNotePdf = async () => {
         const printableNote = notePrintRef.current
         if (!note || !printableNote) {
@@ -396,6 +407,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
         printWindow.print()
     }
 
+    // 노트 제목과 본문을 마크다운 파일로 만들어 다운로드한다.
     const exportNoteMarkdown = () => {
         if (!note) return
 
@@ -413,6 +425,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
         URL.revokeObjectURL(downloadUrl)
     }
 
+    // 확인 후 노트를 삭제하고 이전 화면으로 돌아간다.
     const deleteNote = async () => {
         if (!window.confirm('노트를 삭제할까요?')) {
             return
@@ -439,6 +452,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
         }
     }
 
+    // 날짜 문자열을 사람이 읽기 쉬운 로컬 형식으로 바꾼다.
     const formatDate = (value) => {
         if (!value) return '-'
         return new Date(value).toLocaleString()
@@ -462,6 +476,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
             .some((match) => match[1] === mainImage.url)
         : false
 
+    // PDF 출력용 HTML에 그대로 삽입해도 안전하도록 특수문자를 HTML 엔티티로 치환한다.
     const escapeHtml = (value) => String(value ?? '')
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
@@ -482,6 +497,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
         }).join('')
     }
 
+    // PDF 출력용 텍스트에서 마크다운 이미지 문법을 실제 <img> 태그로 변환한다.
     const createPrintableTextWithImages = (text) => {
         const imagePattern = /!\[[^\]]*]\((https?:\/\/[^)]+)\)(?:\{width=(\d+)\})?/g
         let html = ''
@@ -506,6 +522,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
         return html
     }
 
+    // PDF 출력용으로 저장된 글자색/볼드/기울임/밑줄 문법을 인라인 style을 가진 span으로 변환한다.
     const createPrintableColoredText = (text) => parseTextColors(text)
         .map((part) => {
             const styles = [
@@ -534,6 +551,7 @@ function NoteDetail({ noteId, onBack, onEdit, onTagClick }) {
         })
     }
 
+    // 화면 표시용 텍스트에서 마크다운 이미지 문법을 찾아 텍스트 블록과 이미지 블록으로 분리한다.
     const renderTextWithImages = (text, keyPrefix) => {
         const imagePattern = /!\[[^\]]*]\((https?:\/\/[^)]+)\)(?:\{width=(\d+)\})?/g
         const blocks = []

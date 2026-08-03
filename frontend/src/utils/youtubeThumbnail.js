@@ -1,5 +1,4 @@
 // 강의 영상은 현재 유튜브 외부 링크(lectureUrl)만 저장한다.
-// TODO: 추후 영상을 자체 저장 방식으로 바꾸면 이 유튜브 파싱 로직을 다시 확인해야 한다.
 export function getYoutubeVideoId(url) {
   if (!url) return null;
   try {
@@ -26,6 +25,7 @@ export function getYoutubeVideoId(url) {
   }
 }
 
+// 유튜브 URL에서 영상 ID를 뽑아 썸네일 이미지 URL을 만든다.
 export function getYoutubeThumbnailUrl(url) {
   const videoId = getYoutubeVideoId(url);
   // hqdefault(480x360, 4:3)는 유튜브가 위아래에 검은 여백을 넣어 4:3으로 패딩한 이미지라

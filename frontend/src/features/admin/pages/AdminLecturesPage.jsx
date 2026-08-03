@@ -15,6 +15,7 @@ const STATUS_LABEL = {
   REJECTED: '반려됨',
 };
 
+// 강의 목록 관리자 화면: 카테고리/상태 필터링과 승인·반려·삭제·복구 처리를 담당한다.
 function AdminLecturesPage() {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
@@ -44,10 +45,12 @@ function AdminLecturesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryId, status]);
 
+  // 클릭한 강의의 상세 행을 펼치거나, 이미 펼쳐져 있으면 접는다.
   const handleToggle = (lectureId) => {
     setExpandedLectureId((prev) => (prev === lectureId ? null : lectureId));
   };
 
+  // 확인 후 강의를 삭제하고 목록을 다시 불러온다.
   const handleDelete = async (lecture) => {
     if (!window.confirm(`"${lecture.title}" 강의를 삭제할까요?`)) return;
 
@@ -59,6 +62,7 @@ function AdminLecturesPage() {
     }
   };
 
+  // 확인 후 삭제된 강의를 복구하고 목록을 다시 불러온다.
   const handleRestore = async (lecture) => {
     if (!window.confirm('복구하시겠습니까?')) return;
 
@@ -70,6 +74,7 @@ function AdminLecturesPage() {
     }
   };
 
+  // 강의 등록 신청을 승인 처리하고 목록을 다시 불러온다.
   const handleApprove = async (lecture) => {
     if (!window.confirm(`"${lecture.title}" 강의 등록 신청을 승인할까요?`)) return;
     setProcessingId(lecture.id);
@@ -83,10 +88,12 @@ function AdminLecturesPage() {
     }
   };
 
+  // 반려 사유 입력 모달을 열기 위해 반려 대상 강의를 지정한다.
   const handleReject = (lecture) => {
     setRejectTarget(lecture);
   };
 
+  // 입력받은 반려 사유로 강의 등록 신청을 반려 처리하고 목록을 다시 불러온다.
   const confirmReject = async (reason) => {
     const lecture = rejectTarget;
     setProcessingId(lecture.id);

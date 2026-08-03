@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
+// 노트 내용을 OpenAI로 분석해 태그를 생성하고 note_tags에 저장하는 서비스.
 @Service
 @RequiredArgsConstructor
 public class AiTaggingService {
@@ -113,6 +114,7 @@ public class AiTaggingService {
                 .build();
     }
 
+    // 삭제되지 않은 노트를 조회하고 없으면 예외를 던진다.
     private Note findNote(Long noteId) {
         return noteRepository.findByIdAndIsDeleted(noteId, 0)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOTE_NOT_FOUND));

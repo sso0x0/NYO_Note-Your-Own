@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Configuration
 public class PasswordEncoderConfig {
 
+    // BCrypt 방식의 PasswordEncoder 빈을 등록한다
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

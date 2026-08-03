@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Table(name = "images")
+// 노트/게시글에 첨부되는 이미지 정보를 저장하는 엔티티
 public class Image {
 
     // 이미지 테이블의 기본키

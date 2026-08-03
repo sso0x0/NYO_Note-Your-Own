@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+// POST /api/users/find-id 요청 바디. 이름+이메일이 일치하는지 확인해서 아이디를 찾아준다.
 @Schema(description = "아이디 찾기 요청 DTO")
 public class FindLoginIdRequest {
 

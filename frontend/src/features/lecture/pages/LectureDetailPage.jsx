@@ -17,6 +17,7 @@ import './LectureDetailPage.css';
 const NOTES_PER_PAGE = 10;
 const PAGE_WINDOW = 5;
 
+// 현재 페이지를 중심으로 최대 5개의 페이지 번호만 보여준다.
 function getPageNumbers(current, totalPages) {
   if (totalPages <= PAGE_WINDOW) {
     return Array.from({ length: totalPages }, (_, index) => index + 1);
@@ -41,6 +42,7 @@ const COMMENT_AVATAR_COLORS = [
   { bg: '#fdf0f7', fg: '#d1499a' },
 ];
 
+// 댓글 작성자 식별값을 해시해 아바타 배경/글자 색상을 항상 같은 조합으로 고정한다.
 function getCommentAvatarColor(comment) {
   const seed = String(comment.userId ?? comment.authorNickname ?? comment.id ?? '');
   let hash = 0;
@@ -51,6 +53,7 @@ function getCommentAvatarColor(comment) {
   return { backgroundColor: color.bg, color: color.fg };
 }
 
+// 댓글 작성 시각을 한국어 로케일 형식 문자열로 바꾼다.
 function formatCommentDate(value) {
   return value ? new Date(value).toLocaleString('ko-KR') : '';
 }
@@ -59,13 +62,14 @@ function formatCommentDate(value) {
 function LectureDetailComment({ comment }) {
   const isEdited = !comment.isDeleted && comment.createdAt && comment.updatedAt
     && comment.createdAt !== comment.updatedAt;
+  const isWithdrawnAuthor = comment.authorNickname === '탈퇴한 사용자';
 
   return (
-    <li className={`lecture-detail-page__comment${comment.isDeleted ? ' is-deleted' : ''}`}>
+    <li className={`lecture-detail-page__comment${comment.isDeleted ? ' is-deleted' : ''}${isWithdrawnAuthor ? ' is-withdrawn' : ''}`}>
       <div
         className="lecture-detail-page__comment-avatar"
         aria-hidden="true"
-        style={comment.isDeleted ? undefined : getCommentAvatarColor(comment)}
+        style={comment.isDeleted || isWithdrawnAuthor ? undefined : getCommentAvatarColor(comment)}
       >
         {(comment.authorNickname || '?').charAt(0)}
       </div>
@@ -90,6 +94,7 @@ function LectureDetailComment({ comment }) {
   );
 }
 
+// 강의 상세(수강신청) 페이지: 강의 정보, 수강신청 상태, 다른 학습자 노트, 댓글을 한 화면에서 보여준다.
 function LectureDetailPage() {
   const { id } = useParams();
   const [lecture, setLecture] = useState(null);
@@ -106,6 +111,7 @@ function LectureDetailPage() {
   const [commentsStatus, setCommentsStatus] = useState('idle');
   const [visibleCommentCount, setVisibleCommentCount] = useState(10);
 
+  // 강의 id가 바뀔 때마다 조회수를 올리고, 강의 상세와 수강신청 여부를 함께 불러온다.
   useEffect(() => {
     let cancelled = false;
 
@@ -145,6 +151,7 @@ function LectureDetailPage() {
     };
   }, [id]);
 
+  // 강의 댓글 목록을 불러온다 (강의가 바뀌면 다시 조회).
   useEffect(() => {
     let cancelled = false;
 
@@ -166,6 +173,7 @@ function LectureDetailPage() {
     };
   }, [id]);
 
+  // 이 강의로 작성된 다른 학습자 노트 목록을 불러온다.
   useEffect(() => {
     let cancelled = false;
 
@@ -197,6 +205,7 @@ function LectureDetailPage() {
     notesPage * NOTES_PER_PAGE,
   );
 
+  // 수강신청/취소를 토글하고, 정원 등 숫자가 바뀌므로 강의 상세를 다시 불러온다.
   const handleEnrollClick = async () => {
     if (enrollBusy) return;
     const wasEnrolled = enrolled;

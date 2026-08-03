@@ -8,7 +8,6 @@ import java.util.Arrays;
 
 // 강의 영상은 현재 유튜브 외부 링크(lectureUrl)만 지원한다.
 // 프론트 frontend/src/utils/youtubeThumbnail.js와 동일한 파싱 규칙을 유지해야 한다.
-// TODO: 추후 다른 영상 플랫폼/자체 저장 방식을 지원하게 되면 이 파싱 로직을 다시 확인해야 한다.
 public final class YoutubeUrlUtils {
 
     private YoutubeUrlUtils() {
@@ -58,6 +57,7 @@ public final class YoutubeUrlUtils {
         return videoId == null ? null : "https://img.youtube.com/vi/" + videoId + "/mqdefault.jpg";
     }
 
+    // 쿼리 스트링에서 지정한 key에 해당하는 값을 디코딩해 추출
     private static String extractQueryParam(String rawQuery, String key) {
         if (rawQuery == null || rawQuery.isBlank()) {
             return null;

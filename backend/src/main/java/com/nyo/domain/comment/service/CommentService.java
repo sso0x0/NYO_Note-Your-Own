@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+// 게시글/강의 댓글 및 대댓글 CRUD와 관리자 기능을 담당하는 서비스.
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -40,6 +41,7 @@ public class CommentService {
     private final UserService userService;
     private final JdbcTemplate jdbcTemplate;
 
+    // 댓글 또는 대댓글을 생성한다 (게시글 댓글이면 postId만, 강의 댓글이면 lectureId만 채워야 함).
     @Transactional
     public CommentResponse create(Long userId, CommentRequest request) {
         boolean hasPostId = request.getPostId() != null;
@@ -117,7 +119,7 @@ public class CommentService {
         return comments.map(comment -> toAdminResponse(comment, usersById, postsById, lecturesById));
     }
 
-    // 💡 추가: 마이페이지 - 내가 작성한 댓글 목록 (삭제되지 않은 것만, 최신순)
+    // 마이페이지 - 내가 작성한 댓글 목록 (삭제되지 않은 것만, 최신순)
     public Page<CommentMyResponse> getMyComments(Long userId, Pageable pageable) {
         return commentRepository.findByUserIdAndIsDeletedOrderByCreatedAtDesc(userId, 0, pageable)
                 .map(comment -> CommentMyResponse.builder()
@@ -129,6 +131,7 @@ public class CommentService {
                         .build());
     }
 
+    // 댓글 엔티티와 조회해 둔 작성자/게시글/강의 정보를 묶어 관리자 응답 DTO로 변환한다.
     private CommentAdminResponse toAdminResponse(
             Comment comment,
             Map<Long, UserResponse> usersById,
@@ -165,6 +168,7 @@ public class CommentService {
                 .build();
     }
 
+    // 평면 댓글 목록을 부모-자식 관계로 묶어 대댓글 트리 구조로 만든다.
     private List<CommentResponse> buildTree(List<Comment> comments) {
         Set<Long> visibleCommentIds = comments.stream()
                 .map(Comment::getId)
@@ -185,6 +189,7 @@ public class CommentService {
                 .toList();
     }
 
+    // 댓글 내용을 수정한다 (작성자 본인만 가능).
     @Transactional
     public CommentResponse update(Long commentId, Long userId, CommentRequest request) {
         Comment comment = getComment(commentId);
@@ -197,6 +202,7 @@ public class CommentService {
         return toResponse(comment, List.of(), userService.getDisplayNickname(comment.getUserId()));
     }
 
+    // 댓글을 소프트 삭제한다 (작성자 본인 또는 관리자만 가능).
     @Transactional
     public void delete(Long commentId, Long userId) {
         Comment comment = getComment(commentId);
@@ -208,6 +214,7 @@ public class CommentService {
         comment.delete();
     }
 
+    // 삭제된 댓글을 복구한다 (관리자 전용, 연결된 게시글이 삭제 상태면 거부).
     @Transactional
     public void adminRestore(Long commentId) {
         Comment comment = commentRepository.findById(commentId)
@@ -229,6 +236,7 @@ public class CommentService {
         return "ADMIN".equals(role);
     }
 
+    // 댓글을 응답 DTO로 변환하면서 하위 대댓글들도 재귀적으로 변환해 붙인다.
     private CommentResponse toTreeResponse(
             Comment comment, Map<Long, List<Comment>> childrenByParentId, Map<Long, String> nicknames
     ) {
@@ -242,6 +250,7 @@ public class CommentService {
         );
     }
 
+    // 댓글 엔티티를 응답 DTO로 변환한다.
     private CommentResponse toResponse(Comment comment, List<CommentResponse> replies, String authorNickname) {
         return CommentResponse.builder()
                 .id(comment.getId())
@@ -259,11 +268,13 @@ public class CommentService {
                 .build();
     }
 
+    // 삭제되지 않은 댓글을 조회하고 없으면 예외를 던진다.
     private Comment getComment(Long commentId) {
         return commentRepository.findByIdAndIsDeleted(commentId, 0)
                 .orElseThrow(() -> new BusinessException(ErrorCode.COMMENT_NOT_FOUND));
     }
 
+    // 게시글이 존재하고 삭제되지 않았는지 검증한다.
     private void validatePost(Long postId) {
         postRepository.findByIdAndIsDeleted(postId, 0)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
@@ -280,6 +291,7 @@ public class CommentService {
         }
     }
 
+    // 상위 댓글이 존재하고 같은 게시글(또는 강의) 소속인지 검증한다.
     private void validateParent(Long parentCommentId, Predicate<Comment> belongsToSameTarget) {
         if (parentCommentId == null) {
             return;

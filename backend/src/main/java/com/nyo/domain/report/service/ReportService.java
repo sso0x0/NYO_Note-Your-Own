@@ -21,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// 노트/게시글/댓글 신고 등록, 관리자 신고 목록 조회 및 확인 처리를 담당하는 서비스
 @Service
 @RequiredArgsConstructor
 public class ReportService {
@@ -31,6 +32,7 @@ public class ReportService {
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
 
+    // 노트/게시글/댓글 신고를 등록한다. 대상 존재 여부와 중복 신고 여부를 먼저 검증한다.
     @Transactional
     public void create(Long reporterId, ReportRequest request) {
         // 존재하는 대상만 신고할 수 있게 저장 전에 대상 테이블을 확인한다.
@@ -43,6 +45,7 @@ public class ReportService {
                 reporterId, request.targetType(), request.targetId(), request.reason()));
     }
 
+    // 관리자 신고 목록: targetType이 없으면 전체, 있으면 해당 종류만 최신순으로 조회한다.
     @Transactional(readOnly = true)
     public Page<ReportAdminResponse> findAll(ReportTargetType targetType, Pageable pageable) {
         // 신고 목록은 항상 최신 신고부터 보여주고, 대상이 삭제되어도 신고 이력은 유지한다.
@@ -52,6 +55,7 @@ public class ReportService {
         return reports.map(this::toAdminResponse);
     }
 
+    // 신고를 확인 완료 상태로 변경한다.
     @Transactional
     public void markReviewed(Long reportId) {
         reportRepository.findById(reportId)
@@ -59,6 +63,7 @@ public class ReportService {
                 .markReviewed();
     }
 
+    // 신고 대상 종류에 맞는 테이블에서 대상이 실제로 존재하는지 확인하고, 없으면 예외를 던진다.
     private void validateTarget(ReportTargetType type, Long targetId) {
         boolean exists = switch (type) {
             case NOTE -> noteRepository.existsById(targetId);
@@ -68,6 +73,7 @@ public class ReportService {
         if (!exists) throw new BusinessException(ErrorCode.REPORT_TARGET_NOT_FOUND);
     }
 
+    // 신고 엔티티를 관리자 목록용 응답 DTO로 변환한다 (신고 대상 요약, 신고자 정보 포함).
     private ReportAdminResponse toAdminResponse(Report report) {
         TargetSummary target = getTargetSummary(report.getTargetType(), report.getTargetId());
         User reporter = userRepository.findById(report.getReporterId()).orElse(null);
@@ -89,6 +95,7 @@ public class ReportService {
         );
     }
 
+    // 신고 대상(노트/게시글/댓글)의 제목·본문·작성자·목록 페이지 번호를 조회한다. 대상이 이미 삭제됐으면 안내 문구로 대체한다.
     private TargetSummary getTargetSummary(ReportTargetType type, Long targetId) {
         return switch (type) {
             case NOTE -> noteRepository.findById(targetId)
@@ -106,6 +113,7 @@ public class ReportService {
         };
     }
 
+    // 관리자 회원 목록에서 해당 사용자가 있는 페이지 번호를 계산한다 (가입일 기준, 페이지당 10명 가정).
     private long getUserPage(Long userId) {
         if (userId == null) return 0;
         return userRepository.findById(userId)

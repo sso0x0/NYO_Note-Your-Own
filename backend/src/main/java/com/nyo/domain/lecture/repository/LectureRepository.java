@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
+// 강의(Lecture)에 대한 CRUD 및 다양한 조회/집계 쿼리를 담당하는 레포지토리
 public interface LectureRepository extends JpaRepository<Lecture, Long> {
 
     // 노트 임시 연결에는 강의 ID만 필요하므로 엔티티 전체 컬럼을 조회하지 않는다.
@@ -88,8 +89,16 @@ public interface LectureRepository extends JpaRepository<Lecture, Long> {
     @Query("SELECT l FROM Lecture l JOIN FETCH l.category WHERE l.id IN :ids AND l.isDeleted = false")
     List<Lecture> findAllByIdInAndIsDeletedFalse(@Param("ids") List<Long> ids);
 
-    // 좋아요수/조회수 기준 상위 강의 조회 (인기 강의 배치용)
+    // 좋아요수/조회수 기준 상위 강의 조회 (인기 강의 배치용, category 즉시 로딩으로 N+1 방지)
+    @Query(value = "SELECT l FROM Lecture l JOIN FETCH l.category WHERE l.isDeleted = false "
+            + "ORDER BY l.likeCount DESC, l.viewCount DESC")
     List<Lecture> findByIsDeletedFalseOrderByLikeCountDescViewCountDesc(Pageable pageable);
+
+    // 메인 페이지 "인기 강의" 목록: 좋아요*5 + 조회수 가중치 점수 내림차순 (승인된 강의만)
+    @Query(value = "SELECT l FROM Lecture l JOIN FETCH l.category WHERE l.isDeleted = false AND l.status = :status "
+            + "ORDER BY (l.likeCount * 5 + l.viewCount) DESC",
+            countQuery = "SELECT count(l) FROM Lecture l WHERE l.isDeleted = false AND l.status = :status")
+    Page<Lecture> findPopularByStatus(@Param("status") LectureStatus status, Pageable pageable);
 
     // 인기 강의 플래그 전체 초기화 (배치 갱신 시작 전 호출)
     @Modifying

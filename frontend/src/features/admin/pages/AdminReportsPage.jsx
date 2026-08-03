@@ -6,8 +6,22 @@ import './AdminReportsPage.css'
 
 const PAGE_SIZE = 10
 const TYPE_LABEL = { NOTE: '노트', POST: '게시글', COMMENT: '댓글' }
-const formatDate = (value) => value ? new Date(value).toLocaleString('ko-KR') : '-'
+// 숫자를 2자리 문자열로 맞춘다 (예: 3 -> "03").
+const pad2 = (n) => String(n).padStart(2, '0')
+// ISO 날짜 문자열을 "YY.MM.DD HH:MI:SS" 형식으로 변환한다.
+const formatDate = (value) => {
+  if (!value) return '-'
+  const d = new Date(value)
+  const yy = pad2(d.getFullYear() % 100)
+  const mm = pad2(d.getMonth() + 1)
+  const dd = pad2(d.getDate())
+  const hh = pad2(d.getHours())
+  const mi = pad2(d.getMinutes())
+  const ss = pad2(d.getSeconds())
+  return `${yy}.${mm}.${dd} ${hh}:${mi}:${ss}`
+}
 
+// 신고 목록 관리자 화면: 노트/게시글/댓글 신고를 통합 조회하고 확인 처리한다.
 function AdminReportsPage() {
   const navigate = useNavigate()
   const [targetType, setTargetType] = useState('')
@@ -19,6 +33,8 @@ function AdminReportsPage() {
   const [expandedId, setExpandedId] = useState(null)
   const firstFilterRender = useRef(true)
 
+  // usePagedList는 page/reload 변경에만 반응하므로, 유형 필터를 바꾸면
+  // 1페이지로 되돌리고 reload()로 최신 필터값을 반영해 다시 조회한다.
   useEffect(() => {
     if (firstFilterRender.current) {
       firstFilterRender.current = false
@@ -30,6 +46,7 @@ function AdminReportsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetType])
 
+  // 확인 후 신고를 확인 완료 상태로 처리하고 목록을 다시 불러온다.
   const review = async (report) => {
     if (!window.confirm('이 신고를 확인 완료로 처리하시겠습니까?')) return
     try {

@@ -69,10 +69,12 @@ public class PhoneVerificationCodeStore {
     }
 
     private record CodeEntry(String phone, String code, LocalDateTime expiresAt, int attempts) {
+        // 만료 시각이 지났는지 확인한다
         boolean isExpired() {
             return expiresAt.isBefore(LocalDateTime.now());
         }
 
+        // 틀린 시도 횟수만 1 증가시킨 새 엔트리를 반환한다
         CodeEntry withAttemptIncremented() {
             return new CodeEntry(phone, code, expiresAt, attempts + 1);
         }

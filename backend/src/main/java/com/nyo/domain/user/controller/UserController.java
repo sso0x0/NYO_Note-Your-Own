@@ -35,21 +35,21 @@ public class UserController {
 
     private final UserService userService;
 
-    // 💡 회원가입: 아이디/이메일/닉네임 중복이면 Service에서 예외 발생
+    // 회원가입: 아이디/이메일/닉네임 중복이면 Service에서 예외 발생
     @Operation(summary = "회원가입")
     @PostMapping("/signup")
     public ApiResponse<UserResponse> signup(@Valid @RequestBody UserRequest request) {
         return ApiResponse.ok(userService.signup(request));
     }
 
-    // 💡 로그인: 성공 시 JWT accessToken 반환
+    // 로그인: 성공 시 JWT accessToken 반환
     @Operation(summary = "로그인")
     @PostMapping("/login")
     public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ApiResponse.ok(userService.login(request));
     }
 
-    // 💡 회원가입 폼에서 아이디 입력 후 포커스 아웃 시 실시간 체크용
+    // 회원가입 폼에서 아이디 입력 후 포커스 아웃 시 실시간 체크용
     @Operation(summary = "로그인 아이디 중복 체크")
     @GetMapping("/check-login-id")
     public ApiResponse<Boolean> checkLoginId(@RequestParam String loginId) {
@@ -68,21 +68,21 @@ public class UserController {
         return ApiResponse.ok(userService.checkNicknameDuplicate(nickname));
     }
 
-    // 💡 아이디 찾기: 이름+이메일 일치 확인 후 마스킹된 아이디 반환
+    // 아이디 찾기: 이름+이메일 일치 확인 후 마스킹된 아이디 반환
     @Operation(summary = "아이디 찾기")
     @PostMapping("/find-id")
     public ApiResponse<FindLoginIdResponse> findLoginId(@Valid @RequestBody FindLoginIdRequest request) {
         return ApiResponse.ok(userService.findLoginId(request));
     }
 
-    // 💡 비밀번호 찾기 1단계: 아이디+이메일 확인 후 이메일로 6자리 인증코드 발송
+    // 비밀번호 찾기 1단계: 아이디+이메일 확인 후 이메일로 6자리 인증코드 발송
     @Operation(summary = "비밀번호 재설정 인증코드 발송")
     @PostMapping("/password/send-code")
     public ApiResponse<Void> sendPasswordResetCode(@Valid @RequestBody PasswordResetCodeRequest request) {
         userService.sendPasswordResetCode(request);
         return ApiResponse.ok();
     }
-    // 💡 비밀번호 찾기 1.5단계: 최종 제출 전에 인증코드가 맞는지 미리 확인
+    // 비밀번호 찾기 1.5단계: 최종 제출 전에 인증코드가 맞는지 미리 확인
     @Operation(summary = "비밀번호 재설정 인증코드 확인")
     @PostMapping("/password/verify-code")
     public ApiResponse<Void> verifyPasswordResetCode(@Valid @RequestBody PasswordResetCodeVerifyRequest request) {
@@ -90,7 +90,7 @@ public class UserController {
         return ApiResponse.ok();
     }
 
-    // 💡 비밀번호 찾기 2단계: 인증코드 검증 후 새 비밀번호로 교체
+    // 비밀번호 찾기 2단계: 인증코드 검증 후 새 비밀번호로 교체
     @Operation(summary = "비밀번호 재설정")
     @PostMapping("/password/reset")
     public ApiResponse<Void> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
@@ -98,7 +98,7 @@ public class UserController {
         return ApiResponse.ok();
     }
 
-    // 💡 추가: 마이페이지 - 내 정보 조회 (JWT 없으면 SecurityConfig에서 401 처리됨)
+    // 추가: 마이페이지 - 내 정보 조회 (JWT 없으면 SecurityConfig에서 401 처리됨)
     @Operation(summary = "마이페이지 - 내 정보 조회")
     @GetMapping("/me")
     public ApiResponse<UserResponse> getMyInfo() {
@@ -114,7 +114,7 @@ public class UserController {
         return ApiResponse.ok(userService.acknowledgeLatestWarning(userId));
     }
 
-    // 💡 추가: 마이페이지 - 개인정보 수정 (이름/닉네임/전화번호, 선택적으로 비밀번호까지 같이 변경 가능)
+    // 추가: 마이페이지 - 개인정보 수정 (이름/닉네임/전화번호, 선택적으로 비밀번호까지 같이 변경 가능)
     @Operation(summary = "마이페이지 - 개인정보 수정")
     @PutMapping("/me")
     public ApiResponse<UserResponse> updateMyProfile(@Valid @RequestBody UserProfileUpdateRequest request) {
@@ -122,7 +122,7 @@ public class UserController {
         return ApiResponse.ok(userService.updateMyProfile(userId, request));
     }
 
-    // 💡 마이페이지에서 전화번호를 바꿀 때, 새 번호로 인증코드를 보낸다 (비밀번호 찾기와 동일한 SMS 인증 방식)
+    // 마이페이지에서 전화번호를 바꿀 때, 새 번호로 인증코드를 보낸다 (비밀번호 찾기와 동일한 SMS 인증 방식)
     @Operation(summary = "마이페이지 - 전화번호 변경 인증코드 발송")
     @PostMapping("/me/phone/send-code")
     public ApiResponse<Void> sendPhoneVerificationCode(@Valid @RequestBody PhoneVerificationSendRequest request) {
@@ -131,7 +131,7 @@ public class UserController {
         return ApiResponse.ok();
     }
 
-    // 💡 개인정보 수정을 최종 제출하기 전에 인증코드가 맞는지 미리 확인
+    // 개인정보 수정을 최종 제출하기 전에 인증코드가 맞는지 미리 확인
     @Operation(summary = "마이페이지 - 전화번호 변경 인증코드 확인")
     @PostMapping("/me/phone/verify-code")
     public ApiResponse<Void> verifyPhoneVerificationCode(@Valid @RequestBody PhoneVerificationCodeVerifyRequest request) {
@@ -140,7 +140,7 @@ public class UserController {
         return ApiResponse.ok();
     }
 
-    // 💡 추가: 회원 탈퇴 (소프트 딜리트, 노트는 유지)
+    // 추가: 회원 탈퇴 (소프트 딜리트, 노트는 유지)
     @Operation(summary = "회원 탈퇴")
     @DeleteMapping("/me")
     public ApiResponse<Void> withdraw() {

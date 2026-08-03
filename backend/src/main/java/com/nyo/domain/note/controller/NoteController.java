@@ -23,6 +23,7 @@ import org.springframework.data.web.PageableDefault;
 
 import java.util.List;
 
+// 노트 목록 조회, 검색, 작성/수정/삭제, 좋아요/조회수 등 노트 관련 API를 제공하는 컨트롤러
 @RestController
 @RequestMapping("/api/notes")
 @RequiredArgsConstructor
@@ -47,6 +48,14 @@ public class NoteController {
     ) {
         // 작성자는 요청 파라미터가 아니라 JWT로 인증된 사용자로 고정합니다.
         return noteService.create(SecurityUtil.getCurrentUserId(), request);
+    }
+
+    // 메인 페이지 "인기 노트" 목록: 좋아요*5 + 조회수 가중치 점수 내림차순으로 조회한다.
+    @GetMapping("/popular")
+    public PageResponse<NoteResponse> findPopular(
+            @PageableDefault(size = 5) Pageable pageable
+    ) {
+        return noteService.getPopular(pageable);
     }
 
     // 노트 검색 (제목/본문/태그 대상, Elasticsearch 기반)
@@ -96,13 +105,14 @@ public class NoteController {
         noteService.increaseViewCount(noteId, SecurityUtil.getCurrentUserId());
     }
 
-    // 노트 좋아요 등록: common.likes에 NOTE 타입으로 저장한다.
+    // 노트 좋아요 여부 조회
     @GetMapping("/{noteId}/like")
     public boolean isLiked(@PathVariable Long noteId) {
         // 현재 로그인 사용자의 좋아요 여부를 반환해 상세 화면의 하트 아이콘 상태를 결정합니다.
         return noteService.isLiked(noteId, SecurityUtil.getCurrentUserId());
     }
 
+    // 노트 좋아요 등록: common.likes에 NOTE 타입으로 저장한다.
     @PostMapping("/{noteId}/like")
     public void like(
             @PathVariable Long noteId

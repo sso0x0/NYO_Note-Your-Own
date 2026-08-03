@@ -8,8 +8,10 @@ import eyeCloseIcon from '../../../assets/images/eye_close.png';
 
 import './AuthPage.css';
 
+// 로그인 페이지. 아이디/비밀번호 폼 로그인과 구글 OAuth 로그인을 함께 제공한다.
 const WITHDRAWN_MESSAGE = '이미 탈퇴한 회원입니다.';
 
+// 비밀번호 표시/숨김 상태에 따라 눈 아이콘 이미지를 바꿔 보여준다.
 function EyeIcon({ open }) {
     return <img src={open ? eyeOpenIcon : eyeCloseIcon} alt="" width="20" height="20" />;
 }
@@ -25,6 +27,7 @@ const validators = {
     },
 };
 
+// 로그인 페이지. 아이디/비밀번호 폼 로그인과 구글 OAuth 로그인을 함께 제공한다.
 function LoginPage() {
     const { login } = useAuth();
     const navigate = useNavigate();
@@ -37,7 +40,7 @@ function LoginPage() {
     const [submitting, setSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
-    // ★ 추가됨: OAuth2RedirectPage에서 넘어온 에러 처리
+    // OAuth2RedirectPage에서 넘어온 에러 처리
     useEffect(() => {
         if (location.state?.oauthError) {
             setError(location.state.oauthError);
@@ -49,6 +52,7 @@ function LoginPage() {
         }
     }, [location, navigate]);
 
+    // 입력 필드 값을 폼 상태에 반영하고, 이미 blur된 필드는 즉시 재검증한다.
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
@@ -57,12 +61,14 @@ function LoginPage() {
         }
     };
 
+    // 필드에서 포커스가 벗어나면 해당 필드를 touched로 표시하고 검증한다.
     const handleBlur = (e) => {
         const { name, value } = e.target;
         setTouched((prev) => ({ ...prev, [name]: true }));
         setFieldErrors((prev) => ({ ...prev, [name]: validators[name](value) }));
     };
 
+    // 제출 전 아이디/비밀번호를 한 번에 검증하고 통과 여부를 반환한다.
     const validateAll = () => {
         const nextErrors = {
             loginId: validators.loginId(form.loginId),
@@ -73,6 +79,7 @@ function LoginPage() {
         return Object.values(nextErrors).every((msg) => !msg);
     };
 
+    // 전체 검증 통과 시 로그인 요청을 보내고, 성공하면 역할에 맞는 화면으로 이동한다.
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
@@ -91,6 +98,7 @@ function LoginPage() {
         }
     };
 
+    // 구글 OAuth 로그인 플로우 시작을 위해 백엔드 인증 엔드포인트로 이동한다.
     const handleGoogleLogin = () => {
         window.location.href = '/oauth2/authorization/google';
     };

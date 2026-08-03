@@ -41,6 +41,7 @@ public class PomodoroController {
 
     private final PomodoroService pomodoroService;
 
+    // 타이머 기록을 새로 등록한다
     @Operation(summary = "타이머 기록 등록 (타이머 시작 시 호출)")
     @PostMapping
     public ApiResponse<PomodoroRecordResponse> create(
@@ -48,6 +49,7 @@ public class PomodoroController {
         return ApiResponse.ok(pomodoroService.create(SecurityUtil.getCurrentUserId(), request));
     }
 
+    // 타이머 기록을 수정한다
     @Operation(summary = "타이머 기록 수정 (타이머 종료 시 endedAt 포함해 호출)")
     @PatchMapping("/{id}")
     public ApiResponse<PomodoroRecordResponse> update(
@@ -56,12 +58,14 @@ public class PomodoroController {
         return ApiResponse.ok(pomodoroService.update(SecurityUtil.getCurrentUserId(), id, request));
     }
 
+    // 타이머 기록을 단건 조회한다
     @Operation(summary = "타이머 기록 단건 조회", description = "본인 기록이 아니면 403을 반환합니다.")
     @GetMapping("/{id}")
     public ApiResponse<PomodoroRecordResponse> getRecord(@PathVariable Long id) {
         return ApiResponse.ok(pomodoroService.getRecord(SecurityUtil.getCurrentUserId(), id));
     }
 
+    // 타이머 기록을 단건 삭제한다
     @Operation(summary = "타이머 기록 단건 삭제", description = "본인 기록이 아니면 403을 반환합니다.")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {
@@ -78,6 +82,7 @@ public class PomodoroController {
         return ApiResponse.ok(null);
     }
 
+    // 타이머 기록을 여러 건 선택 삭제한다
     @Operation(summary = "타이머 기록 선택 삭제", description = "본인 소유가 아닌 id는 조용히 무시됩니다.")
     @DeleteMapping
     public ApiResponse<Void> deleteBulk(@RequestParam List<Long> ids) {
@@ -85,6 +90,7 @@ public class PomodoroController {
         return ApiResponse.ok(null);
     }
 
+    // 회원의 타이머 기록 목록을 최신순으로 페이징 조회한다
     @Operation(summary = "회원별 타이머 기록 목록 조회 (최신순)")
     @GetMapping
     public ApiResponse<PageResponse<PomodoroRecordResponse>> getRecords(
@@ -92,6 +98,7 @@ public class PomodoroController {
         return ApiResponse.ok(pomodoroService.getRecords(SecurityUtil.getCurrentUserId(), pageable));
     }
 
+    // 기간(startDate~endDate)으로 타이머 기록을 필터링해 조회한다
     @Operation(summary = "기간별 타이머 기록 조회 (startDate ~ endDate, 최신순)",
             description = "recordDate(타이머 시작일 기준) 범위로 필터링합니다. endDate가 startDate보다 빠르면 400을 반환합니다.")
     @GetMapping("/period")
@@ -103,6 +110,7 @@ public class PomodoroController {
                 SecurityUtil.getCurrentUserId(), startDate, endDate, pageable));
     }
 
+    // 오늘 하루 누적 집중 시간(분)을 조회한다
     @Operation(summary = "오늘 누적 공부 시간(분) 조회",
             description = "endedAt이 채워진(완료된) 세션의 focusMinutes만 합산합니다. 진행 중인 타이머는 제외됩니다.")
     @GetMapping("/stats/today")
@@ -110,6 +118,7 @@ public class PomodoroController {
         return ApiResponse.ok(pomodoroService.getTodayStudyTime(SecurityUtil.getCurrentUserId()));
     }
 
+    // 전체 누적 집중 시간(분)을 조회한다
     @Operation(summary = "전체 누적 공부 시간(분) 조회",
             description = "endedAt이 채워진(완료된) 세션의 focusMinutes만 합산합니다. 진행 중인 타이머는 제외됩니다.")
     @GetMapping("/stats/total")

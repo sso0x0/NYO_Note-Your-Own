@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { createReport } from '../api/report'
 import './ReportButton.css'
 
+// 게시글/댓글 등 대상에 대한 신고 버튼과 사유 입력 모달을 함께 제공한다.
 function ReportButton({ targetType, targetId, className = '' }) {
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  // 신고 모달을 닫고 입력값과 에러를 초기화한다.
   const close = () => {
     if (saving) return
     setOpen(false)
@@ -15,6 +17,7 @@ function ReportButton({ targetType, targetId, className = '' }) {
     setError('')
   }
 
+  // 사유를 검증한 뒤 신고를 서버에 등록하고 모달을 닫는다.
   const submit = async (event) => {
     event.preventDefault()
     if (!reason.trim()) {

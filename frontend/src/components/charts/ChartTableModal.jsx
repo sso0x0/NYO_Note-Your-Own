@@ -5,6 +5,7 @@ import './charts.css';
 // 차트 데이터를 표로 보여주는 팝업. 대시보드 그리드 레이아웃에 영향을 주지 않도록
 // document.body에 포털로 띄운다.
 function ChartTableModal({ title, columns, rows, onClose }) {
+  // Escape 키를 누르면 모달을 닫는다.
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose();

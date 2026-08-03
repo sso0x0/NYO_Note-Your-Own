@@ -30,18 +30,6 @@ spring:
       max-request-size: 500MB
   elasticsearch: # 엘라스틱서치
     uris: ${ELASTICSEARCH_URI}
-#  mail: # 비밀번호 재설정 인증코드 발송용 (Gmail 앱 비밀번호 사용 권장)
-#    # 앱 비밀번호는 구글 계정 → 보안 → 2단계 인증 활성화 후 "앱 비밀번호"에서 발급받는 16자리 값
-#    host: smtp.gmail.com
-#    port: 587
-#    username: ${MAIL_USERNAME}
-#    password: ${MAIL_PASSWORD}
-#    properties:
-#      mail:
-#        smtp:
-#          auth: true
-#          starttls:
-#            enable: true
 
 server:
   port: 8080
@@ -75,6 +63,5 @@ solapi:
 
   elastic:
     image: nyo-elastic
-
     ports:
       - "9200:9200"

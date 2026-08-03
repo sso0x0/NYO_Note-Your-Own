@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { deleteNote, getNote, increaseNoteViewCount, isNoteLiked, likeNote, unlikeNote } from '../api/note';
 import './NoteDetailPage.css';
 
+// 노트 상세 페이지. 조회수 증가, 좋아요 토글, 삭제를 처리한다.
 function NoteDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ function NoteDetailPage() {
   const [error, setError] = useState(null);
   const [liked, setLiked] = useState(false);
 
+  // 노트 id가 바뀔 때마다 조회수 증가, 상세 조회, 좋아요 여부 확인을 순서대로 처리한다.
   useEffect(() => {
     let cancelled = false;
 
@@ -49,6 +51,7 @@ function NoteDetailPage() {
 
   const isOwner = !!note && auth?.userId === note.userId;
 
+  // 좋아요 등록/취소를 토글하고 화면의 좋아요 수를 낙관적으로 갱신한다.
   const handleToggleLike = async () => {
     try {
       if (liked) {
@@ -65,6 +68,7 @@ function NoteDetailPage() {
     }
   };
 
+  // 확인 후 노트를 삭제하고 목록으로 돌아간다.
   const handleDelete = async () => {
     if (!window.confirm('이 노트를 삭제할까요?')) return;
     try {

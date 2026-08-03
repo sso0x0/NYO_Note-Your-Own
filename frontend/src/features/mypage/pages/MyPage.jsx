@@ -56,10 +56,12 @@ const LECTURE_SCAN_SIZE = 30;
 const POMODORO_PERIOD_SIZE = 100;
 const PAGE_SIZE = 5;
 
+// 전체 목록에서 현재 페이지에 해당하는 부분만 잘라낸다 (클라이언트 사이드 페이지네이션).
 function paginate(items, page) {
     return items.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
 }
 
+// 이전/다음 버튼과 현재 페이지 표시를 담당하는 공통 페이지네이션 UI.
 function Pager({ page, totalPages, onChange }) {
     if (totalPages <= 1) return null;
     return (
@@ -75,6 +77,7 @@ function Pager({ page, totalPages, onChange }) {
     );
 }
 
+// 뽀모도로 기록 조회의 기본 기간(오늘로부터 최근 14일)을 계산한다.
 function defaultPomodoroRange() {
     const end = new Date();
     const start = new Date();
@@ -82,6 +85,7 @@ function defaultPomodoroRange() {
     return { start: toLocalDateString(start), end: toLocalDateString(end) };
 }
 
+// 주어진 날짜가 속한 주의 월요일(주 시작일)을 구한다.
 function startOfWeek(date) {
     const d = new Date(date);
     const day = d.getDay();
@@ -90,10 +94,12 @@ function startOfWeek(date) {
     return d;
 }
 
+// 주어진 날짜가 속한 달의 1일을 구한다.
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
 }
 
+// 마이페이지: 프로필 조회/수정, 뽀모도로 학습 기록, 게시글/댓글/노트/강의 신청 현황을 탭별로 보여준다.
 function MyPage() {
     const { logout, updateNickname } = useAuth();
     const navigate = useNavigate();
@@ -160,6 +166,7 @@ function MyPage() {
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showNewPasswordConfirm, setShowNewPasswordConfirm] = useState(false);
 
+    // 뽀모도로 기록을 날짜별로 합산해 집중 시간(시간 단위) 추이 차트 데이터로 변환한다.
     const pomodoroChartData = useMemo(() => {
         const grouped = {};
         pomodoroRecords.forEach((record) => {
@@ -171,6 +178,7 @@ function MyPage() {
             .map((date) => ({ label: date, value: grouped[date] }));
     }, [pomodoroRecords]);
 
+    // 지정한 기간의 뽀모도로 기록을 다시 조회해 목록과 차트를 갱신한다.
     const fetchPomodoroRecords = useCallback((range) => {
         setPomodoroStatus('loading');
         setPomodoroError(null);
@@ -187,6 +195,8 @@ function MyPage() {
             });
     }, []);
 
+    // 마이페이지 진입 시 프로필, 노트, 강의, 게시글, 댓글, 강사 신청, 뽀모도로 기록 등
+    // 화면에 필요한 데이터를 한 번에 병렬로 조회한다.
     useEffect(() => {
         let cancelled = false;
         setStatus('loading');
@@ -291,8 +301,10 @@ function MyPage() {
         },
     };
 
+    // 주어진 필드 이름에 해당하는 검증 함수를 찾아 실행한다.
     const runValidator = (name, nextForm) => profileValidators[name](nextForm[name], nextForm);
 
+    // 전화번호 인증 관련 상태(발송 여부, 인증된 번호, 입력한 코드 등)를 모두 초기화한다.
     const resetPhoneVerification = () => {
         setPhoneCodeSent(false);
         setVerifiedPhone(null);
@@ -301,6 +313,7 @@ function MyPage() {
         setPhoneCodeInfo(null);
     };
 
+    // 입력값을 폼 상태에 반영하고, 이미 터치된 필드는 즉시 재검증한다.
     const handleFormChange = (e) => {
         const { name, value } = e.target;
         const nextForm = { ...form, [name]: value };
@@ -321,12 +334,14 @@ function MyPage() {
         });
     };
 
+    // 필드에서 포커스가 벗어나면 해당 필드를 touched로 표시하고 검증 결과를 반영한다.
     const handleFieldBlur = (e) => {
         const { name } = e.target;
         setTouched((prev) => ({ ...prev, [name]: true }));
         setFieldErrors((prev) => ({ ...prev, [name]: runValidator(name, form) }));
     };
 
+    // 모든 필드를 한 번에 검증하고 touched로 표시한 뒤, 유효 여부를 반환한다.
     const validateAll = () => {
         const names = Object.keys(profileValidators);
         const nextErrors = {};
@@ -338,6 +353,7 @@ function MyPage() {
         return Object.values(nextErrors).every((msg) => !msg);
     };
 
+    // 프로필 수정 폼을 열면서 이전 에러/터치 상태와 전화번호 인증 상태를 초기화한다.
     const handleStartEdit = () => {
         setSaveError(null);
         setCurrentPasswordError(null);
@@ -347,6 +363,7 @@ function MyPage() {
         setEditing(true);
     };
 
+    // 수정 폼을 닫고 폼 값과 에러 상태를 서버에서 받아온 원래 프로필 값으로 되돌린다.
     const handleCancelEdit = () => {
         setForm({
             name: profile.name ?? '',
@@ -413,6 +430,7 @@ function MyPage() {
         }
     };
 
+    // 폼을 검증하고(전화번호가 바뀌었으면 인증 완료 여부도 확인) 프로필을 서버에 저장한다.
     const handleSaveProfile = async (e) => {
         e.preventDefault();
         setSaveError(null);
@@ -454,6 +472,7 @@ function MyPage() {
         }
     };
 
+    // 확인 후 회원 탈퇴를 처리하고 로그아웃하여 로그인 페이지로 이동시킨다.
     const handleWithdraw = async () => {
         if (!window.confirm('정말로 탈퇴하시겠습니까? 작성한 노트는 유지되지만 작성자 표시가 "탈퇴한 사용자"로 바뀝니다.')) {
             return;
@@ -468,6 +487,7 @@ function MyPage() {
         }
     };
 
+    // 선택한 기간으로 뽀모도로 기록을 다시 조회한다.
     const handlePomodoroFilterSubmit = (e) => {
         e.preventDefault();
         fetchPomodoroRecords(pomodoroRange);
@@ -478,6 +498,7 @@ function MyPage() {
     const canApplyAsInstructor =
         !isInstructor && (instructorApplications.length === 0 || latestInstructorApplicationStatus === 'REJECTED');
 
+    // 강사 신청 이력을 카드 목록 + 페이지네이션으로 렌더링한다.
     const renderInstructorApplicationList = () =>
         instructorApplications.length === 0 ? (
             <p>강사 신청 내역이 없습니다.</p>
@@ -562,6 +583,7 @@ function MyPage() {
             </>
         );
 
+    // 강사가 새 강의 등록을 신청하는 입력 폼을 렌더링한다.
     const renderLectureApplyForm = () => (
         <form className="mypage__lecture-form" onSubmit={handleLectureSubmit} noValidate>
             {lectureFormError && <p className="mypage__error" role="alert">{lectureFormError}</p>}
@@ -682,6 +704,7 @@ function MyPage() {
         </form>
     );
 
+    // 내가 등록 신청한 강의 목록을 카드 형태로 렌더링한다 (승인된 강의는 상세로 이동 가능).
     const renderMyLectureList = () =>
         myLectureApplications.length === 0 ? (
             <p>등록 신청한 강의가 없습니다.</p>
@@ -760,12 +783,14 @@ function MyPage() {
             </>
         );
 
+    // 강의 등록 신청 폼의 입력값을 반영하고 해당 필드의 에러를 지운다.
     const handleLectureFormChange = (e) => {
         const { name, value } = e.target;
         setLectureForm((prev) => ({ ...prev, [name]: value }));
         setLectureFieldErrors((prev) => (prev[name] ? { ...prev, [name]: null } : prev));
     };
 
+    // 강의 등록 신청 폼의 필수 입력 항목이 비어있는지 검사한다.
     const validateLectureForm = () => {
         const errors = {};
         if (!lectureForm.categoryId) errors.categoryId = '카테고리를 선택해 주세요.';
@@ -776,6 +801,7 @@ function MyPage() {
         return errors;
     };
 
+    // 폼을 검증한 뒤 강의 등록을 신청하고, 성공하면 신청 목록 맨 앞에 추가한다.
     const handleLectureSubmit = async (e) => {
         e.preventDefault();
         const errors = validateLectureForm();

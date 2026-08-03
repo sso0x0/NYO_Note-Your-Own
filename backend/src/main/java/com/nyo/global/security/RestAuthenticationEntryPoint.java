@@ -25,6 +25,7 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private final ObjectMapper objectMapper;
 
+    // 인증되지 않은 요청에 대해 구글 로그인 리다이렉트 대신 401 JSON을 응답한다
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
             throws IOException {

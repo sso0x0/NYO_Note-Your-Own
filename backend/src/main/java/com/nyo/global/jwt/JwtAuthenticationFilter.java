@@ -42,6 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return false;
     }
 
+    // 요청의 Bearer 토큰을 검증하고, 유효하며 회원 상태가 ACTIVE일 때만 SecurityContext에 인증 정보를 세팅한다
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {

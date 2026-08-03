@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
+// ViewService 구현체 (노트/게시글/강의 공용 조회 로그 등록 처리)
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -41,6 +42,7 @@ public class ViewServiceImpl implements ViewService {
         return true;
     }
 
+    // 문자열 targetType을 enum으로 변환한다 (잘못된 값이면 400 에러로 변환)
     private TargetType parseTargetType(String targetType) {
         try {
             return TargetType.valueOf(targetType);

@@ -11,7 +11,7 @@ import java.util.Optional;
 @Repository
 public interface UserSanctionRepository extends JpaRepository<UserSanction, Long> {
 
-    // 💡 특정 회원의 제재 이력을 최신순으로 조회 (관리자가 이력 확인할 때 사용)
+    // 특정 회원의 제재 이력을 최신순으로 조회 (관리자가 이력 확인할 때 사용)
     List<UserSanction> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     // 정지 해제 여부 판단용: 가장 최근에 등록된 정지 건 하나만 조회

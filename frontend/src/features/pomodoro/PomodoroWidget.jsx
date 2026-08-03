@@ -6,7 +6,7 @@ import { detectStudyContext } from '../../utils/studyContext'
 import '../../components/widget.css'
 import './pomodoro.css'
 
-// 아날로그 시계 모양의 선(line) 아이콘. 이모지(⏱️) 대신 다른 위젯(챗봇)과
+// 아날로그 시계 모양의 선(line) 아이콘. 이모지 대신 다른 위젯(챗봇)과
 // 톤을 맞춘 단색 아웃라인 아이콘을 쓰기 위해 인라인 SVG로 직접 그린다.
 function ClockIcon() {
   return (

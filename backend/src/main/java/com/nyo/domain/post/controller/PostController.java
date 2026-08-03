@@ -23,6 +23,7 @@ import org.springframework.data.web.PageableDefault;
 
 import java.util.List;
 
+// 커뮤니티 게시글 CRUD 및 검색/좋아요/조회수 API 컨트롤러.
 @RestController
 @RequestMapping("/api/posts")
 @RequiredArgsConstructor
@@ -30,6 +31,7 @@ public class PostController {
 
     private final PostService postService;
 
+    // 게시글 목록을 조회한다 (noticeOnly면 공지만, 아니면 최신 공지 3개 + 일반 게시글 페이지).
     @GetMapping
     public PostPageResponse findAll(
             // 커뮤니티 서버 페이지네이션: 기본 10개, 최신 작성일 내림차순으로 조회한다.
@@ -39,6 +41,15 @@ public class PostController {
         return postService.findAll(pageable, noticeOnly);
     }
 
+    // 메인 페이지 "커뮤니티" 인기 목록: 좋아요*5 + 조회수 가중치 점수 내림차순 (공지 제외)
+    @GetMapping("/popular")
+    public PageResponse<PostResponse> findPopular(
+            @PageableDefault(size = 5) Pageable pageable
+    ) {
+        return postService.getPopular(pageable);
+    }
+
+    // 현재 사용자가 공지 게시글을 작성할 권한(관리자 여부)이 있는지 확인한다.
     @GetMapping("/notice-permission")
     public boolean canCreateNotice() {
         // 요청 파라미터를 신뢰하지 않고 JWT 인증 정보의 로그인 사용자로 관리자 권한을 확인합니다.
@@ -55,6 +66,7 @@ public class PostController {
         return postService.searchPosts(keyword, searchType, pageable);
     }
 
+    // 게시글을 작성한다.
     @PostMapping
     public PostResponse create(
             @Valid @RequestBody PostRequest request
@@ -63,6 +75,7 @@ public class PostController {
         return postService.create(SecurityUtil.getCurrentUserId(), request);
     }
 
+    // 게시글 상세를 조회한다.
     @GetMapping("/{postId}")
     public PostResponse findOne(@PathVariable Long postId) {
         return postService.findOne(postId);
@@ -84,6 +97,7 @@ public class PostController {
         return postService.isLiked(postId, SecurityUtil.getCurrentUserId());
     }
 
+    // 게시글에 좋아요를 등록한다.
     @PostMapping("/{postId}/like")
     public void like(
             @PathVariable Long postId
@@ -99,6 +113,7 @@ public class PostController {
         postService.unlikePost(postId, SecurityUtil.getCurrentUserId());
     }
 
+    // 게시글을 수정한다.
     @PutMapping("/{postId}")
     public PostResponse update(
             @PathVariable Long postId,
@@ -108,6 +123,7 @@ public class PostController {
         return postService.update(postId, SecurityUtil.getCurrentUserId(), request);
     }
 
+    // 게시글을 삭제한다.
     @DeleteMapping("/{postId}")
     public void delete(
             @PathVariable Long postId

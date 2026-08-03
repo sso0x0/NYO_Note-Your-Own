@@ -10,7 +10,9 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
+// 게시글/강의 댓글(Comment) 조회/집계를 위한 레포지토리.
 public interface CommentRepository extends JpaRepository<Comment, Long> {
+    // 특정 시점 이후 생성된 댓글 수를 센다 (통계용).
     long countByCreatedAtAfter(java.time.LocalDateTime createdAt);
 
     // 게시글 삭제·복구 시 해당 게시글에 연결된 원댓글과 답글을 함께 상태 변경한다.
@@ -22,8 +24,10 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     // 커뮤니티 목록 제목 옆에 표시할 삭제되지 않은 댓글 수를 조회한다.
     long countByPostIdAndIsDeleted(Long postId, Integer isDeleted);
 
+    // 강의 댓글을 대댓글 트리 구성을 위해 작성순으로 조회한다.
     List<Comment> findByLectureIdOrderByCreatedAtAsc(Long lectureId);
 
+    // 삭제되지 않은 댓글만 ID로 조회한다.
     Optional<Comment> findByIdAndIsDeleted(Long id, Integer isDeleted);
 
     // 관리자 댓글 관리 목록용: 이미 삭제된 댓글은 관리 대상에서 제외하고 최신순으로 페이징한다.
@@ -32,11 +36,13 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     // 관리자 댓글 관리 목록의 유형(게시글/강의) 필터용.
     Page<Comment> findByIsDeletedAndPostIdIsNotNullOrderByCreatedAtDesc(Integer isDeleted, Pageable pageable);
 
+    // 관리자 강의 댓글 목록의 삭제 여부 필터용.
     Page<Comment> findByIsDeletedAndLectureIdIsNotNullOrderByCreatedAtDesc(Integer isDeleted, Pageable pageable);
 
     // 관리자 목록에서는 삭제 여부와 관계없이 게시글/강의 댓글을 최신순으로 조회한다.
     Page<Comment> findByPostIdIsNotNullOrderByCreatedAtDesc(Pageable pageable);
 
+    // 관리자 목록에서 강의 댓글만 삭제 여부와 관계없이 최신순으로 조회한다.
     Page<Comment> findByLectureIdIsNotNullOrderByCreatedAtDesc(Pageable pageable);
 
     // 관리자 강의 관리 목록용: 강의별 댓글 개수를 한 번에 집계한다 (대댓글도 lectureId를 그대로 가지므로 함께 집계됨).
@@ -45,6 +51,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
 
 
-    // 💡 추가: 마이페이지 - 내가 작성한 댓글 목록 (삭제되지 않은 것만, 최신순)
+    // 마이페이지 - 내가 작성한 댓글 목록 (삭제되지 않은 것만, 최신순)
     Page<Comment> findByUserIdAndIsDeletedOrderByCreatedAtDesc(Long userId, Integer isDeleted, Pageable pageable);
 }

@@ -38,6 +38,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+// 사용자 노트를 검색해 문맥으로 활용(RAG)하는 학습 복습 챗봇 서비스.
 @Service
 @RequiredArgsConstructor
 public class ChatService {
@@ -146,7 +147,7 @@ public class ChatService {
      * chat()/chatStream() 공용 마무리 단계.
      */
     private ChatHistoryResponse finishChat(Long userId, Long lectureId, Long questionId, Long rootQuestionId,
-                                            String rawAnswer, List<Lecture> recommendedLectures) {
+                                           String rawAnswer, List<Lecture> recommendedLectures) {
         // AI가 프롬프트 지시를 안 지키고 큰따옴표/백틱을 섞어 쓰는 경우가 있어, 화면에 보이기 전에
         // 코드로 확실하게 전부 작은따옴표로 바꿔버린다 (프롬프트만으로는 100% 보장이 안 됨).
         // 단, 코드블럭(```...```)은 펜스 자체가 백틱이라 통째로 치환하면 코드블럭 렌더링이 깨지므로
@@ -199,6 +200,7 @@ public class ChatService {
     // 코드블럭(```...```) 안쪽은 그대로 두고 바깥 텍스트의 큰따옴표/백틱만 작은따옴표로 바꾼다.
     private static final Pattern CODE_BLOCK = Pattern.compile("```.*?```", Pattern.DOTALL);
 
+    // 코드블럭 구간을 건너뛰면서 그 바깥 텍스트에만 따옴표 치환을 적용한다.
     private String sanitizeQuotesOutsideCodeBlocks(String answer) {
         Matcher matcher = CODE_BLOCK.matcher(answer);
         StringBuilder result = new StringBuilder();
@@ -212,6 +214,7 @@ public class ChatService {
         return result.toString();
     }
 
+    // 큰따옴표와 백틱을 모두 작은따옴표로 바꾼다.
     private String sanitizeQuotes(String text) {
         return text.replace('"', '\'').replace('`', '\'');
     }
@@ -222,11 +225,13 @@ public class ChatService {
         chatHistoryRepository.deleteByIdInAndUserId(ids, userId);
     }
 
+    // 사용자의 전체 대화 기록을 삭제한다.
     @Transactional
     public void deleteAll(Long userId) {
         chatHistoryRepository.deleteAllByUserId(userId);
     }
 
+    // 사용자의 대화 기록을 페이징 조회하며, 강의 id 대신 강의명을 함께 채워 내려준다.
     public PageResponse<ChatHistoryResponse> getHistories(Long userId, Long lectureId, Pageable pageable) {
         var page = lectureId != null
                 ? chatHistoryRepository.findByUserIdAndLectureId(userId, lectureId, pageable)
@@ -240,13 +245,14 @@ public class ChatService {
                 .distinct()
                 .toList();
         Map<Long, String> lectureTitles = lectureIds.isEmpty()
-                ? Map.of()
+                ? Collections.emptyMap()
                 : lectureRepository.findAllByIdInAndIsDeletedFalse(lectureIds).stream()
-                        .collect(Collectors.toMap(Lecture::getId, Lecture::getTitle));
+                .collect(Collectors.toMap(Lecture::getId, Lecture::getTitle));
 
         return PageResponse.of(page.map(history -> toResponse(history, lectureTitles.get(history.getLectureId()))));
     }
 
+    // 멀티턴 대화 문맥에 쓸 최근 대화 6개를 시간순으로 가져온다.
     private List<ChatHistory> findRecentHistory(Long userId, Long lectureId) {
         List<ChatHistory> recent = lectureId != null
                 ? chatHistoryRepository.findTop6ByUserIdAndLectureIdOrderByIdDesc(userId, lectureId)
@@ -450,6 +456,7 @@ public class ChatService {
         return result.getContent().stream().map(NoteSnippet::from).toList();
     }
 
+    // 검색 매칭이 없을 때 폴백으로 쓸, 본인이 최근에 수정한 노트를 가져온다.
     private List<NoteSnippet> recentNotes(Long userId, Long lectureId) {
         Pageable pageable = PageRequest.of(0, MAX_NOTES, Sort.by(Sort.Direction.DESC, "updatedAt"));
         Page<Note> page = lectureId != null
@@ -464,6 +471,7 @@ public class ChatService {
         return toResponse(history, resolveRecommendedLectures(history.getRecommendedLectureIds()), null, lectureTitle);
     }
 
+    // 대화 내역 엔티티를 응답 DTO로 변환한다.
     private ChatHistoryResponse toResponse(ChatHistory history, List<Lecture> recommendedLectures, Long questionId, String lectureTitle) {
         return ChatHistoryResponse.builder()
                 .id(history.getId())
@@ -479,11 +487,14 @@ public class ChatService {
                 .build();
     }
 
+    // 프롬프트에 넣을 노트 정보(id/제목/본문)만 담는 경량 스냅샷.
     private record NoteSnippet(Long id, String title, String content) {
+        // Note 엔티티를 스니펫으로 변환한다.
         static NoteSnippet from(Note note) {
             return new NoteSnippet(note.getId(), note.getTitle(), note.getContent());
         }
 
+        // 검색 색인 문서를 스니펫으로 변환한다.
         static NoteSnippet from(NoteDocument document) {
             return new NoteSnippet(document.getId(), document.getTitle(), document.getContent());
         }

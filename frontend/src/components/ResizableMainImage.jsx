@@ -1,9 +1,11 @@
 import { useRef } from 'react'
 
+// 핸들을 좌우로 드래그해 메인 이미지 표시 너비를 조절하는 컴포넌트.
 function ResizableMainImage({ src, alt, width, onWidthChange }) {
   const wrapperRef = useRef(null)
   const imageRef = useRef(null)
 
+  // 핸들을 드래그하는 동안 포인터 이동량만큼 너비를 계산해 반영하고, 포인터를 떼면 리스너를 정리한다.
   const startResize = (event) => {
     event.preventDefault()
     const wrapper = wrapperRef.current

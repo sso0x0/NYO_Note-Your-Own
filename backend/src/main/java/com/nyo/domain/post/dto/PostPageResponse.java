@@ -14,6 +14,7 @@ public record PostPageResponse(
         int totalPages,
         boolean last
 ) {
+    // 공지 목록과 일반 게시글 페이지 정보를 하나의 응답으로 합친다.
     public static PostPageResponse of(List<PostResponse> notices, PageResponse<PostResponse> page) {
         return new PostPageResponse(
                 notices, page.content(), page.page(), page.size(), page.totalElements(), page.totalPages(), page.last()

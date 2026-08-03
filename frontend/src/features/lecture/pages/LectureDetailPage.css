@@ -385,7 +385,8 @@
   font-weight: 700;
 }
 
-.lecture-detail-page__comment.is-deleted > .lecture-detail-page__comment-avatar {
+.lecture-detail-page__comment.is-deleted > .lecture-detail-page__comment-avatar,
+.lecture-detail-page__comment.is-withdrawn > .lecture-detail-page__comment-avatar {
   background: #ececec;
   color: #9a9a9a;
 }
@@ -407,6 +408,10 @@
   color: var(--text-h);
   font-size: 13px;
   font-weight: 700;
+}
+
+.lecture-detail-page__comment.is-withdrawn > .lecture-detail-page__comment-body .lecture-detail-page__comment-header strong {
+  color: #9a9a9a;
 }
 
 .lecture-detail-page__comment-header time,

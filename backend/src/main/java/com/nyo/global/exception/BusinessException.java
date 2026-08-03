@@ -13,6 +13,7 @@ public class BusinessException extends RuntimeException {
 
     private final ErrorCode errorCode;
 
+    // ErrorCode에 담긴 메시지를 예외 메시지로 사용하고, 상태 코드 조회를 위해 errorCode 자체도 보관한다
     public BusinessException(ErrorCode errorCode) {
         super(errorCode.getMessage());
         this.errorCode = errorCode;

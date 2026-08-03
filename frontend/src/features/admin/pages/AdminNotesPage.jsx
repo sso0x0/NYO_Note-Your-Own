@@ -7,16 +7,19 @@ import './AdminNotesPage.css';
 
 const PAGE_SIZE = 10;
 
+// 노트 목록 관리자 화면: 노트 삭제 처리와 작성자·강의 상세 정보 확인을 담당한다.
 function AdminNotesPage() {
   const location = useLocation();
   const notes = usePagedList(getAdminNoteList, location.state?.focusPage ?? 0);
   // 신고 관리에서 선택한 노트 ID가 있으면 해당 상세 행을 자동으로 연다.
   const [expandedNoteId, setExpandedNoteId] = useState(location.state?.focusTargetId ?? null);
 
+  // 클릭한 노트의 상세 행을 펼치거나, 이미 펼쳐져 있으면 접는다.
   const handleToggle = (noteId) => {
     setExpandedNoteId((prev) => (prev === noteId ? null : noteId));
   };
 
+  // 확인 후 노트를 삭제하고 목록을 다시 불러온다.
   const handleDeleteNote = async (note) => {
     if (!window.confirm(`"${note.title}" 노트를 삭제할까요?`)) return;
     try {

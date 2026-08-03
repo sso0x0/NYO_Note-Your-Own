@@ -45,6 +45,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+// 강의 CRUD와 승인/반려, 좋아요·조회수·수강신청, 검색 색인 연동을 담당하는 서비스 구현체
 public class LectureServiceImpl implements LectureService {
 
     // 인기 강의로 표시할 상위 개수 (AdminStatsController의 인기도 조회 기본값과 동일하게 맞춤)
@@ -187,6 +188,7 @@ public class LectureServiceImpl implements LectureService {
         lecture.reject(reason);
     }
 
+    // 심사 대기(PENDING) 상태의 강의를 조회. 존재하지 않거나 이미 처리(승인/반려)된 강의면 예외
     private Lecture getPendingLectureOrThrow(Long lectureId) {
         Lecture lecture = lectureRepository.findById(lectureId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND));
@@ -200,6 +202,13 @@ public class LectureServiceImpl implements LectureService {
     @Override
     public Page<LectureResponse> getLectureList(Pageable pageable) {
         return lectureRepository.findByIsDeletedFalseAndStatus(LectureStatus.APPROVED, pageable)
+                .map(LectureResponse::from);
+    }
+
+    // 메인 페이지 "인기 강의" 목록 조회 (승인된 강의만, 좋아요*5 + 조회수 가중치 점수 내림차순)
+    @Override
+    public Page<LectureResponse> getPopularLectures(Pageable pageable) {
+        return lectureRepository.findPopularByStatus(LectureStatus.APPROVED, pageable)
                 .map(LectureResponse::from);
     }
 
@@ -261,6 +270,7 @@ public class LectureServiceImpl implements LectureService {
         return LectureResponse.from(lecture);
     }
 
+    // 미승인(PENDING/REJECTED) 강의를 볼 수 있는지 판단 (등록한 강사 본인이거나 관리자인 경우만 허용)
     private boolean canViewUnapprovedLecture(Lecture lecture, Long userId) {
         if (lecture.getCreatedBy().getId().equals(userId)) {
             return true;
@@ -268,7 +278,6 @@ public class LectureServiceImpl implements LectureService {
         return userRepository.findById(userId).map(u -> u.getRole() == Role.ADMIN).orElse(false);
     }
 
-    // TODO: 이게 과연 필요한가?
     // 관리자용 하나의 강의 조회
     @Override
     public LectureResponse getLectureForAdmin(Long id, Long adminId) {

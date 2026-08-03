@@ -13,6 +13,7 @@ function autoGrowTextarea(el) {
   el.style.height = `${el.scrollHeight}px`
 }
 
+// 날짜 값을 한국어 로케일의 날짜/시간 문자열로 변환한다.
 function formatDate(value) {
   if (!value) return '-'
   return new Date(value).toLocaleString('ko-KR')
@@ -31,6 +32,7 @@ const AVATAR_PALETTE = [
   { bg: '#fdf0f7', fg: '#d1499a' },
 ]
 
+// 댓글 작성자를 기준으로 팔레트에서 고정된 아바타 색상을 골라 반환한다.
 function avatarColorFor(comment) {
   const seed = String(comment.userId ?? comment.authorNickname ?? comment.id ?? '')
   let hash = 0
@@ -51,24 +53,27 @@ function countComments(comments) {
   )
 }
 
+// 댓글 한 건을 렌더링하고, 대댓글은 자기 자신을 재귀 호출해 트리 형태로 그린다.
 function CommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
   const [editing, setEditing] = useState(false)
   const [editContent, setEditContent] = useState(comment.content)
   const isOwner = auth && String(comment.userId) === String(auth.userId)
   const canDelete = !comment.isDeleted && (isOwner || auth?.role === 'ADMIN')
   const isEdited = !comment.isDeleted && comment.createdAt && comment.updatedAt && comment.createdAt !== comment.updatedAt
+  const isWithdrawnAuthor = comment.authorNickname === '탈퇴한 사용자'
 
+  // 수정한 댓글 내용을 저장하고 성공하면 수정 모드를 종료한다.
   const saveEdit = async () => {
     const saved = await onUpdate(comment, editContent)
     if (saved) setEditing(false)
   }
 
   return (
-      <li className={`comment-item${comment.isDeleted ? ' comment-item--deleted' : ''}`}>
+      <li className={`comment-item${comment.isDeleted ? ' comment-item--deleted' : ''}${isWithdrawnAuthor ? ' comment-item--withdrawn' : ''}`}>
         <div
             className="comment-item__avatar"
             aria-hidden="true"
-            style={comment.isDeleted ? undefined : avatarColorFor(comment)}
+            style={comment.isDeleted || isWithdrawnAuthor ? undefined : avatarColorFor(comment)}
         >
           {(comment.authorNickname || '?').charAt(0)}
         </div>
@@ -119,6 +124,7 @@ function CommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
   )
 }
 
+// 게시글 상세: 본문/좋아요/신고와 댓글(대댓글 포함) CRUD를 함께 다룬다.
 function CommunityDetail({ postId, onBack, onEdit }) {
   const { auth } = useAuth()
   const [post, setPost] = useState(null)
@@ -133,6 +139,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
   const [liked, setLiked] = useState(false)
   const [likeLoading, setLikeLoading] = useState(false)
 
+  // 게시글 상세 정보를 서버에서 조회해 상태에 저장한다.
   const loadPost = async () => {
     setLoading(true)
     try {
@@ -155,6 +162,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     }
   }
 
+  // 게시글에 달린 댓글(대댓글 포함) 목록을 조회해 상태에 저장한다.
   const loadComments = async () => {
     try {
       const response = await fetch(`/api/comments/posts/${postId}`, {
@@ -173,6 +181,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     }
   }
 
+  // 현재 사용자가 이 게시글에 좋아요를 눌렀는지 조회한다.
   const loadLikeStatus = async () => {
     const response = await fetch(`/api/posts/${postId}/like`, {
       headers: { Authorization: `Bearer ${auth.accessToken}` },
@@ -180,6 +189,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     if (response.ok) setLiked(await response.json())
   }
 
+  // 게시글 진입 시 조회수를 올리고, 본문/댓글/좋아요 상태를 함께 불러온다.
   useEffect(() => {
     const increaseViewCount = async () => {
       // 상세 페이지에 들어오면 common.view_logs로 하루 1회만 조회수를 올린다.
@@ -229,6 +239,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     }
   }
 
+  // 확인 후 게시글을 삭제하고 목록으로 돌아간다.
   const deletePost = async () => {
     if (!window.confirm('게시글을 삭제할까요?')) {
       return
@@ -255,6 +266,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     }
   }
 
+  // 댓글 입력창의 값 변경을 댓글 작성 폼 상태에 반영한다.
   const handleCommentChange = (event) => {
     const { name, value } = event.target
     setCommentForm((prev) => ({ ...prev, [name]: value }))
@@ -276,6 +288,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
   // 수정은 관리자 권한과 관계없이 게시글을 작성한 로그인 사용자 본인에게만 허용합니다.
   const canEdit = post && auth && String(post.userId) === String(auth.userId)
 
+  // 답글 대상 댓글을 지정하고 입력창을 답글 작성 상태로 초기화한다.
   const selectReplyTarget = (comment) => {
     setCommentForm((prev) => ({
       ...prev,
@@ -285,10 +298,12 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     if (commentTextareaRef.current) commentTextareaRef.current.style.height = 'auto'
   }
 
+  // 답글 작성 상태를 취소하고 일반 댓글 입력 상태로 되돌린다.
   const cancelReply = () => {
     setCommentForm((prev) => ({ ...prev, parentCommentId: null }))
   }
 
+  // 입력한 댓글(또는 답글)을 서버에 등록하고 댓글 목록을 새로고침한다.
   const createComment = async (event) => {
     event.preventDefault()
     setLoading(true)
@@ -323,6 +338,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     }
   }
 
+  // 댓글 내용을 수정하고 성공 시 댓글 목록을 새로고침한다.
   const updateComment = async (comment, content) => {
     if (!content.trim()) {
       setMessage('댓글 내용을 입력해 주세요.')
@@ -348,6 +364,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     return true
   }
 
+  // 확인 후 댓글을 삭제하고 댓글 목록을 새로고침한다.
   const deleteComment = async (comment) => {
     if (!window.confirm('댓글을 삭제할까요?')) return
     const response = await fetch(`/api/comments/${comment.id}`, {
@@ -376,6 +393,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     })
   }
 
+  // 텍스트에서 마크다운 이미지 문법을 찾아 이미지와 텍스트 블록으로 분리해 렌더링한다.
   const renderTextWithImages = (text, keyPrefix) => {
     const imagePattern = /!\[[^\]]*]\((https?:\/\/[^)]+)\)(?:\{width=(\d+)\})?/g
     const blocks = []

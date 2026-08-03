@@ -11,10 +11,12 @@ export function updateRecord(id, payload) {
   return apiPatch(`/api/pomodoros/${id}`, payload)
 }
 
+// 기록 목록 페이지 조회 (최신순).
 export function getRecords(page = 0, size = 10) {
   return apiGet('/api/pomodoros', { page, size })
 }
 
+// 오늘 하루 누적 집중 시간(분) 조회.
 export function getTodayStudyTime() {
   return apiGet('/api/pomodoros/stats/today')
 }
@@ -24,18 +26,22 @@ export function getRecordsByPeriod({ startDate, endDate, page = 0, size = 100 } 
   return apiGet('/api/pomodoros/period', { startDate, endDate, page, size })
 }
 
+// 누적(전체 기간) 총 집중 시간 조회.
 export function getTotalStudyTime() {
   return apiGet('/api/pomodoros/stats/total')
 }
 
+// 기록 단건 삭제.
 export function deleteRecord(id) {
   return apiDelete(`/api/pomodoros/${id}`)
 }
 
+// 기록 다건(선택) 삭제.
 export function deleteRecords(ids) {
   return apiDelete('/api/pomodoros', { ids })
 }
 
+// 기록 전체 삭제.
 export function deleteAllRecords() {
   return apiDelete('/api/pomodoros/all')
 }

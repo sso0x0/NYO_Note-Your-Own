@@ -24,7 +24,7 @@ public class UserRequest {
     @Schema(description = "로그인 아이디", example = "nyo_user01")
     private String loginId;
 
-    // 💡 BCrypt는 72바이트 이후는 잘라서 해싱하므로, 그보다 긴 값을 허용하면 뒷부분이 조용히 무시된다
+    // BCrypt는 72바이트 이후는 잘라서 해싱하므로, 그보다 긴 값을 허용하면 뒷부분이 조용히 무시된다
     @NotBlank(message = "비밀번호는 필수입니다.")
     @Size(min = 8, max = 72, message = "비밀번호는 8자 이상 72자 이하로 입력해주세요.")
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^a-zA-Z0-9]).+$",

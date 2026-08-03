@@ -60,6 +60,7 @@ function LineChart({ data, color, valueLabel = '값', formatValue }) {
       ? `M${points[0].x},${baselineY} ${points.map((p) => `L${p.x},${p.y}`).join(' ')} L${points[points.length - 1].x},${baselineY} Z`
       : '';
 
+  // 마우스 x좌표에 가장 가까운 데이터 포인트를 찾아 호버 상태로 설정한다.
   const handleMove = (e) => {
     if (!svgRef.current || points.length === 0) return;
     const rect = svgRef.current.getBoundingClientRect();

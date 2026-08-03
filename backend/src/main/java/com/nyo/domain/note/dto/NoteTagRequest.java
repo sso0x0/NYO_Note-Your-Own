@@ -14,6 +14,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+// 사용자가 노트에 태그를 직접 지정해 매핑할 때 사용하는 요청 DTO
 @Schema(description = "노트-태그 매핑 등록 요청 DTO (사용자가 직접 태그를 지정할 때 사용)")
 public class NoteTagRequest {
 

@@ -17,6 +17,7 @@ const PAGE_WINDOW = 5
 const DEFAULT_MAIN_IMAGE = '/images/nullimg.png'
 const COMMUNITY_SORT_VALUES = new Set(sortOptions.map((option) => option.value))
 
+// 주소창의 쿼리스트링에서 현재 페이지와 정렬 조건을 읽어온다.
 const readListStateFromUrl = () => {
     const params = new URLSearchParams(window.location.search)
     const page = Number.parseInt(params.get('page') ?? '1', 10)
@@ -41,10 +42,12 @@ function getPageNumbers(current, totalPages) {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 }
 
+// 날짜 문자열을 'YYYY-MM-DD' 형태로 잘라서 반환한다.
 function formatShortDate(value) {
     return value ? value.slice(0, 10) : '-'
 }
 
+// 커뮤니티 게시글 목록(검색/정렬/페이지네이션 포함)을 보여주는 화면
 function CommunityBoard({ onCreate, onOpenPost }) {
     const { auth } = useAuth()
     const [posts, setPosts] = useState([])
@@ -64,6 +67,7 @@ function CommunityBoard({ onCreate, onOpenPost }) {
     const [searchType, setSearchType] = useState('all')
     const [appliedSearchType, setAppliedSearchType] = useState('all')
 
+    // 페이지/정렬/검색어 조건으로 서버에서 게시글 목록을 가져와 상태를 갱신한다.
     const loadPosts = useCallback(async (page, sort, searchKeyword = keyword) => {
         setLoading(true)
         setError('')
@@ -109,6 +113,7 @@ function CommunityBoard({ onCreate, onOpenPost }) {
         }
     }, [auth, keyword, appliedSearchType])
 
+    // 페이지 번호와 정렬 조건을 바꾸고 그 상태를 URL에도 반영한다.
     const movePage = useCallback((page, sort = sortBy) => {
         const safePage = Math.max(1, page)
         // 목록 상태를 URL에 저장해 새로고침하거나 상세 화면에서 돌아와도 같은 위치를 복원합니다.
@@ -168,11 +173,13 @@ function CommunityBoard({ onCreate, onOpenPost }) {
         }
     }, [isSortOpen])
 
+    // 정렬 옵션을 선택하면 1페이지로 이동하고 드롭다운을 닫는다.
     const changeSort = (value) => {
         movePage(1, value)
         setIsSortOpen(false)
     }
 
+    // 검색어와 검색 유형을 확정하고 첫 페이지부터 검색 결과를 조회한다.
     const submitSearch = (event) => {
         event.preventDefault()
         setAppliedSearchType(searchType)
@@ -180,12 +187,14 @@ function CommunityBoard({ onCreate, onOpenPost }) {
         setCurrentPage(1)
     }
 
+    // 검색어를 지우고 전체 목록의 첫 페이지로 돌아간다.
     const clearSearch = () => {
         setSearchInput('')
         setKeyword('')
         setCurrentPage(1)
     }
 
+    // 게시글 한 건을 목록 행(제목/작성자/조회수/좋아요/날짜)으로 렌더링한다.
     const renderPostItem = (post, keyPrefix = '') => (
         <article className={`post-card${post.notice ? ' post-card--notice' : ''}`} key={`${keyPrefix}${post.id}`}>
             <button

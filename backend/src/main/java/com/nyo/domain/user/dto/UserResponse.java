@@ -37,11 +37,11 @@ public class UserResponse {
     @Schema(description = "전화번호", example = "010-1234-5678")
     private String phone;
 
-    // 💡 FIXED: String → Role (Jackson이 자동으로 "USER"/"ADMIN" 문자열로 직렬화해서 응답 형태는 그대로예요)
+    // FIXED: String → Role (Jackson이 자동으로 "USER"/"ADMIN" 문자열로 직렬화해서 응답 형태는 그대로예요)
     @Schema(description = "사용자/관리자 구분", example = "USER")
     private Role role;
 
-    // 💡 FIXED: String → UserStatus
+    // FIXED: String → UserStatus
     @Schema(description = "정상/정지/탈퇴 구분", example = "ACTIVE")
     private UserStatus status;
 

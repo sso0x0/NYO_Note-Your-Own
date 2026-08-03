@@ -1,7 +1,14 @@
+// 강의 목록/상세/수강신청/좋아요 등 강의 도메인 API 래퍼.
 import { apiGet, apiPost, apiDelete } from '../../../api/client';
 
+// 강의 목록 조회 (카테고리/정렬/페이지 조건 적용).
 export function getLectureList({ page = 0, size = 20, categoryId, sort } = {}) {
   return apiGet('/api/lectures', { page, size, categoryId, sort });
+}
+
+// 좋아요*5 + 조회수 가중치 점수 기준 인기 강의 목록 (메인 페이지 "인기 강의")
+export function getPopularLectures({ page = 0, size = 10 } = {}) {
+  return apiGet('/api/lectures/popular', { page, size });
 }
 
 // 강사(승인된 계정)가 강의 등록을 신청한다. 관리자 승인 전까지는 PENDING 상태로 본인/관리자에게만 보인다.
@@ -14,6 +21,7 @@ export function getMyLectures(params = {}) {
   return apiGet('/api/lectures/mine', params);
 }
 
+// 강의 상세 조회.
 export function getLecture(id) {
   return apiGet(`/api/lectures/${id}`);
 }
@@ -24,6 +32,7 @@ export function increaseLectureViewCount(id) {
   return apiPost(`/api/lectures/${id}/view`);
 }
 
+// 강의 검색 (제목/내용/작성자 등 searchType 기준).
 export function searchLectures({ keyword, searchType = 'all', page = 0, size = 20 } = {}) {
   return apiGet('/api/lectures/search', { keyword, searchType, page, size });
 }
@@ -38,6 +47,7 @@ export function enrollLecture(id) {
   return apiPost(`/api/lectures/${id}/enroll`);
 }
 
+// 수강신청 취소.
 export function cancelEnrollment(id) {
   return apiDelete(`/api/lectures/${id}/enroll`);
 }
@@ -47,10 +57,12 @@ export function isLectureLiked(id) {
   return apiGet(`/api/lectures/${id}/like`);
 }
 
+// 강의 좋아요 등록.
 export function likeLecture(id) {
   return apiPost(`/api/lectures/${id}/like`);
 }
 
+// 강의 좋아요 취소.
 export function unlikeLecture(id) {
   return apiDelete(`/api/lectures/${id}/like`);
 }

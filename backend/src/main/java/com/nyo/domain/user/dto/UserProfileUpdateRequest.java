@@ -52,5 +52,5 @@ public class UserProfileUpdateRequest {
     @Schema(description = "새 비밀번호 (바꾸지 않으면 비워둠)")
     private String newPassword;
 
-    // 💡 아이디는 여기서 안 받음 (아이디 변경 불가)
+    // 아이디는 여기서 안 받음 (아이디 변경 불가)
 }

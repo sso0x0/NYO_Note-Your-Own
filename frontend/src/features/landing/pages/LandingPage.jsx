@@ -107,10 +107,12 @@ const CATEGORIES = [
     { name: '빅데이터', theme: 'green', Icon: ChartIcon },
 ];
 
+// 숫자가 1000 이상이면 'n.nk' 형태로 축약해서 표시한다.
 function formatCount(n) {
     return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 }
 
+// 로그인 전 사용자에게 보여주는 소개 랜딩 페이지
 function LandingPage() {
     const { isAuthenticated, auth } = useAuth();
     const [scrolled, setScrolled] = useState(false);
@@ -119,12 +121,14 @@ function LandingPage() {
     const activeCategoryData = CATEGORIES.find((c) => c.name === activeCategory);
     const rootRef = useRef(null);
 
+    // 스크롤 위치에 따라 네비게이션 바 배경/크기를 바꾼다.
     useEffect(() => {
         const onScroll = () => setScrolled(window.scrollY > 20);
         window.addEventListener('scroll', onScroll);
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
+    // 화면에 들어오는 .reveal 요소에 순차적으로 등장 애니메이션을 적용한다.
     useEffect(() => {
         const els = rootRef.current.querySelectorAll('.reveal');
         const observer = new IntersectionObserver(
@@ -142,6 +146,7 @@ function LandingPage() {
         return () => observer.disconnect();
     }, []);
 
+    // 모바일 메뉴를 닫는다.
     const closeMenu = () => setMenuOpen(false);
 
     return (

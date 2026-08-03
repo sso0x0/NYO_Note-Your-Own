@@ -57,6 +57,7 @@ export default function ChatWidget({ stacked = false, onOpenChange } = {}) {
     onOpenChange?.(open)
   }, [open, onOpenChange])
 
+  // 위젯을 열고 닫는다. 처음 열 때(아직 환영 메시지를 보여준 적 없으면) 환영 메시지를 한 번만 넣어준다.
   const handleToggle = () => {
     const willOpen = !open
     setOpen(willOpen)
@@ -66,6 +67,7 @@ export default function ChatWidget({ stacked = false, onOpenChange } = {}) {
     }
   }
 
+  // 질문을 스트리밍으로 보내고, 토큰이 도착하는 대로 답변 말풍선에 이어붙인다.
   const handleSend = async (message) => {
     setError(null)
     setSending(true)

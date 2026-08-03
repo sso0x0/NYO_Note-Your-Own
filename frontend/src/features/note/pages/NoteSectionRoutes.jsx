@@ -4,6 +4,7 @@ import NoteCreate from './NoteCreate'
 import NoteDetail from './NoteDetail'
 import NoteEdit from './NoteEdit'
 
+// 노트 게시판 목록 화면을 라우팅에 연결한다.
 function NoteBoardRoute() {
     const navigate = useNavigate()
     const location = useLocation()
@@ -16,6 +17,7 @@ function NoteBoardRoute() {
     )
 }
 
+// 노트 작성 화면을 라우팅에 연결한다.
 function NoteCreateRoute() {
     const navigate = useNavigate()
     const location = useLocation()
@@ -24,6 +26,7 @@ function NoteCreateRoute() {
     return <NoteCreate onBack={() => navigate(listUrl)} onCreated={(noteId) => navigate({ pathname: `/main/notes/${noteId}`, search: location.search })} />
 }
 
+// 노트 상세 화면을 라우팅에 연결한다.
 function NoteDetailRoute() {
     const { noteId } = useParams()
     const navigate = useNavigate()
@@ -45,6 +48,7 @@ function NoteDetailRoute() {
     )
 }
 
+// 노트 수정 화면을 라우팅에 연결한다.
 function NoteEditRoute() {
     const { noteId } = useParams()
     const navigate = useNavigate()

@@ -15,11 +15,13 @@ function RejectReasonModal({ open, title, submitting, onCancel, onSubmit }) {
 
   if (!open) return null;
 
+  // 제출 처리 중에는 닫히지 않도록 막고, 그 외에는 취소 콜백을 호출한다.
   const close = () => {
     if (submitting) return;
     onCancel();
   };
 
+  // 반려 사유가 비어있지 않은지 검증한 뒤 트리밍해서 상위로 전달한다.
   const submit = (event) => {
     event.preventDefault();
     if (!reason.trim()) {

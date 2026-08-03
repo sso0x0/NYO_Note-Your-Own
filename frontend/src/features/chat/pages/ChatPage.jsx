@@ -90,6 +90,7 @@ export default function ChatPage() {
         [chatPairs]
     );
 
+    // 검색어로 최상위 질문 목록을 필터링한다 (검색어가 비어있으면 전체를 그대로 보여준다).
     const filteredChatPairs = useMemo(() => {
         const keyword = searchQuery.trim().toLowerCase();
         if (!keyword) return topLevelChatPairs;
@@ -114,6 +115,7 @@ export default function ChatPage() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, [visibleChatPairs, sending]);
 
+    // 페이지 진입 시 대화 기록 첫 페이지를 불러온다.
     useEffect(() => {
         let cancelled = false;
         getHistories({ size: CHAT_HISTORY_SIZE })
@@ -133,6 +135,8 @@ export default function ChatPage() {
         };
     }, []);
 
+    // 질문을 낙관적으로 목록에 얹고 스트리밍으로 답변을 받아 이어붙인다. 새 대화/이어가기 여부에
+    // 따라 rootQuestionId를 다르게 다루고, 완료되면 실제 서버 id로 교체한다.
     const handleSend = async (message) => {
         setSendError(null);
         setSending(true);
@@ -147,6 +151,11 @@ export default function ChatPage() {
             { id: pendingId, senderRole: 'USER', message, createdAt: new Date().toISOString(), rootQuestionId },
             ...prev,
         ]);
+        // 새 대화(선택된 루트 없음)를 시작하는 경우, 실제 rootQuestionId가 서버 응답으로
+        // 오기 전까지는 visibleChatPairs가 selectedRootId==null이라 계속 빈 배열을 반환해서
+        // 스트리밍 중인 질문/답변이 화면에 전혀 안 보인다 — pendingId를 임시 루트로 잡아
+        // 스트리밍 중에도 바로 보이게 한다 (답변 도착 시 실제 rootQuestionId로 교체됨).
+        if (rootQuestionId == null) setSelectedRootId(pendingId);
 
         // 스트리밍 체감 속도 개선: 토큰이 도착하는 즉시 답변 자리를 만들어(최초 1회) 이어붙인다.
         // 스트림이 끝나면 서버에 저장된 최종본(따옴표 치환·강의 추천 포함)으로 통째로 바꿔치기한다.
@@ -191,11 +200,13 @@ export default function ChatPage() {
         }
     };
 
+    // "새 대화" 클릭: 선택된 루트를 비워 새 대화 화면으로 되돌린다.
     const handleNewChat = () => {
         setSelectedRootId(null);
         setSendError(null);
     };
 
+    // 노트 범위 선택 팝오버를 열고 닫는다. 처음 열 때만 내 노트 목록을 지연 로딩한다.
     const toggleNoteContextOpen = () => {
         const willOpen = !noteContextOpen;
         setNoteContextOpen(willOpen);
@@ -208,18 +219,21 @@ export default function ChatPage() {
         }
     };
 
+    // 복습 범위(노트) 선택/해제를 토글한다.
     const toggleNoteSelected = (noteId) => {
         setSelectedNoteIds((prev) =>
             prev.includes(noteId) ? prev.filter((id) => id !== noteId) : [...prev, noteId]
         );
     };
 
+    // 삭제용 질문 선택/해제를 토글한다.
     const toggleChatPairSelected = (questionId) => {
         setSelectedChatPairIds((prev) =>
             prev.includes(questionId) ? prev.filter((id) => id !== questionId) : [...prev, questionId]
         );
     };
 
+    // 지금 보이는(검색 필터 적용된) 질문 전체를 선택/해제 토글한다.
     const toggleAllChatPairsSelected = () => {
         const visibleIds = filteredChatPairs.map((pair) => pair.question.id);
         setSelectedChatPairIds((prev) =>
@@ -235,6 +249,7 @@ export default function ChatPage() {
         if (deletedSet.has(selectedRootId)) setSelectedRootId(null);
     };
 
+    // 선택한 질문(및 그 답변)을 확인 후 삭제한다.
     const handleDeleteSelectedChatHistory = async () => {
         if (selectedChatPairIds.length === 0) return;
         if (!window.confirm(`선택한 ${selectedChatPairIds.length}개 질문(답변 포함)을 삭제할까요?`)) return;
@@ -254,6 +269,7 @@ export default function ChatPage() {
         }
     };
 
+    // 전체 대화 기록을 확인 후 삭제하고 목록/선택 상태를 모두 초기화한다.
     const handleDeleteAllChatHistory = async () => {
         if (chatHistories.length === 0) return;
         if (!window.confirm('전체 대화 기록을 삭제할까요? 되돌릴 수 없어요.')) return;
@@ -274,6 +290,7 @@ export default function ChatPage() {
         }
     };
 
+    // 다음 페이지의 대화 기록을 이어서 불러와 목록 뒤에 붙인다.
     const handleLoadMoreChatHistory = async () => {
         setChatHistoryLoadingMore(true);
         setChatHistoryError(null);

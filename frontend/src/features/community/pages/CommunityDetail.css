@@ -389,7 +389,8 @@
 /* 삭제된 댓글: 프로필과 닉네임을 회색으로 눌러서 삭제 상태임을 한눈에 드러낸다.
    자식 결합자(>)로 한정해서, 삭제되지 않은 대댓글(.comment-replies 안)까지
    회색으로 번지지 않게 한다. */
-.post-detail-page .comment-item--deleted > .comment-item__avatar {
+.post-detail-page .comment-item--deleted > .comment-item__avatar,
+.post-detail-page .comment-item--withdrawn > .comment-item__avatar {
   background: #ececec;
   color: #9a9a9a;
 }
@@ -425,7 +426,8 @@
   color: var(--pd-ink);
 }
 
-.post-detail-page .comment-item--deleted > .comment-body .comment-body__author {
+.post-detail-page .comment-item--deleted > .comment-body .comment-body__author,
+.post-detail-page .comment-item--withdrawn > .comment-body .comment-body__author {
   color: #9a9a9a;
 }
 

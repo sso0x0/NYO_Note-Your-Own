@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+// POST /api/users/password/reset 요청 바디. 인증코드를 다시 검증한 뒤 새 비밀번호로 교체한다.
 @Schema(description = "비밀번호 재설정 요청 DTO. 문자로 받은 인증코드와 새 비밀번호를 함께 제출한다.")
 public class PasswordResetRequest {
 

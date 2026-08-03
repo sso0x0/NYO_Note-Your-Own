@@ -6,6 +6,7 @@ import ResizableMainImage from '../../../components/ResizableMainImage'
 import { parseMainImage, storeMainImageWidth } from '../../../utils/mainImage'
 import { useAuth } from '../../../context/AuthContext'
 
+// 노트 수정 페이지. 기존 노트를 불러와 제목/본문/메인 이미지를 수정하고 저장한다.
 function NoteEdit({ noteId, onBack, onSaved }) {
   const { auth } = useAuth()
   const [form, setForm] = useState({
@@ -23,7 +24,9 @@ function NoteEdit({ noteId, onBack, onSaved }) {
   const [textColor, setTextColor] = useState('#d32f2f')
   const contentRef = useRef(null)
 
+  // 노트 id로 기존 노트 데이터를 불러와 수정 폼에 채운다.
   useEffect(() => {
+    // 기존 노트 상세를 조회해 제목/본문/메인 이미지 값으로 폼을 채운다.
     const loadNote = async () => {
       setLoading(true)
       try {
@@ -56,6 +59,7 @@ function NoteEdit({ noteId, onBack, onSaved }) {
     loadNote()
   }, [noteId])
 
+  // 입력 필드 값을 폼 상태에 반영한다.
   const handleChange = (event) => {
     const { name, value } = event.target
     setForm((prev) => ({ ...prev, [name]: value }))
@@ -102,6 +106,7 @@ function NoteEdit({ noteId, onBack, onSaved }) {
     contentRef.current?.applyColor(color)
   }
 
+  // 본문에 삽입할 이미지를 선택하면 대기 이미지로 등록하고 커서 위치에 미리보기를 넣는다.
   const handleContentImageChange = (event) => {
     const file = event.target.files?.[0]
     if (!file) {
@@ -115,6 +120,7 @@ function NoteEdit({ noteId, onBack, onSaved }) {
     event.target.value = ''
   }
 
+  // 새 이미지가 있으면 업로드한 뒤 노트 수정 API를 호출하고 성공하면 상세 화면으로 돌아간다.
   const updateNote = async (event) => {
     event.preventDefault()
     // React가 버튼을 다시 그리기 전 발생할 수 있는 연속 제출도 함수 입구에서 차단합니다.

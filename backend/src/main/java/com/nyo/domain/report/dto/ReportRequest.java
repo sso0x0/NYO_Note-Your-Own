@@ -9,8 +9,10 @@ import jakarta.validation.constraints.Size;
 public record ReportRequest(
         @NotNull(message = "신고 대상 종류가 필요합니다.")
         ReportTargetType targetType,
+
         @NotNull(message = "신고 대상 ID가 필요합니다.")
         Long targetId,
+
         @NotBlank(message = "신고 사유를 입력해 주세요.")
         @Size(max = 1000, message = "신고 사유는 1000자 이하로 입력해 주세요.")
         String reason

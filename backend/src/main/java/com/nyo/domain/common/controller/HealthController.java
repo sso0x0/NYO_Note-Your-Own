@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+// 서버 구동 및 프론트-백엔드 연결 상태를 확인하기 위한 헬스체크 컨트롤러
 @RestController
 public class HealthController {
 

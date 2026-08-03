@@ -10,6 +10,7 @@ export function deleteComment(commentId) {
   return apiDelete(`/api/comments/${commentId}`);
 }
 
+// 소프트 삭제된 댓글을 복구한다.
 export function restoreComment(commentId) {
   return apiPost(`/api/admin/comments/${commentId}/restore`);
 }

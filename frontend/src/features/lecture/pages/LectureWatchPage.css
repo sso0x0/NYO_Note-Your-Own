@@ -701,7 +701,8 @@
     font-weight: 700;
 }
 
-.lecture-watch-page .comment-panel .comment-item--deleted > .comment-item__avatar {
+.lecture-watch-page .comment-panel .comment-item--deleted > .comment-item__avatar,
+.lecture-watch-page .comment-panel .comment-item--withdrawn > .comment-item__avatar {
     background: #ececec;
     color: #9a9a9a;
 }
@@ -734,6 +735,10 @@
     color: var(--lw-ink);
     font-size: 13px;
     font-weight: 700;
+}
+
+.lecture-watch-page .comment-panel .comment-item--withdrawn > .comment-body .comment-body__author {
+    color: #9a9a9a;
 }
 
 .lecture-watch-page .comment-panel .comment-body__date,

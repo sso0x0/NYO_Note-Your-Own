@@ -65,6 +65,7 @@ public class NoteDocument {
     )
     private String authorNickname;
 
+    // Note 엔티티와 태그명 목록, 작성자 닉네임을 합쳐 Elasticsearch 색인용 문서로 변환한다.
     public static NoteDocument from(Note note, List<String> tagNames, String authorNickname) {
         return NoteDocument.builder()
                 .id(note.getId())

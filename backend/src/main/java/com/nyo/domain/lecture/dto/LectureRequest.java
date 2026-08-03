@@ -16,6 +16,7 @@ import org.hibernate.validator.constraints.URL;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "강의(녹화본) 등록/수정 요청 DTO (관리자 전용)")
+// 강의 등록/수정 요청으로 받는 DTO
 public class LectureRequest {
 
     @NotNull(message = "카테고리 ID는 필수입니다.")

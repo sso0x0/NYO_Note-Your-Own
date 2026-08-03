@@ -15,6 +15,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+// 챗봇 대화 내역 응답 DTO.
 @Schema(description = "챗봇 대화 내역 응답 DTO")
 public class ChatHistoryResponse {
 

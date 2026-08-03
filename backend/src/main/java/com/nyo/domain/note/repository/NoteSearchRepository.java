@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.annotations.Query;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 
+// 노트 전문 검색(Elasticsearch)을 담당하는 리포지토리. 제목/본문/태그/작성자 검색 쿼리를 제공한다.
 public interface NoteSearchRepository extends ElasticsearchRepository<NoteDocument, Long> {
 
     // 제목/태그/본문에 대한 멀티매치 검색 (제목 가중치 3배, 태그 2배).
@@ -25,6 +26,7 @@ public interface NoteSearchRepository extends ElasticsearchRepository<NoteDocume
             """)
     Page<NoteDocument> searchByKeyword(String keyword, Pageable pageable);
 
+    // 제목만 대상으로 한 접두어(bool_prefix) 검색.
     @Query("""
             { "multi_match": { "query": "?0", "fields": ["title^3"], "type": "bool_prefix" } }
             """)
@@ -64,11 +66,13 @@ public interface NoteSearchRepository extends ElasticsearchRepository<NoteDocume
             """)
     Page<NoteDocument> searchByKeywordForUserAndLecture(String keyword, Long userId, Long lectureId, Pageable pageable);
 
+    // 본문만 대상으로 한 접두어(bool_prefix) 검색.
     @Query("""
             { "multi_match": { "query": "?0", "fields": ["content"], "type": "bool_prefix" } }
             """)
     Page<NoteDocument> searchByContent(String keyword, Pageable pageable);
 
+    // 작성자 닉네임만 대상으로 한 접두어(bool_prefix) 검색.
     @Query("""
             { "multi_match": { "query": "?0", "fields": ["authorNickname^2"], "type": "bool_prefix" } }
             """)

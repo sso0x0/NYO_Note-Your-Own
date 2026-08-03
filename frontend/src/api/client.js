@@ -1,3 +1,4 @@
+// 인증 토큰을 자동으로 실어 보내는 fetch 기반 공통 API 요청 함수 모음(apiGet/apiPost/apiPut/apiPatch/apiDelete).
 // 기본값을 현재 접속 origin으로 둬서, localhost든 ngrok 터널 주소든
 // 항상 같은 origin(Vite dev server)으로 요청이 가고 vite.config.js의 프록시가 백엔드로 넘겨준다.
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
@@ -34,6 +35,7 @@ function unwrap(payload) {
     return 'success' in payload && 'data' in payload ? payload.data : payload;
 }
 
+// 쿼리 파라미터를 붙여 GET 요청을 보내고, 401이면 로그인 화면으로 보낸 뒤 unwrap된 데이터를 반환한다.
 export async function apiGet(path, params = {}, { token: tokenOverride } = {}) {
     const url = new URL(path, BASE_URL);
     Object.entries(params).forEach(([key, value]) => {
@@ -58,6 +60,7 @@ export async function apiGet(path, params = {}, { token: tokenOverride } = {}) {
     return unwrap(payload);
 }
 
+// 배열 파라미터는 반복 append로 실어 DELETE 요청을 보내고 unwrap된 결과를 반환한다.
 export async function apiDelete(path, params = {}, { token } = {}) {
     const url = new URL(path, BASE_URL);
     Object.entries(params).forEach(([key, value]) => {
@@ -115,10 +118,12 @@ async function sendJson(method, path, body = {}, { token } = {}) {
     return unwrap(payload);
 }
 
+// JSON 바디로 POST 요청을 보낸다.
 export function apiPost(path, body = {}, options = {}) {
     return sendJson('POST', path, body, options);
 }
 
+// JSON 바디로 PUT 요청을 보낸다.
 export function apiPut(path, body = {}, options = {}) {
     return sendJson('PUT', path, body, options);
 }

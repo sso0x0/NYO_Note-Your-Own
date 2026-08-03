@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+// 노트/게시글 등에서 공통으로 쓰는 이미지 업로드 엔드포인트
 @RestController
 @RequestMapping("/api/images")
 @RequiredArgsConstructor
@@ -16,6 +17,7 @@ public class ImageUploadController {
 
     private final FileStorageService fileStorageService;
 
+    // 이미지를 저장소(GCS)에 업로드하고 URL/파일 정보를 반환한다
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ImageUploadResponse upload(@RequestParam("file") MultipartFile file) {
         String imageUrl = fileStorageService.store(file);

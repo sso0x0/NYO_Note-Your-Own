@@ -15,6 +15,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+// 노트 등록/수정 요청으로 전달되는 제목, 본문, 이미지 정보를 담는 DTO
 @Schema(description = "노트 등록/수정 요청 DTO")
 public class NoteRequest {
 

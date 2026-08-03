@@ -1,11 +1,14 @@
+// 아직 서버에 업로드하지 않은 이미지에 임시 토큰과 미리보기 URL을 붙여준다.
 export const createPendingContentImage = (file) => ({
   token: `content-image-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   file,
   previewUrl: URL.createObjectURL(file),
 })
 
+// 본문 끝에 임시 이미지 토큰을 마크다운 형태로 추가한다.
 export const appendContentImageToken = (content, token) => `${content}\n![본문 이미지](${token})\n`
 
+// 대기 중인 이미지를 순서대로 업로드하고, 본문 속 임시 토큰을 실제 이미지 URL로 치환한다.
 export const uploadPendingContentImages = async (content, pendingImages, uploadImage) => {
   let savedContent = content
   const contentImages = []

@@ -80,6 +80,7 @@ public class InstructorApplication extends BaseEntity {
     @Column(name = "reject_reason")
     private String rejectReason;
 
+    // 신청서를 생성한다. 상태는 항상 PENDING으로 시작하고, bio/motivation은 앞뒤 공백을 제거해 저장한다.
     @Builder
     public InstructorApplication(Long userId, Long categoryId, String bio, String portfolioUrl,
                                   Integer careerYears, String company, String curriculum,
@@ -99,12 +100,14 @@ public class InstructorApplication extends BaseEntity {
         this.status = InstructorApplicationStatus.PENDING;
     }
 
+    // 신청 상태를 승인으로 바꾸고 심사자/심사일을 기록한다. 실제 권한 승격은 서비스에서 별도로 처리한다.
     public void approve(Long adminId) {
         this.status = InstructorApplicationStatus.APPROVED;
         this.reviewedBy = adminId;
         this.reviewedAt = LocalDateTime.now();
     }
 
+    // 신청 상태를 반려로 바꾸고 사유와 심사자/심사일을 기록한다.
     public void reject(Long adminId, String reason) {
         this.status = InstructorApplicationStatus.REJECTED;
         this.reviewedBy = adminId;

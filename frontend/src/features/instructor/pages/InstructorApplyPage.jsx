@@ -5,6 +5,7 @@ import { createInstructorApplication, getMyInstructorApplications } from '../api
 import { getCategoryList } from '../../lecture/api/category';
 import './InstructorApplyPage.css';
 
+// 강사 신청 폼: 기존 신청 상태(대기/승인/반려)를 먼저 보여주고, 없으면 신청서를 입력받는다.
 function InstructorApplyPage() {
   const navigate = useNavigate();
   const { auth } = useAuth();
@@ -50,15 +51,18 @@ function InstructorApplyPage() {
     }
   };
 
+  // 필드를 touched 처리하고 현재 값으로 즉시 검증해 에러 메시지를 갱신한다.
   const markTouched = (name, value) => {
     setTouched((prev) => ({ ...prev, [name]: true }));
     setFieldErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
   };
 
+  // 이미 touched된 필드만 값이 바뀔 때마다 실시간으로 다시 검증한다.
   const revalidateIfTouched = (name, value) => {
     if (touched[name]) setFieldErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
   };
 
+  // 제출 시 모든 필수 필드를 한 번에 검증하고 통과 여부를 반환한다.
   const validateAll = () => {
     const nextErrors = {
       categoryId: validateField('categoryId', categoryId),
@@ -94,6 +98,7 @@ function InstructorApplyPage() {
     };
   }, []);
 
+  // 선택한 증빙 파일을 업로드하고 성공하면 첨부 정보를 저장한다.
   const handleAttachmentChange = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -129,11 +134,13 @@ function InstructorApplyPage() {
     }
   };
 
+  // 첨부한 증빙 파일을 제거한다.
   const handleRemoveAttachment = () => {
     setAttachment(null);
     markTouched('attachment', null);
   };
 
+  // 전체 필드 검증 후 통과하면 강사 신청을 서버에 제출한다.
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateAll()) return;

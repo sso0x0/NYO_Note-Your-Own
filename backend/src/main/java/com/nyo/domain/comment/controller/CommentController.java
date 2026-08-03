@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+// 게시글/강의 댓글 및 대댓글 CRUD API. 작성/수정/삭제는 JWT 인증된 사용자로 권한을 고정한다.
 @RestController
 @RequestMapping("/api/comments")
 @RequiredArgsConstructor
@@ -28,22 +29,25 @@ public class CommentController {
 
     private final CommentService commentService;
 
+    // 게시글의 댓글을 대댓글까지 트리 구조로 조회한다.
     @GetMapping("/posts/{postId}")
     public List<CommentResponse> findByPost(@PathVariable Long postId) {
         return commentService.findByPost(postId);
     }
 
+    // 강의의 댓글을 대댓글까지 트리 구조로 조회한다.
     @GetMapping("/lectures/{lectureId}")
     public List<CommentResponse> findByLecture(@PathVariable Long lectureId) {
         return commentService.findByLecture(lectureId);
     }
 
-    // 💡 추가: 마이페이지 - 내가 작성한 댓글 목록 (JWT 인증 필요, SecurityConfig에서 별도 permitAll 없음)
+    // 마이페이지 - 내가 작성한 댓글 목록 (JWT 인증 필요, SecurityConfig에서 별도 permitAll 없음)
     @GetMapping("/me")
     public Page<CommentMyResponse> getMyComments(@PageableDefault(size = 10) Pageable pageable) {
         return commentService.getMyComments(SecurityUtil.getCurrentUserId(), pageable);
     }
 
+    // 댓글 또는 대댓글을 등록한다.
     @PostMapping
     public CommentResponse create(
             @Valid @RequestBody CommentRequest request
@@ -52,6 +56,7 @@ public class CommentController {
         return commentService.create(SecurityUtil.getCurrentUserId(), request);
     }
 
+    // 댓글 내용을 수정한다.
     @PutMapping("/{commentId}")
     public CommentResponse update(
             @PathVariable Long commentId,
@@ -61,6 +66,7 @@ public class CommentController {
         return commentService.update(commentId, SecurityUtil.getCurrentUserId(), request);
     }
 
+    // 댓글을 삭제한다.
     @DeleteMapping("/{commentId}")
     public void delete(
             @PathVariable Long commentId

@@ -14,6 +14,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+// 댓글/대댓글 응답 DTO.
 @Schema(description = "댓글/대댓글 응답 DTO")
 public class CommentResponse {
 

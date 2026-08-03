@@ -24,6 +24,7 @@ public class AdminInstructorApplicationController {
 
     private final InstructorApplicationService instructorApplicationService;
 
+    // 강사 신청 목록 조회 (status로 대기/승인/반려 필터링 가능)
     @GetMapping
     public ApiResponse<Page<InstructorApplicationAdminResponse>> findAll(
             @RequestParam(required = false) InstructorApplicationStatus status,
@@ -31,12 +32,14 @@ public class AdminInstructorApplicationController {
         return ApiResponse.ok(instructorApplicationService.findAll(status, pageable));
     }
 
+    // 강사 신청 승인: 신청자 권한을 INSTRUCTOR로 승격시킨다.
     @PostMapping("/{applicationId}/approve")
     public ApiResponse<Void> approve(@PathVariable Long applicationId) {
         instructorApplicationService.approve(applicationId, SecurityUtil.getCurrentUserId());
         return ApiResponse.ok();
     }
 
+    // 강사 신청 반려: 사유를 남기고 신청 상태만 변경한다 (권한 변경 없음).
     @PostMapping("/{applicationId}/reject")
     public ApiResponse<Void> reject(@PathVariable Long applicationId,
                                      @Valid @RequestBody InstructorApplicationRejectRequest request) {

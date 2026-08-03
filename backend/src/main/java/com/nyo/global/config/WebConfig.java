@@ -9,6 +9,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.List;
 
+// CORS 허용 origin 및 페이징 조회 시 최대 size 등 전역 웹 관련 설정을 담당한다
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
@@ -18,6 +19,7 @@ public class WebConfig implements WebMvcConfigurer {
     // 페이징 조회 시 허용하는 최대 size (전역 적용). 컨트롤러에서 경고 로그 등에 재사용할 때도 이 값을 참조할 것
     public static final int MAX_PAGE_SIZE = 50;
 
+    // 허용된 origin에 한해 모든 경로(CORS)를 열어준다
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")

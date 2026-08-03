@@ -26,7 +26,7 @@ public class UserSanction {
     private Long userId;   // 제재 대상 회원
     private Long adminId;  // 제재를 처리한 관리자 (본인 제재는 UserService에서 사전 차단됨)
 
-    // 💡 FIXED: String → enum
+    // FIXED: String → enum
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private SanctionType type;

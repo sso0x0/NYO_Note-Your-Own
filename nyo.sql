@@ -21,25 +21,6 @@
 -- 17. instructor_applications : 강사 등록 신청 (승인 전 심사용)
 
 -- ============================================================
-
-SELECT * FROM users;
-SELECT * FROM user_sanctions;
-SELECT * FROM categories;
-SELECT * FROM lectures;
-SELECT * FROM notes;
-SELECT * FROM note_histories;
-SELECT * FROM tags;
-SELECT * FROM note_tags;
-SELECT * FROM posts;
-SELECT * FROM comments;
-SELECT * FROM likes;
-SELECT * FROM view_logs;
-SELECT * FROM pomodoro_records;
-SELECT * FROM chat_histories;
-SELECT * FROM images;
-SELECT * FROM reports;
-SELECT * FROM instructor_applications;
-
 -- ------------------------------------------------------------
 -- 1. users : 회원 정보
 -- ------------------------------------------------------------
@@ -50,7 +31,7 @@ CREATE TABLE users (
                        name            VARCHAR2(50)     NOT NULL, -- 사용자 본명
                        nickname        VARCHAR2(50)     NOT NULL, -- 닉네임
                        email           VARCHAR2(100)    NOT NULL, -- 이메일
-                       phone           VARCHAR2(20)     NOT NULL, -- 전화번호
+                       phone           VARCHAR2(20)     NULL, -- 전화번호
                        role            VARCHAR2(10)     DEFAULT 'USER' NOT NULL, -- 사용자/관리자 구분
                        status          VARCHAR2(15)     DEFAULT 'ACTIVE' NOT NULL, -- 정상/정지/탈퇴 구분
                        oauth_provider  VARCHAR2(15)     NULL, -- 소셜 로그인 제공
@@ -66,7 +47,7 @@ CREATE TABLE users (
 
                        CONSTRAINT chk_users_role CHECK (role IN ('USER', 'ADMIN', 'INSTRUCTOR')), -- role 허용 값 제한
                        CONSTRAINT chk_users_status CHECK (status IN ('ACTIVE', 'SUSPENDED', 'WITHDRAWN')), -- status 허용 값 제한
-                       CONSTRAINT chk_users_oauth CHECK (oauth_provider IN ('NONE', 'GOOGLE', 'KAKAO', 'INSTAGRAM')) -- oauth_provider 허용 값 제한
+                       CONSTRAINT chk_users_oauth CHECK (oauth_provider IN ('NONE', 'GOOGLE')) -- oauth_provider 허용 값 제한
 );
 CREATE INDEX idx_users_login_status ON users(login_id, status); -- 로그인 시 아이디+상태 조합 조회 최적화
 
@@ -575,3 +556,23 @@ INSERT INTO categories (name) VALUES ('CS');
 INSERT INTO categories (name) VALUES ('빅데이터');
 
 -- ============================================================
+
+COMMIT;
+
+SELECT * FROM users;
+SELECT * FROM user_sanctions;
+SELECT * FROM categories;
+SELECT * FROM lectures;
+SELECT * FROM notes;
+SELECT * FROM note_histories;
+SELECT * FROM tags;
+SELECT * FROM note_tags;
+SELECT * FROM posts;
+SELECT * FROM comments;
+SELECT * FROM likes;
+SELECT * FROM view_logs;
+SELECT * FROM pomodoro_records;
+SELECT * FROM chat_histories;
+SELECT * FROM images;
+SELECT * FROM reports;
+SELECT * FROM instructor_applications;

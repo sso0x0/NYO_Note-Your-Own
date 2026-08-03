@@ -19,6 +19,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+// 해시태그 조회와 작성자의 수동 태그 추가/삭제(CRUD)를 담당하는 서비스
 public class TagService {
 
     private final TagRepository tagRepository;
@@ -93,6 +94,7 @@ public class TagService {
         noteService.reindexNote(noteId);
     }
 
+    // 삭제되지 않은 노트를 조회하고, 작성자 본인이 맞는지 확인한다 (아니면 예외)
     private Note getOwnedNote(Long noteId, Long userId) {
         Note note = noteRepository.findByIdAndIsDeleted(noteId, 0)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOTE_NOT_FOUND));

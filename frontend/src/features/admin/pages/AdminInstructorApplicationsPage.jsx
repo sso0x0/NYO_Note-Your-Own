@@ -16,6 +16,7 @@ const STATUS_LABEL = {
   REJECTED: '반려됨',
 };
 
+// 강사 신청 목록 관리자 화면: 상태별 필터링과 승인·반려 처리를 담당한다.
 function AdminInstructorApplicationsPage() {
   const [status, setStatus] = useState('');
   const applications = usePagedList(({ page, size }) =>
@@ -25,6 +26,8 @@ function AdminInstructorApplicationsPage() {
   const [processingId, setProcessingId] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
 
+  // usePagedList는 page/reload 변경에만 반응하므로, 상태 필터를 바꾸면
+  // 1페이지로 되돌리고 reload()로 최신 필터값을 반영해 다시 조회한다.
   const firstFilterRender = useRef(true);
   useEffect(() => {
     if (firstFilterRender.current) {
@@ -36,10 +39,12 @@ function AdminInstructorApplicationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
+  // 클릭한 신청의 상세 행을 펼치거나, 이미 펼쳐져 있으면 접는다.
   const handleToggle = (applicationId) => {
     setExpandedId((prev) => (prev === applicationId ? null : applicationId));
   };
 
+  // 확인 후 강사 신청을 승인 처리하고 목록을 다시 불러온다.
   const handleApprove = async (application) => {
     if (!window.confirm(`${application.applicantNickname}님의 강사 신청을 승인할까요?`)) return;
     setProcessingId(application.id);
@@ -53,10 +58,12 @@ function AdminInstructorApplicationsPage() {
     }
   };
 
+  // 반려 사유 입력 모달을 열기 위해 반려 대상 신청을 지정한다.
   const handleReject = (application) => {
     setRejectTarget(application);
   };
 
+  // 입력받은 반려 사유로 강사 신청을 반려 처리하고 목록을 다시 불러온다.
   const confirmReject = async (reason) => {
     const application = rejectTarget;
     setProcessingId(application.id);

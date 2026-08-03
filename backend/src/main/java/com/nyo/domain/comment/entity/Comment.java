@@ -19,6 +19,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+// 게시글/강의 댓글(및 대댓글) 엔티티.
 @Table(name = "comments")
 public class Comment extends BaseEntity {
 
@@ -45,6 +46,7 @@ public class Comment extends BaseEntity {
     @Column(name = "is_deleted", nullable = false)
     private Integer isDeleted;
 
+    // 게시글에 달리는 댓글(또는 대댓글)을 생성한다.
     public static Comment createForPost(Long postId, Long userId, Long parentCommentId, String content) {
         return Comment.builder()
                 .postId(postId)
@@ -55,6 +57,7 @@ public class Comment extends BaseEntity {
                 .build();
     }
 
+    // 강의에 달리는 댓글(또는 대댓글)을 생성한다.
     public static Comment createForLecture(Long lectureId, Long userId, Long parentCommentId, String content) {
         return Comment.builder()
                 .lectureId(lectureId)
@@ -65,18 +68,22 @@ public class Comment extends BaseEntity {
                 .build();
     }
 
+    // 댓글 내용을 수정한다.
     public void update(String content) {
         this.content = content;
     }
 
+    // 댓글을 소프트 삭제 처리한다.
     public void delete() {
         this.isDeleted = 1;
     }
 
+    // 삭제된 댓글을 복구한다.
     public void restore() {
         this.isDeleted = 0;
     }
 
+    // isDeleted 값이 1인지로 삭제 여부를 판단한다.
     public boolean isDeleted() {
         return Integer.valueOf(1).equals(isDeleted);
     }

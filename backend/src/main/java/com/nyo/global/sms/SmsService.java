@@ -41,6 +41,7 @@ public class SmsService {
         );
     }
 
+    // 비밀번호 재설정 인증코드를 SMS로 발송한다
     public void sendPasswordResetCode(String to, String code) {
         Message message = new Message();
         message.setFrom(senderPhone);

@@ -23,6 +23,7 @@ public class OAuth2FailureHandler implements AuthenticationFailureHandler {
     @Value("${app.oauth2.redirect-uri}")
     private String redirectUri;
 
+    // 구글 로그인 실패 사유를 쿼리 파라미터에 담아 프론트 redirect-uri로 되돌려보낸다
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
                                         AuthenticationException exception) throws IOException {

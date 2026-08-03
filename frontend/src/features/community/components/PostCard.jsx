@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import './PostCard.css';
 
+// 게시글 목록에서 썸네일/제목/작성자/조회수 등을 보여주는 카드
 function PostCard({ post }) {
   const { id, title, authorNickname, thumbnailUrl, viewCount, likeCount, notice, createdAt } = post;
 

@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+// 작성자가 노트에 태그명을 직접 입력해 추가할 때 사용하는 요청 DTO
 @Schema(description = "노트에 태그를 수동으로 추가할 때 사용하는 요청 DTO (작성자가 직접 태그명을 입력)")
 public class NoteTagCreateRequest {
 

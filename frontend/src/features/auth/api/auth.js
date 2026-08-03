@@ -1,5 +1,7 @@
 import { apiPost } from '../../../api/client';
 
+// 회원가입/로그인/아이디·비밀번호 찾기 관련 API 호출 모음
+
 // 회원가입
 export function signup(request) {
   return apiPost('/api/users/signup', request);

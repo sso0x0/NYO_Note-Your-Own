@@ -66,6 +66,7 @@ public class ChatHistory {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    // 빌더를 통해 대화 내역 엔티티를 생성하기 위한 생성자.
     @Builder
     public ChatHistory(Long userId, Long lectureId, SenderRole senderRole, String message, String recommendedLectureIds, Long rootQuestionId) {
         this.userId = userId;

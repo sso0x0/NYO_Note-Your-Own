@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Schema(description = "관리자 강의 관리 목록 응답 DTO (일반 응답에 노트/댓글 개수를 더함)")
+// 관리자 강의 관리 화면에 내려주는 응답 DTO
 public class LectureAdminResponse {
 
     @Schema(description = "강의 PK", example = "1")
@@ -90,6 +91,7 @@ public class LectureAdminResponse {
     @Schema(description = "수정일")
     private LocalDateTime updatedAt;
 
+    // 강의 엔티티와 노트/댓글 개수를 합쳐 관리자용 응답 DTO로 변환한다
     public static LectureAdminResponse from(Lecture lecture, long noteCount, long commentCount) {
         return LectureAdminResponse.builder()
                 .id(lecture.getId())

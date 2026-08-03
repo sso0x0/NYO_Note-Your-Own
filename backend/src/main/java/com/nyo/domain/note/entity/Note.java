@@ -19,6 +19,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+// notes 테이블과 매핑되는 학습 노트 엔티티
 @Table(name = "notes")
 public class Note extends BaseEntity {
 
@@ -51,6 +52,7 @@ public class Note extends BaseEntity {
     @Column(name = "is_deleted", nullable = false)
     private Integer isDeleted;
 
+    // 조회수/좋아요수 0, 미삭제 상태로 새 노트를 생성한다.
     public static Note create(Long userId, Long lectureId, String title, String content, String thumbnailUrl) {
         return Note.builder()
                 .userId(userId)
@@ -64,16 +66,19 @@ public class Note extends BaseEntity {
                 .build();
     }
 
+    // 제목/본문/썸네일을 새 값으로 교체한다.
     public void update(String title, String content, String thumbnailUrl) {
         this.title = title;
         this.content = content;
         this.thumbnailUrl = thumbnailUrl;
     }
 
+    // 소프트 삭제: row는 남기고 isDeleted만 플래그로 표시한다.
     public void delete() {
         this.isDeleted = 1;
     }
 
+    // isDeleted 컬럼(Integer) 값이 1인지로 삭제 여부를 판단한다.
     public boolean isDeleted() {
         return Integer.valueOf(1).equals(isDeleted);
     }

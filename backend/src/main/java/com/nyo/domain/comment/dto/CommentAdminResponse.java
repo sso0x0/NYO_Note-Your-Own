@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+// 관리자 댓글 관리 목록 응답 DTO.
 @Schema(description = "관리자 댓글 관리 목록 응답 DTO")
 public class CommentAdminResponse {
 

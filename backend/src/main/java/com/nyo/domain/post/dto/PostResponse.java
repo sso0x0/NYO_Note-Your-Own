@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+// 커뮤니티 게시글 응답 DTO.
 @Schema(description = "커뮤니티 게시글 응답 DTO")
 public class PostResponse {
 

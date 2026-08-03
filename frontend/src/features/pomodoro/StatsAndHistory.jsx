@@ -19,6 +19,7 @@ export default function StatsAndHistory({ refreshKey }) {
   const [localRefreshKey, setLocalRefreshKey] = useState(0)
   const [expanded, setExpanded] = useState(false)
 
+  // refreshKey/localRefreshKey가 바뀔 때마다 오늘 공부 시간과 기록 목록을 다시 불러온다.
   useEffect(() => {
     // refreshKey가 바뀌는 사이에 이전 요청이 늦게 끝나 화면을 덮어쓰지 않도록 가드
     let cancelled = false
@@ -43,18 +44,22 @@ export default function StatsAndHistory({ refreshKey }) {
     return () => { cancelled = true }
   }, [refreshKey, localRefreshKey])
 
+  // 로컬 refreshKey를 증가시켜 위 useEffect를 다시 실행시킨다 (삭제 후 목록/통계 재조회).
   const refresh = () => setLocalRefreshKey((k) => k + 1)
 
+  // 체크박스 하나를 선택/해제한다.
   const toggleOne = (id) => {
     setSelectedIds((prev) =>
         prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
     )
   }
 
+  // 전체 선택/전체 해제를 토글한다.
   const toggleAll = () => {
     setSelectedIds((prev) => (prev.length === records.length ? [] : records.map((r) => r.id)))
   }
 
+  // 선택한 기록들을 확인 후 삭제하고 목록을 새로고침한다.
   const handleDeleteSelected = async () => {
     if (selectedIds.length === 0) return
     if (!window.confirm(`선택한 ${selectedIds.length}개 기록을 삭제할까요?`)) return
@@ -70,6 +75,7 @@ export default function StatsAndHistory({ refreshKey }) {
     }
   }
 
+  // 전체 기록을 확인 후 삭제하고 목록을 새로고침한다.
   const handleDeleteAll = async () => {
     if (records.length === 0) return
     if (!window.confirm('전체 기록을 삭제할까요? 되돌릴 수 없어요.')) return

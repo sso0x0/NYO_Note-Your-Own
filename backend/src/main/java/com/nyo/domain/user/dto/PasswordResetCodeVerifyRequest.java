@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+// POST /api/users/password/verify-code 요청 바디. 최종 재설정 전에 인증코드가 맞는지 미리 확인시켜주는 용도.
 @Schema(description = "비밀번호 재설정 인증코드 확인 요청 DTO")
 public class PasswordResetCodeVerifyRequest {
 

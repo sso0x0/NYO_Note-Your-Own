@@ -11,6 +11,7 @@ const TARGET_TYPE_LABEL = {
   LECTURE: '강의',
 };
 
+// 댓글 목록 관리자 화면: 대상 유형(게시글/강의)별 필터링과 삭제/복구 처리를 담당한다.
 function AdminCommentsPage() {
   const location = useLocation();
   const [targetType, setTargetType] = useState('');
@@ -34,10 +35,12 @@ function AdminCommentsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetType]);
 
+  // 클릭한 댓글의 상세 행을 펼치거나, 이미 펼쳐져 있으면 접는다.
   const handleToggle = (commentId) => {
     setExpandedCommentId((prev) => (prev === commentId ? null : commentId));
   };
 
+  // 확인 후 댓글을 삭제하고 목록을 다시 불러온다.
   const handleDeleteComment = async (comment) => {
     if (!window.confirm('이 댓글을 삭제할까요?')) return;
     try {
@@ -48,6 +51,7 @@ function AdminCommentsPage() {
     }
   };
 
+  // 확인 후 삭제된 댓글을 복구하고 목록을 다시 불러온다.
   const handleRestoreComment = async (comment) => {
     if (!window.confirm('복구하시겠습니까?')) return;
     try {

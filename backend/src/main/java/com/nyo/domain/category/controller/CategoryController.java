@@ -13,6 +13,7 @@ import java.util.List;
 @RequestMapping("/api/categories")
 @RequiredArgsConstructor
 @Tag(name = "Category", description = "카테고리 API")
+// 카테고리 목록/단건 조회를 처리하는 컨트롤러
 public class CategoryController {
 
     private final CategoryService categoryService;

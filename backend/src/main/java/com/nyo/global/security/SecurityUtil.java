@@ -2,13 +2,14 @@ package com.nyo.global.security;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 
+// SecurityContext에 저장된 인증 정보에서 현재 로그인한 회원의 ID를 꺼내주는 유틸리티.
 public class SecurityUtil {
 
     private SecurityUtil() {
     }
 
     /**
-     * 💡 JwtAuthenticationFilter가 인증 성공 시 principal 자리에 userId(Long)를 넣어뒀기 때문에
+     * JwtAuthenticationFilter가 인증 성공 시 principal 자리에 userId(Long)를 넣어뒀기 때문에
      * 여기서 그대로 꺼내 쓸 수 있어요. (구글 로그인 콜백 시점의 principal은 CustomOAuth2User라
      * 타입이 다르지만, 그건 최초 로그인 순간 한정이고 이후 API 호출은 전부 JWT로 오기 때문에
      * 이 메서드는 일반 API 컨트롤러에서만 사용합니다.)

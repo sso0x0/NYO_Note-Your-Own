@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getLectureList, searchLectures } from '../../lecture/api/lecture';
+import { getLectureList, getPopularLectures, searchLectures } from '../../lecture/api/lecture';
 import { getCategoryList } from '../../lecture/api/category';
-import { getNoteList, getNoteListByCategory, searchNotes } from '../../note/api/note';
-import { getPostList, searchPosts } from '../../community/api/post';
+import { getNoteListByCategory, getPopularNotes, searchNotes } from '../../note/api/note';
+import { getPopularPosts, searchPosts } from '../../community/api/post';
 import LectureCard from '../../lecture/components/LectureCard';
 import NoteCard from '../../note/components/NoteCard';
 import PostCard from '../../community/components/PostCard';
@@ -89,6 +89,7 @@ function CategoryIcon({ name = '' }) {
   );
 }
 
+// 메인 페이지: 통합 검색, 카테고리 탐색, 인기 강의/노트/커뮤니티 하이라이트를 보여준다.
 function MainPage() {
   const navigate = useNavigate();
   const [keyword, setKeyword] = useState('');
@@ -116,12 +117,14 @@ function MainPage() {
   const [categoryNotes, setCategoryNotes] = useState([]);
   const [categoryStatus, setCategoryStatus] = useState('idle'); // idle | loading | success | error
 
+  // 카테고리 칩 목록을 불러온다.
   useEffect(() => {
     getCategoryList()
       .then((data) => setCategories(Array.isArray(data) ? data : []))
       .catch(() => setCategories([]));
   }, []);
 
+  // 선택한 카테고리의 인기 강의/노트를 함께 불러온다.
   useEffect(() => {
     if (!selectedCategory) return;
     let cancelled = false;
@@ -149,6 +152,7 @@ function MainPage() {
     };
   }, [selectedCategory]);
 
+  // 같은 카테고리를 다시 클릭하면 닫고, 다른 카테고리면 상세 시트를 연다.
   const handleToggleCategory = (category) => {
     setSelectedCategory((prev) => (prev?.id === category.id ? null : category));
   };
@@ -174,6 +178,7 @@ function MainPage() {
     };
   }, [isSearchTypeOpen]);
 
+  // 검색 종류를 선택하고 드롭다운을 닫는다.
   const handleSelectSearchType = (value) => {
     setSearchType(value);
     setIsSearchTypeOpen(false);
@@ -195,6 +200,7 @@ function MainPage() {
     };
   }, [selectedCategory]);
 
+  // 검색어 유무에 따라 강의/노트/커뮤니티 인기 목록 또는 검색 결과를 불러온다.
   useEffect(() => {
     let cancelled = false;
 
@@ -210,9 +216,9 @@ function MainPage() {
           searchPosts({ keyword: appliedKeyword, searchType: appliedSearchType, size: HIGHLIGHT_SIZE }),
         ]
       : [
-          getLectureList({ size: LECTURE_HIGHLIGHT_SIZE, sort: 'likeCount,desc' }),
-          getNoteList({ size: HIGHLIGHT_SIZE, sort: 'likeCount,desc' }),
-          getPostList({ size: HIGHLIGHT_SIZE, sort: 'likeCount,desc' }),
+          getPopularLectures({ size: LECTURE_HIGHLIGHT_SIZE }),
+          getPopularNotes({ size: HIGHLIGHT_SIZE }),
+          getPopularPosts({ size: HIGHLIGHT_SIZE }),
         ];
 
     Promise.all(requests)
@@ -235,12 +241,14 @@ function MainPage() {
     };
   }, [appliedKeyword, appliedSearchType]);
 
+  // 입력한 검색어와 검색 종류를 적용해 검색 결과를 조회한다.
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     setAppliedKeyword(keyword.trim());
     setAppliedSearchType(searchType);
   };
 
+  // 검색어와 검색 종류를 초기화해 인기 목록으로 되돌린다.
   const handleReset = () => {
     setKeyword('');
     setAppliedKeyword('');
@@ -345,10 +353,12 @@ function MainPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, [lectures]);
 
+  // 마우스를 올리면 인기 강의 캐러셀 자동 흐름을 멈춘다.
   const pauseLectureAutoplay = () => {
     lectureAutoplayPausedRef.current = true;
   };
 
+  // 마우스가 벗어나면 인기 강의 캐러셀 자동 흐름을 다시 시작한다.
   const resumeLectureAutoplay = () => {
     lectureAutoplayPausedRef.current = false;
   };

@@ -13,6 +13,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+// 챗봇 질의 요청 DTO.
 @Schema(description = "챗봇 질의 요청 DTO (userId는 인증 정보에서 추출, senderRole은 서버에서 'USER'로 고정)")
 public class ChatHistoryRequest {
 

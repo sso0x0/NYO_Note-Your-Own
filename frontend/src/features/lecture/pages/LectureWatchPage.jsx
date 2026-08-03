@@ -40,6 +40,7 @@ const OTHER_NOTES_PER_PAGE = 5;
 const EMPTY_HEART_IMAGE = '/images/heart.png';
 const FILLED_HEART_IMAGE = '/images/hearts.png';
 
+// 현재 페이지를 중심으로 최대 5개의 페이지 번호만 보여준다.
 const getPageNumbers = (current, totalPages) => {
     const pageWindow = 5;
     if (totalPages <= pageWindow) {
@@ -79,18 +80,19 @@ function QuestionListIcon() {
     );
 }
 
+// 노트 본문(마크다운 이미지 문법)에서 가장 먼저 나오는 이미지 URL을 뽑아낸다.
 const findFirstContentImageUrl = (content) => {
     const match = String(content ?? '').match(/!\[[^\]]*]\((https?:\/\/[^)]+)\)/);
     return match?.[1] ?? null;
 };
 
 // 유튜브 링크(watch/youtu.be/embed/shorts)에서 embed용 URL을 뽑아낸다. 유튜브가 아니면 null.
-// TODO: 추후 영상을 자체 저장 방식으로 바꾸면 이 유튜브 재생 로직 전체를 다시 확인해야 한다.
 function getYoutubeEmbedUrl(url) {
     const videoId = getYoutubeVideoId(url);
     return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
 }
 
+// 댓글 작성 시각을 "YYYY.MM.DD HH:mm" 형태의 한국어 로케일 문자열로 바꾼다.
 const formatCommentDate = (value) => {
     if (!value) return '';
     return new Intl.DateTimeFormat('ko-KR', {
@@ -102,6 +104,7 @@ const formatCommentDate = (value) => {
     }).format(new Date(value));
 };
 
+// 삭제되지 않은 댓글 수를 답글까지 재귀적으로 모두 센다.
 const countLectureComments = (items) => items.reduce(
     (total, comment) => total
         + (comment.isDeleted ? 0 : 1)
@@ -109,12 +112,14 @@ const countLectureComments = (items) => items.reduce(
     0,
 );
 
+// 댓글 입력창의 높이를 입력 내용(scrollHeight)에 맞춰 자동으로 늘려준다.
 const autoGrowCommentTextarea = (element) => {
     if (!element) return;
     element.style.height = 'auto';
     element.style.height = `${element.scrollHeight}px`;
 };
 
+// 강의 댓글 하나(및 답글 목록)를 렌더링한다. 답글 달기/수정/삭제 버튼과 인라인 수정 폼을 포함한다.
 function LectureCommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
     const [editing, setEditing] = useState(false);
     const [editContent, setEditContent] = useState(comment.content);
@@ -122,14 +127,16 @@ function LectureCommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
     const canDelete = !comment.isDeleted && (isOwner || auth?.role === 'ADMIN');
     const isEdited = !comment.isDeleted && comment.createdAt && comment.updatedAt
         && comment.createdAt !== comment.updatedAt;
+    const isWithdrawnAuthor = comment.authorNickname === '탈퇴한 사용자';
 
+    // 수정한 댓글 내용을 저장하고, 성공하면 수정 모드를 닫는다.
     const saveEdit = async () => {
         const saved = await onUpdate(comment, editContent);
         if (saved) setEditing(false);
     };
 
     return (
-        <li className={`comment-item${comment.isDeleted ? ' comment-item--deleted' : ''}`}>
+        <li className={`comment-item${comment.isDeleted ? ' comment-item--deleted' : ''}${isWithdrawnAuthor ? ' comment-item--withdrawn' : ''}`}>
             <div className="comment-item__avatar" aria-hidden="true">
                 {(comment.authorNickname || '?').charAt(0)}
             </div>
@@ -170,6 +177,8 @@ function LectureCommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
     );
 }
 
+// 강의 시청 페이지: 영상 재생, 노트 작성/AI 태그, 다른 학습자 노트·댓글, 임베드된 뽀모도로 타이머와
+// 학습용 챗봇을 한 화면에서 관리한다. 수강신청을 하지 않았으면 status가 'locked'로 막힌다.
 function LectureWatchPage() {
     const { id } = useParams();
     const lectureId = Number(id);
@@ -224,6 +233,8 @@ function LectureWatchPage() {
     const [commentMessage, setCommentMessage] = useState('');
     const [commentSaving, setCommentSaving] = useState(false);
 
+    // 강의 id가 바뀔 때마다 조회수를 올리고 강의/수강신청 여부/좋아요 여부를 함께 불러온다.
+    // 수강신청이 되어있지 않으면 status를 'locked'로 만들어 시청 화면을 막는다.
     useEffect(() => {
         let cancelled = false;
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -257,6 +268,7 @@ function LectureWatchPage() {
         };
     }, [id]);
 
+    // 강의 좋아요를 토글하고, 서버 재조회 없이 화면의 likeCount도 낙관적으로 함께 바꾼다.
     const handleToggleLectureLike = async () => {
         if (likeLoading) return;
         setLikeLoading(true);
@@ -281,6 +293,7 @@ function LectureWatchPage() {
         }
     };
 
+    // 이 강의의 노트 목록을 불러오고, 그중 내 노트가 있으면 폼을 그 내용으로 채워 수정 모드로 만든다.
     const loadNotes = useCallback(async () => {
         try {
             const list = await getNotesByLecture(id);
@@ -296,11 +309,13 @@ function LectureWatchPage() {
         }
     }, [id, auth?.userId]);
 
+    // 강의(및 내 계정)가 바뀔 때마다 노트 목록을 다시 불러온다.
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         loadNotes();
     }, [loadNotes]);
 
+    // 노트에 달린 태그 목록을 불러온다 (noteId가 없으면 빈 목록으로 초기화).
     const loadTags = useCallback(async (noteId) => {
         if (!noteId) {
             setTags([]);
@@ -314,12 +329,14 @@ function LectureWatchPage() {
         }
     }, []);
 
+    // 내 노트가 바뀔 때마다(저장 등으로 id가 바뀌면) 태그 목록을 다시 불러온다.
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setTagError(null);
         loadTags(myNote?.id);
     }, [myNote?.id, loadTags]);
 
+    // AI에게 지금 노트 내용을 바탕으로 태그를 새로 생성해달라고 요청한다.
     const handleGenerateTags = async () => {
         if (!myNote || tagGenerating) return;
         setTagGenerating(true);
@@ -378,6 +395,7 @@ function LectureWatchPage() {
     // "이번에 페이지를 들어온 뒤로 물어본 것"만 걸러서 보여준다 (마이페이지 챗봇 기록과는 별개).
     const askedQuestions = chatMessages.filter((message) => message.senderRole === 'USER');
 
+    // 새 메시지가 쌓일 때마다 챗봇 대화창을 맨 아래로 스크롤한다.
     useEffect(() => {
         // AI 답변이 추가돼도 페이지 전체는 움직이지 않고 챗봇 대화창 내부만 아래로 이동한다.
         const chatContainer = chatMessagesRef.current;
@@ -399,6 +417,7 @@ function LectureWatchPage() {
         }
     };
 
+    // 이 강의의 댓글 목록을 불러오고, 더보기 노출 개수를 처음 10개로 초기화한다.
     const loadComments = useCallback(async () => {
         try {
             const list = await getLectureComments(lectureId);
@@ -409,18 +428,22 @@ function LectureWatchPage() {
         }
     }, [lectureId]);
 
+    // 강의가 바뀔 때마다 댓글 목록을 다시 불러온다.
     useEffect(() => {
         loadComments();
     }, [loadComments]);
 
+    // 답글 대상 댓글을 지정하고 입력창을 비운다.
     const selectCommentReplyTarget = (comment) => {
         setCommentForm((prev) => ({ ...prev, parentCommentId: comment.id, content: '' }));
     };
 
+    // 답글 작성을 취소하고 일반 댓글 작성 상태로 되돌린다.
     const cancelCommentReply = () => {
         setCommentForm((prev) => ({ ...prev, parentCommentId: null }));
     };
 
+    // 댓글(또는 답글)을 등록하고 폼을 비운 뒤 목록을 새로고침한다.
     const handleCreateComment = async (event) => {
         event.preventDefault();
         if (!commentForm.content.trim()) {
@@ -445,6 +468,7 @@ function LectureWatchPage() {
         }
     };
 
+    // 댓글 내용을 수정하고 목록을 새로고침한다. 성공 여부를 반환해 호출부(수정 폼)가 닫힐지 결정한다.
     const handleUpdateComment = async (comment, content) => {
         if (!content.trim()) {
             setCommentMessage('댓글 내용을 입력해 주세요.');
@@ -464,6 +488,7 @@ function LectureWatchPage() {
         }
     };
 
+    // 확인 후 댓글을 삭제하고 목록을 새로고침한다.
     const handleDeleteComment = async (comment) => {
         if (!window.confirm('댓글을 삭제할까요?')) return;
         try {
@@ -474,11 +499,13 @@ function LectureWatchPage() {
         }
     };
 
+    // 노트 본문 에디터의 커서 위치에 빈 코드블럭 템플릿을 삽입한다.
     const insertCodeBlock = () => {
         const codeBlock = '\n```\n// 코드를 입력하세요\n```\n';
         contentRef.current?.insertCodeBlock(codeBlock);
     };
 
+    // 노트에 첨부할 이미지 파일을 서버에 업로드하고 저장된 URL 등의 정보를 받아온다.
     const uploadImage = async (file) => {
         // 이미지 파일은 JSON이 아니라 multipart/form-data로 백엔드에 보낸다.
         const formData = new FormData();
@@ -497,6 +524,7 @@ function LectureWatchPage() {
         return response.json();
     };
 
+    // 이미지 파일 선택 시 에디터 커서 위치에 미리보기를 넣어둔다 (실제 업로드는 저장 시점에 처리).
     const handleContentImageChange = (event) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -508,15 +536,19 @@ function LectureWatchPage() {
         event.target.value = '';
     };
 
+    // 선택한 글자에 지정한 색상을 적용한다.
     const applyTextColor = (color) => {
         // 선택한 글자는 에디터에서 즉시 색으로 보이고 저장할 때 본문 색상 코드로 직렬화됩니다.
         contentRef.current?.applyColor(color);
     };
 
+    // 선택한 글자에 볼드/밑줄 등 서식을 적용한다.
     const applyTextStyle = (styleName) => {
         contentRef.current?.applyTextStyle(styleName);
     };
 
+    // 노트를 저장(신규 작성 또는 기존 수정)한다. 대기 중인 이미지들을 먼저 업로드하고,
+    // 본문 속 첫 이미지를 대표 썸네일로 사용한다.
     const handleSaveNote = async (event) => {
         event.preventDefault();
         if (saving) return;
@@ -576,6 +608,8 @@ function LectureWatchPage() {
         }
     };
 
+    // 학습용 챗봇에 질문을 보내고 답변을 대화 목록에 이어붙인다. 같은 강의를 보는 동안은
+    // rootQuestionIdRef로 이어서 물어본 질문들을 하나의 대화로 묶는다.
     const handleChatSend = async (message) => {
         setChatError(null);
         setChatSending(true);

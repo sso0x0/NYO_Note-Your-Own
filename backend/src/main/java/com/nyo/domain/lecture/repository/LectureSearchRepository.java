@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.annotations.Query;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 
+// Elasticsearch에 색인된 강의 문서(LectureDocument)에 대한 검색용 레포지토리
 public interface LectureSearchRepository extends ElasticsearchRepository<LectureDocument, Long> {
 
     // 제목/강사명/설명에 대한 멀티매치 검색 (제목 가중치 3배, 강사명 2배).
@@ -23,16 +24,19 @@ public interface LectureSearchRepository extends ElasticsearchRepository<Lecture
             """)
     Page<LectureDocument> searchByKeyword(String keyword, Pageable pageable);
 
+    // 제목만 대상으로 하는 검색 (자동완성 등에 쓰이는 bool_prefix 타입 매치)
     @Query(""" 
             { "multi_match": { "query": "?0", "fields": ["title^3"], "type": "bool_prefix" } }
             """)
     Page<LectureDocument> searchByTitle(String keyword, Pageable pageable);
 
+    // 설명만 대상으로 하는 검색
     @Query("""
             { "multi_match": { "query": "?0", "fields": ["description"], "type": "bool_prefix" } }
             """)
     Page<LectureDocument> searchByContent(String keyword, Pageable pageable);
 
+    // 강사명만 대상으로 하는 검색
     @Query("""
             { "multi_match": { "query": "?0", "fields": ["instructor^2"], "type": "bool_prefix" } }
             """)

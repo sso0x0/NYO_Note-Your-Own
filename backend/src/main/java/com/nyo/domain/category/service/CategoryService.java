@@ -4,6 +4,7 @@ import com.nyo.domain.category.dto.CategoryResponse;
 
 import java.util.List;
 
+// 카테고리 조회 기능을 정의하는 서비스 인터페이스
 public interface CategoryService {
 
     // 전체 카테고리 조회

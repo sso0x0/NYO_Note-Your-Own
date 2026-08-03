@@ -34,6 +34,7 @@ function getPageNumbers(current, totalPages) {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 }
 
+// 강의 목록 페이지: 카테고리 필터/검색/정렬 조건에 따라 강의를 조회하고 페이지네이션으로 보여준다.
 function LectureListPage() {
   const [categories, setCategories] = useState([]);
   const [categoryId, setCategoryId] = useState(null); // null = 전체
@@ -52,12 +53,14 @@ function LectureListPage() {
   const [isSearchTypeOpen, setIsSearchTypeOpen] = useState(false);
   const searchTypeRef = useRef(null);
 
+  // 카테고리 필터 목록은 처음 한 번만 불러온다.
   useEffect(() => {
     getCategoryList()
       .then(setCategories)
       .catch(() => setCategories([]));
   }, []);
 
+  // 페이지/카테고리/정렬/검색 조건이 바뀔 때마다 목록 또는 검색 결과를 다시 조회한다.
   useEffect(() => {
     let cancelled = false;
 
@@ -92,6 +95,7 @@ function LectureListPage() {
     };
   }, [page, categoryId, sort, appliedKeyword, appliedSearchType]);
 
+  // 검색어/검색 종류를 실제 조회 조건으로 반영하고 첫 페이지로 되돌린다.
   const handleSearch = (event) => {
     event.preventDefault();
     setAppliedKeyword(keyword.trim());
@@ -99,12 +103,14 @@ function LectureListPage() {
     setPage(0);
   };
 
+  // 검색 조건을 모두 지우고 일반 목록 조회로 되돌아간다.
   const clearSearch = () => {
     setKeyword('');
     setAppliedKeyword('');
     setPage(0);
   };
 
+  // 검색 종류 드롭다운을 바깥 클릭 또는 ESC로 닫는다.
   useEffect(() => {
     if (!isSearchTypeOpen) return undefined;
 
@@ -122,11 +128,13 @@ function LectureListPage() {
     };
   }, [isSearchTypeOpen]);
 
+  // 카테고리 필터를 선택하고 첫 페이지로 되돌린다.
   const handleSelectCategory = (id) => {
     setCategoryId(id);
     setPage(0);
   };
 
+  // 정렬 기준을 선택하고 첫 페이지로 되돌린 뒤 드롭다운을 닫는다.
   const handleSelectSort = (value) => {
     setSort(value);
     setPage(0);

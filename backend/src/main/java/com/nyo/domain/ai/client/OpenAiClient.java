@@ -36,6 +36,7 @@ public class OpenAiClient {
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
+    // API 키/모델 값을 주입받아 OpenAI 호출용 RestClient를 초기화한다.
     public OpenAiClient(@Value("${openai.api-key:}") String apiKey,
                         @Value("${openai.model:gpt-4o}") String model) {
         this.restClient = RestClient.builder()
@@ -45,11 +46,6 @@ public class OpenAiClient {
         this.model = model;
         this.apiKey = apiKey;
     }
-
-
-
-
-
     
     /**
      * JSON 형식 응답을 강제(response_format: json_object)하여 질의합니다.
@@ -69,6 +65,7 @@ public class OpenAiClient {
         return chat(messages, false);
     }
 
+    // 공용 채팅 완료 호출. jsonMode면 응답 형식을 JSON 객체로 강제한다.
     private String chat(List<Map<String, String>> messages, boolean jsonMode) {
         Map<String, Object> body = Map.of(
                 "model", model,

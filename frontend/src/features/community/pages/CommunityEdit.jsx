@@ -8,6 +8,7 @@ import { useAuth } from '../../../context/AuthContext'
 import RichTextEditor from '../../../components/RichTextEditor'
 import { storeMainImageWidth } from '../../../utils/mainImage'
 
+// 게시글 수정 폼: 기존 게시글을 불러와 채운 뒤 수정 내용을 저장한다.
 function CommunityEdit({ postId, onBack, onSaved }) {
   const { auth } = useAuth()
   const [form, setForm] = useState({
@@ -21,6 +22,7 @@ function CommunityEdit({ postId, onBack, onSaved }) {
   const [canCreateNotice, setCanCreateNotice] = useState(false)
   const contentRef = useRef(null)
 
+  // 기존 게시글 정보를 불러와 폼을 채우고, 공지 작성 권한도 함께 확인한다.
   useEffect(() => {
     const loadPost = async () => {
       setLoading(true)
@@ -56,6 +58,7 @@ function CommunityEdit({ postId, onBack, onSaved }) {
     loadPost()
   }, [postId, auth.accessToken])
 
+  // 입력 필드 값 변경을 폼 상태에 반영한다 (체크박스는 checked, 그 외는 value 사용).
   const handleChange = (event) => {
     const { name, value, checked, type } = event.target
     setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
@@ -80,6 +83,7 @@ function CommunityEdit({ postId, onBack, onSaved }) {
     return imageInfo
   }
 
+  // 이미지 파일을 선택하면 임시 첨부 목록에 추가하고 에디터 커서 위치에 미리보기를 삽입한다.
   const handleContentImageChange = (event) => {
     const file = event.target.files?.[0]
     if (!file) {
@@ -93,6 +97,7 @@ function CommunityEdit({ postId, onBack, onSaved }) {
     event.target.value = ''
   }
 
+  // 본문 이미지를 업로드하고 수정 내용을 서버에 전송해 게시글을 갱신한다.
   const updatePost = async (event) => {
     event.preventDefault()
     // React가 버튼을 다시 그리기 전 발생할 수 있는 연속 제출도 함수 입구에서 차단합니다.

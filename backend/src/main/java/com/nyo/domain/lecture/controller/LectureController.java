@@ -53,6 +53,15 @@ public class LectureController {
         return ApiResponse.ok(lectureService.getLectureListByCategory(categoryId, pageable));
     }
 
+    // 메인 페이지 "인기 강의" 목록 조회 (좋아요*5 + 조회수 가중치 점수 내림차순)
+    @Operation(summary = "인기 강의 목록 조회", description = "좋아요*5 + 조회수 가중치 점수를 기준으로 상위 강의를 조회합니다.")
+    @GetMapping("/popular")
+    public ApiResponse<Page<LectureResponse>> getPopularLectures(
+            @PageableDefault(size = 10) Pageable pageable) {
+        warnIfPageSizeExceeded(pageable);
+        return ApiResponse.ok(lectureService.getPopularLectures(pageable));
+    }
+
     // 강의 검색 (제목/강사명/설명 대상, Elasticsearch 기반)
     @Operation(summary = "강의 검색", description = "키워드로 강의 제목/강사명/설명을 검색합니다.")
     @GetMapping("/search")

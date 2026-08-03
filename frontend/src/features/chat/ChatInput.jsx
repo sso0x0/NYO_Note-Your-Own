@@ -33,6 +33,7 @@ export default function ChatInput({ sending, onSend }) {
     el.style.height = `${Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT)}px`
   }, [input])
 
+  // 입력값을 비우고 부모의 onSend로 실제 전송을 넘긴다 (빈 값·전송 중에는 무시).
   const submit = () => {
     const message = input.trim()
     if (!message || sending) return
@@ -40,11 +41,13 @@ export default function ChatInput({ sending, onSend }) {
     onSend(message)
   }
 
+  // 폼 제출(전송 버튼 클릭)을 가로채 페이지 새로고침 없이 submit()을 실행한다.
   const handleSubmit = (e) => {
     e.preventDefault()
     submit()
   }
 
+  // Enter는 전송, Shift+Enter는 줄바꿈. 한글 등 조합 입력 중인 Enter는 무시한다.
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault()

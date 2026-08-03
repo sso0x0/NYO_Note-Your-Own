@@ -1,3 +1,4 @@
+// 앱 전체 라우트 정의: 공개 페이지(랜딩/로그인/회원가입)와 로그인 필요 페이지(/main, /admin)를 나눠 연결한다.
 import { Route, Routes } from 'react-router-dom';
 import LandingPage from './features/landing/pages/LandingPage';
 import LoginPage from './features/auth/pages/LoginPage';

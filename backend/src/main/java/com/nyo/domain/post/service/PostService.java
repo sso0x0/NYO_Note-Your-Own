@@ -44,6 +44,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 
+// 커뮤니티 게시글 CRUD, 검색, 좋아요/조회수, 관리자 기능을 담당하는 서비스.
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -62,6 +63,7 @@ public class PostService {
     private final JdbcTemplate jdbcTemplate;
     private final UserService userService;
 
+    // 게시글을 작성하고 이미지/검색 색인까지 함께 반영한다.
     @Transactional
     public PostResponse create(Long userId, PostRequest request) {
         boolean notice = Boolean.TRUE.equals(request.getNotice());
@@ -159,6 +161,7 @@ public class PostService {
         postSearchRepository.saveAll(documents);
     }
 
+    // 게시글 목록을 조회한다 (noticeOnly면 공지만, 아니면 최신 공지 3개 + 일반 게시글 페이지를 함께 반환).
     public PostPageResponse findAll(Pageable pageable, boolean noticeOnly) {
         if (noticeOnly) {
             // 공지만 보기: 클라이언트 정렬값과 관계없이 최종수정일 내림차순을 서버에서 강제한다.
@@ -183,6 +186,12 @@ public class PostService {
         return PostPageResponse.of(latestNotices, normalPage);
     }
 
+    // 메인 페이지 "커뮤니티" 인기 목록 조회 (좋아요*5 + 조회수 가중치 점수 내림차순, 공지 제외)
+    public PageResponse<PostResponse> getPopular(Pageable pageable) {
+        return toPageResponse(postRepository.findPopular(pageable));
+    }
+
+    // 게시글 상세를 조회한다.
     public PostResponse findOne(Long postId) {
         return toResponse(getPost(postId));
     }
@@ -198,15 +207,18 @@ public class PostService {
         return posts.map(post -> toAdminResponse(post, usersById));
     }
 
+    // 현재 사용자가 해당 게시글에 좋아요를 눌렀는지 확인한다.
     public boolean isLiked(Long postId, Long userId) {
         getPost(postId);
         return likeService.isLiked(userId, "POST", postId);
     }
 
+    // 공지 게시글 작성 권한(관리자 여부)을 확인한다.
     public boolean canCreateNotice(Long userId) {
         return isAdmin(userId);
     }
 
+    // 게시글 조회수를 증가시킨다 (중복 조회는 건너뜀).
     @Transactional
     public void increaseViewCount(Long postId, Long userId) {
         getPost(postId);
@@ -223,6 +235,7 @@ public class PostService {
         }
     }
 
+    // 게시글에 좋아요를 등록한다.
     @Transactional
     public void likePost(Long postId, Long userId) {
         getPost(postId);
@@ -236,6 +249,7 @@ public class PostService {
         postRepository.increaseLikeCountOnly(postId);
     }
 
+    // 게시글 좋아요를 취소한다.
     @Transactional
     public void unlikePost(Long postId, Long userId) {
         getPost(postId);
@@ -249,6 +263,7 @@ public class PostService {
         postRepository.decreaseLikeCountOnly(postId);
     }
 
+    // 게시글을 수정한다 (작성자 본인만 가능, 이미지/검색 색인도 함께 갱신).
     @Transactional
     public PostResponse update(Long postId, Long userId, PostRequest request) {
         Post post = getPost(postId);
@@ -274,6 +289,7 @@ public class PostService {
         return toResponse(post);
     }
 
+    // 게시글을 소프트 삭제한다 (작성자 본인 또는 관리자만 가능).
     @Transactional
     public void delete(Long postId, Long userId) {
         Post post = getPost(postId);
@@ -290,6 +306,7 @@ public class PostService {
         deindexPost(postId); // 검색 결과에서도 제외 (공지가 아니었다면 원래 있던 것만 지워짐)
     }
 
+    // 삭제된 게시글을 복구한다 (관리자 전용).
     @Transactional
     public void adminRestore(Long postId) {
         Post post = postRepository.findById(postId)
@@ -320,11 +337,13 @@ public class PostService {
         }
     }
 
+    // 삭제되지 않은 게시글을 조회하고 없으면 예외를 던진다.
     private Post getPost(Long postId) {
         return postRepository.findByIdAndIsDeleted(postId, 0)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
     }
 
+    // 사용자의 현재 DB 권한이 ADMIN인지 조회해 확인한다.
     private boolean isAdmin(Long userId) {
         try {
             String role = jdbcTemplate.queryForObject(
@@ -338,10 +357,12 @@ public class PostService {
         }
     }
 
+    // 작성자 닉네임을 조회해 채운 뒤 응답 DTO로 변환한다.
     private PostResponse toResponse(Post post) {
         return toResponse(post, userService.getDisplayNickname(post.getUserId()));
     }
 
+    // 게시글 엔티티를 응답 DTO로 변환한다.
     private PostResponse toResponse(Post post, String authorNickname) {
         return PostResponse.builder()
                 .id(post.getId())
@@ -361,6 +382,7 @@ public class PostService {
                 .build();
     }
 
+    // 게시글 엔티티와 작성자 정보를 묶어 관리자 응답 DTO로 변환한다.
     private PostAdminResponse toAdminResponse(Post post, Map<Long, UserResponse> usersById) {
         UserResponse author = usersById.get(post.getUserId());
         return PostAdminResponse.builder()
@@ -384,6 +406,7 @@ public class PostService {
                 .build();
     }
 
+    // 게시글 목록을 응답 DTO 목록으로 변환한다.
     private List<PostResponse> toResponseList(List<Post> posts) {
         // 게시글 nickname 표시: 페이지 작성자를 한 번에 조회해 반복 사용자 쿼리를 방지한다.
         Map<Long, String> nicknames = userService.getDisplayNicknames(
@@ -394,6 +417,7 @@ public class PostService {
                 .toList();
     }
 
+    // 게시글 페이지를 응답 DTO 페이지로 변환한다.
     private PageResponse<PostResponse> toPageResponse(Page<Post> posts) {
         Map<Long, String> nicknames = userService.getDisplayNicknames(
                 posts.getContent().stream().map(Post::getUserId).distinct().toList()
@@ -403,6 +427,7 @@ public class PostService {
         ));
     }
 
+    // 게시글 대표 이미지 정보를 images 테이블에 저장한다.
     private void savePostImage(Long postId, String imageUrl, String originalName, Long fileSize) {
         // 이미지가 없는 게시글이면 images 테이블에는 저장하지 않는다.
         if (imageUrl == null || imageUrl.isBlank()) {
@@ -413,6 +438,7 @@ public class PostService {
         imageRepository.save(Image.createForPost(postId, imageUrl, originalName, fileSize));
     }
 
+    // 게시글 수정 시 대표 이미지가 바뀐 경우에만 기존 이미지를 삭제하고 새 이미지를 저장한다.
     private void saveChangedPostImage(Long postId, String previousImageUrl, PostRequest request) {
         String newImageUrl = request.getThumbnailUrl();
         if (newImageUrl == null || newImageUrl.isBlank()
@@ -425,6 +451,7 @@ public class PostService {
         imageRepository.save(Image.createForPost(postId, newImageUrl, request.getImageOriginalName(), request.getImageFileSize()));
     }
 
+    // 게시글 본문에 삽입된 이미지들을 순서와 함께 저장한다.
     private void savePostContentImages(Long postId, List<ImageRequest> contentImages) {
         if (contentImages == null || contentImages.isEmpty()) {
             return;
@@ -447,6 +474,7 @@ public class PostService {
         }
     }
 
+    // 지정된 이미지 URL 하나를 GCS와 images 테이블에서 삭제한다.
     private void deletePostImageUrl(Long postId, String imageUrl) {
         if (imageUrl == null || imageUrl.isBlank()) {
             return;
@@ -466,6 +494,7 @@ public class PostService {
         return fragmentIndex >= 0 ? imageUrl.substring(0, fragmentIndex) : imageUrl;
     }
 
+    // 게시글에 연결된 모든 이미지(대표 이미지 포함)를 GCS와 DB에서 삭제한다.
     private void deletePostImages(Long postId, String thumbnailUrl) {
         List<Image> images = imageRepository.findByPostId(postId);
         Set<String> imageUrls = new LinkedHashSet<>();

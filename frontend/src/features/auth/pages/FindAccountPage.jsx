@@ -52,11 +52,13 @@ function FindIdForm() {
     const [result, setResult] = useState(null);
     const [submitting, setSubmitting] = useState(false);
 
+    // 입력 필드 값을 폼 상태에 반영한다.
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
     };
 
+    // 이름+이메일로 아이디 찾기 요청을 보내고 마스킹된 아이디를 결과로 표시한다.
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
@@ -155,6 +157,7 @@ function ResetPasswordForm() {
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+    // 입력 필드 값을 폼 상태에 반영한다.
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));

@@ -35,6 +35,7 @@ public class NoteTag {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    // 복합 PK를 조립하고, isAiGenerated가 null이면 false(수동 추가)로 기본값 처리한다
     @Builder
     public NoteTag(Long noteId, Long tagId, Boolean isAiGenerated) {
         this.id = new NoteTagId(noteId, tagId);

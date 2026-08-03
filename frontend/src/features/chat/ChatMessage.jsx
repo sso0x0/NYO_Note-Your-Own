@@ -13,6 +13,7 @@ export function SmileIcon() {
   )
 }
 
+// 복사 아이콘.
 function CopyIcon() {
   return (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
@@ -23,6 +24,7 @@ function CopyIcon() {
   )
 }
 
+// 복사 완료 후 잠깐 보여주는 체크 아이콘.
 function CheckIcon() {
   return (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -36,6 +38,7 @@ function CheckIcon() {
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false)
 
+  // 답변 텍스트를 클립보드에 복사하고, 잠깐 동안 체크 아이콘으로 바꿔 보여준다.
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(text)

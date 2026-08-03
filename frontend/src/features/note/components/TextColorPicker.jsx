@@ -1,14 +1,17 @@
 import { useState } from 'react'
 
+// 노트 에디터 툴바에서 쓰는 글자색 선택 팔레트. 미리 정한 색상 또는 직접 선택한 색상을 적용한다.
 const PRESET_COLORS = [
   '#000000', '#424242', '#757575', '#d32f2f', '#f57c00',
   '#fbc02d', '#388e3c', '#1976d2', '#7b1fa2', '#e91e63',
 ]
 
+// 팔레트 토글/선택 상태를 관리하고 프리셋 색상 또는 직접 선택한 색상을 적용한다.
 function TextColorPicker({ value, onChange, onApply }) {
   const [open, setOpen] = useState(false)
   const [draftColor, setDraftColor] = useState(value)
 
+  // 프리셋 또는 직접 선택한 색상을 임시 선택값으로 반영하고 상위에 변경을 알린다.
   const selectColor = (color) => {
     setDraftColor(color)
     onChange(color)

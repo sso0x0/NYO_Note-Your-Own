@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Schema(description = "카테고리 응답 DTO")
+// 카테고리 조회 응답으로 내려주는 DTO
 public class CategoryResponse {
 
     @Schema(description = "카테고리 PK", example = "1")

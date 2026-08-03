@@ -6,6 +6,7 @@ import eyeOpenIcon from '../../../assets/images/eye.png';
 import eyeCloseIcon from '../../../assets/images/eye_close.png';
 import './AuthPage.css';
 
+// 비밀번호 표시/숨김 상태에 따라 눈 아이콘 이미지를 바꿔 보여준다.
 function EyeIcon({ open }) {
   return <img src={open ? eyeOpenIcon : eyeCloseIcon} alt="" width="20" height="20" />;
 }
@@ -82,6 +83,7 @@ function SignupPage() {
   // 이름에 해당하는 validators[name]을 최신 form 값으로 실행하는 헬퍼
   const runValidator = (name, nextForm) => validators[name](nextForm[name], nextForm);
 
+  // 입력 필드 값을 폼 상태에 반영하고, 이미 blur된 필드는 즉시 재검증한다.
   const handleChange = (e) => {
     const { name, value } = e.target;
     const nextForm = { ...form, [name]: value };
@@ -100,12 +102,14 @@ function SignupPage() {
     });
   };
 
+  // 필드에서 포커스가 벗어나면 해당 필드를 touched로 표시하고 검증한다.
   const handleBlur = (e) => {
     const { name } = e.target;
     setTouched((prev) => ({ ...prev, [name]: true }));
     setFieldErrors((prev) => ({ ...prev, [name]: runValidator(name, form) }));
   };
 
+  // 제출 전 모든 필드를 한 번에 검증하고 통과 여부를 반환한다.
   const validateAll = () => {
     const nextErrors = {};
     Object.keys(validators).forEach((name) => {
@@ -116,6 +120,7 @@ function SignupPage() {
     return Object.values(nextErrors).every((msg) => !msg);
   };
 
+  // 전체 검증 통과 시 회원가입 API를 호출하고 성공하면 로그인 페이지로 이동한다.
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -268,7 +273,7 @@ function SignupPage() {
                     id="email"
                     name="email"
                     type="email"
-                    placeholder="nyo@example.com"   // ← 추가
+                    placeholder="nyo@example.com"
                     autoComplete="email"
                     value={form.email}
                     onChange={handleChange}

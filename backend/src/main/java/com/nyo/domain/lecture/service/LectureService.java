@@ -7,6 +7,7 @@ import com.nyo.domain.lecture.entity.LectureStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+// 강의 CRUD, 승인/반려, 좋아요·수강신청, 인기 강의 갱신, 검색 등을 정의하는 서비스 인터페이스
 public interface LectureService {
 
     // 새로운 강의 등록 (관리자만 가능, 즉시 승인 상태로 공개)
@@ -26,6 +27,9 @@ public interface LectureService {
 
     // 전체 강의 목록 조회 (페이징, 승인된 강의만)
     Page<LectureResponse> getLectureList(Pageable pageable);
+
+    // 메인 페이지 "인기 강의" 목록 조회 (좋아요*5 + 조회수 가중치 점수 내림차순)
+    Page<LectureResponse> getPopularLectures(Pageable pageable);
 
     // 관리자 강의 관리 목록 조회 (노트/댓글 개수 포함, 페이징). categoryId/status가 null이면 필터하지 않는다.
     Page<LectureAdminResponse> adminGetLectureList(Long categoryId, LectureStatus status, Pageable pageable);

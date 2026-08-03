@@ -29,7 +29,7 @@ public class AdminUserController {
 
     private final UserService userService;
 
-    // 💡 회원 목록 조회 (페이징) - 기본 20개씩
+    // 회원 목록 조회 (페이징) - 기본 20개씩
     @Operation(summary = "회원 목록 조회")
     @GetMapping
     public ApiResponse<Page<UserResponse>> getUserList(
@@ -38,14 +38,14 @@ public class AdminUserController {
         return ApiResponse.ok(userService.adminGetUserList(pageable));
     }
 
-    // 💡 회원 상세 조회 (탈퇴 회원도 조회 가능해야 해서 마이페이지용 조회와 분리)
+    // 회원 상세 조회 (탈퇴 회원도 조회 가능해야 해서 마이페이지용 조회와 분리)
     @Operation(summary = "회원 상세 조회")
     @GetMapping("/{userId}")
     public ApiResponse<UserResponse> getUser(@PathVariable Long userId) {
         return ApiResponse.ok(userService.adminGetUser(userId));
     }
 
-    // 💡 권한 변경 (USER ↔ ADMIN) - 자기 자신 강등 방지를 위해 adminId도 함께 전달
+    // 권한 변경 (USER ↔ ADMIN) - 자기 자신 강등 방지를 위해 adminId도 함께 전달
     @Operation(summary = "회원 권한 변경")
     @PatchMapping("/{userId}/role")
     public ApiResponse<UserResponse> changeRole(@PathVariable Long userId,
@@ -54,7 +54,7 @@ public class AdminUserController {
         return ApiResponse.ok(userService.adminChangeRole(adminId, userId, request.getRole()));
     }
 
-    // 💡 제재 등록 (경고/정지/강제탈퇴) - adminId는 요청 바디가 아니라 로그인 토큰에서 추출
+    // 제재 등록 (경고/정지/강제탈퇴) - adminId는 요청 바디가 아니라 로그인 토큰에서 추출
     @Operation(summary = "회원 제재 등록")
     @PostMapping("/sanctions")
     public ApiResponse<UserSanctionResponse> sanctionUser(@Valid @RequestBody UserSanctionRequest request) {
@@ -62,7 +62,7 @@ public class AdminUserController {
         return ApiResponse.ok(userService.adminSanctionUser(adminId, request));
     }
 
-    // 💡 특정 회원의 제재 이력 조회
+    // 특정 회원의 제재 이력 조회
     @Operation(summary = "회원 제재 이력 조회")
     @GetMapping("/{userId}/sanctions")
     public ApiResponse<List<UserSanctionResponse>> getSanctionHistory(@PathVariable Long userId) {

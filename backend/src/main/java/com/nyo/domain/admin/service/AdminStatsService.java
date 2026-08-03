@@ -27,6 +27,7 @@ public class AdminStatsService {
     private static final int MAX_DAYS = 365;
     private static final int MAX_LIMIT = 50;
 
+    // 전체 회원/강의/노트/게시글 수를 한 번의 쿼리로 집계해 요약 응답으로 반환
     public AdminSummaryResponse getSummary() {
         return jdbcTemplate.queryForObject("""
                         SELECT
@@ -44,6 +45,7 @@ public class AdminStatsService {
                         .build());
     }
 
+    // 좋아요수/조회수 기준 상위 강의 인기도 목록 조회 (limit은 1~MAX_LIMIT 범위로 보정)
     public List<LecturePopularityResponse> getLecturePopularity(int limit) {
         int size = Math.min(Math.max(limit, 1), MAX_LIMIT);
         return jdbcTemplate.query("""

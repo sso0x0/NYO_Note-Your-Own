@@ -276,9 +276,10 @@
 .admin-table--post th:nth-child(3),
 .admin-table--post td:nth-child(3) {
   width: 140px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   text-align: left;
-  /* 셀 배경은 움직이지 않고 작성자 글자만 왼쪽으로 30px 이동한다. */
-  text-indent: -30px;
 }
 
 .admin-table--post th:nth-child(4),
@@ -303,14 +304,15 @@
 }
 
 .admin-table--note {
-
-  table-layout: auto;
+  table-layout: fixed;
 }
 
 .admin-table--note th:nth-child(3),
 .admin-table--note td:nth-child(3) {
-  min-width: 135px;
+  width: 200px;
+  overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
   /* 셀 배경은 움직이지 않고 강의 글자만 오른쪽으로 60px 이동한다. */
   text-indent: 60px;
 }
@@ -318,9 +320,10 @@
 .admin-table--note th:nth-child(4),
 .admin-table--note td:nth-child(4) {
   width: 150px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   text-align: left;
-  /* 셀 배경은 움직이지 않고 작성자 글자만 왼쪽으로 10px 이동한다. */
-  text-indent: -10px;
 }
 
 .admin-table--note th:nth-child(5),
@@ -350,10 +353,13 @@
   table-layout: fixed;
 }
 
-/* 화면이 좁아져도 강의 관리의 열 제목과 값이 서로 겹치지 않게 한 줄을 유지한다. */
+/* 화면이 좁아져도 강의 관리의 열 제목과 값이 서로 겹치지 않게 한 줄을 유지하고,
+   폭보다 긴 내용은 다음 열을 침범하지 않도록 말줄임 처리한다. */
 .admin-table--lecture th,
 .admin-table--lecture td {
+  overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .admin-table--lecture th:nth-child(2),

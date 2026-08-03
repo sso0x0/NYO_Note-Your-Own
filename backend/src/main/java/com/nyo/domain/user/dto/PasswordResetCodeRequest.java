@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+// POST /api/users/password/send-code 요청 바디. 아이디+휴대폰 번호가 일치하는 회원에게 SMS 인증코드를 발송한다.
 @Schema(description = "비밀번호 재설정 인증코드 발송 요청 DTO")
 public class PasswordResetCodeRequest {
 

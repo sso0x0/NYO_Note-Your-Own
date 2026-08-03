@@ -9,14 +9,17 @@ package com.nyo.global.response;
  */
 public record ApiResponse<T>(boolean success, T data, String message) {
 
+    // 데이터를 담은 성공 응답을 생성한다
     public static <T> ApiResponse<T> ok(T data) {
         return new ApiResponse<>(true, data, null);
     }
 
+    // 반환할 데이터가 없는 성공 응답을 생성한다
     public static ApiResponse<Void> ok() {
         return new ApiResponse<>(true, null, null);
     }
 
+    // 에러 메시지를 담은 실패 응답을 생성한다
     public static ApiResponse<?> fail(String message) {
         return new ApiResponse<>(false, null, message);
     }

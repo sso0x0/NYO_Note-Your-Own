@@ -115,6 +115,7 @@ public class Lecture {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    // 강의 생성자. 조회수/좋아요수/등록인원 등은 0, 삭제/인기 여부는 false로 초기화한다
     @Builder
     public Lecture(Category category, User createdBy, String title, String description,
                    String lectureUrl, String thumbnailUrl, String reviewUrl, String instructor, Integer capacity,

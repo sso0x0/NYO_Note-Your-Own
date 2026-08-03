@@ -8,10 +8,12 @@ const OPTIONS = [
   { value: 'author', label: '작성자' },
 ]
 
+// 검색 대상(통합/제목/내용/작성자)을 고르는 드롭다운이 붙은 게시판 검색창.
 function BoardSearchBar({ value, onChange, searchType, onSearchTypeChange, onSubmit, onClear, placeholder }) {
   const [open, setOpen] = useState(false)
   const typeRef = useRef(null)
 
+  // 드롭다운 바깥 클릭이나 Escape 입력 시 메뉴를 닫는다.
   useEffect(() => {
     if (!open) return undefined
     const close = (event) => {

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
+// Category 엔티티에 대한 CRUD 및 정렬 조회를 담당하는 레포지토리
 public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     // findAll()은 정렬 기준이 없어 DB가 반환하는 순서가 매번 같다는 보장이 없다.

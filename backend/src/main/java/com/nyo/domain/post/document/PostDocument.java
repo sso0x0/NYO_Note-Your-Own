@@ -41,6 +41,7 @@ public class PostDocument {
     )
     private String content;
 
+    // Post 엔티티를 검색 색인용 문서로 변환한다.
     public static PostDocument from(Post post) {
         return PostDocument.builder()
                 .id(post.getId())

@@ -122,6 +122,7 @@ export default function Timer({ onFinished, lectureId = null, noteId = null }) {
     runCountdown()
   }
 
+  // "종료" 버튼 클릭: 남은 시간이 그대로인 채로 finish()를 호출해 지금까지의 기록을 저장한다.
   const stop = () => finish(sessionRef.current, remainingSeconds)
 
   const minutes = String(Math.floor(remainingSeconds / 60)).padStart(2, '0')

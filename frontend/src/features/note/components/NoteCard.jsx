@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import './NoteCard.css';
 
+// 노트 목록/메인 페이지에서 쓰는 카드. 썸네일·제목·태그·좋아요 등 요약 정보를 보여준다.
 function NoteCard({ note, onTagClick }) {
   const { id, title, authorNickname, lectureTitle, categoryName, thumbnailUrl, viewCount, likeCount, createdAt, tags } = note;
 
+  // 태그 클릭 시 카드 링크 이동을 막고 부모에게 태그 클릭 이벤트만 전달한다.
   const handleTagClick = (event, tagName) => {
     if (!onTagClick) return;
     // 태그를 누를 때 부모 카드 링크가 실행되어 노트 상세로 이동하는 것을 막는다.

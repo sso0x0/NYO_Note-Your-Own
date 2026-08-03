@@ -50,7 +50,7 @@ public class User {
     @Column(length = 20)
     private String phone;
 
-    // 💡 FIXED: String → enum. @Enumerated(STRING)이라 DB 컬럼(VARCHAR)엔 "USER"/"ADMIN" 그대로 저장되어
+    // FIXED: String → enum. @Enumerated(STRING)이라 DB 컬럼(VARCHAR)엔 "USER"/"ADMIN" 그대로 저장되어
     // 기존 데이터 마이그레이션 없이 호환됩니다.
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -138,14 +138,14 @@ public class User {
     }
 
     // 관리자가 USER ↔ ADMIN 권한을 변경할 때 사용 (UserService.adminChangeRole)
-    // 💡 FIXED: 파라미터 타입 String → Role
+    // FIXED: 파라미터 타입 String → Role
     public void changeRole(Role role) {
         this.role = role;
         this.updatedAt = LocalDateTime.now();
     }
 
     // 정지/정지해제 등 상태 전환에 사용 (UserService.applySanctionEffect, reactivateIfSuspensionExpired)
-    // 💡 FIXED: 파라미터 타입 String → UserStatus
+    // FIXED: 파라미터 타입 String → UserStatus
     public void changeStatus(UserStatus status) {
         this.status = status;
         this.updatedAt = LocalDateTime.now();

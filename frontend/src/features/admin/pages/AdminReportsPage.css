@@ -7,6 +7,7 @@
 .admin-table--reports th:nth-child(2) { width: 80px; }
 .admin-table--reports th:nth-child(3) { width: 220px; }
 .admin-table--reports th:nth-child(4) { width: 120px; }
+.admin-table--reports td:nth-child(4) { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .admin-table--reports th:nth-child(6) { width: 180px; }
 .admin-table--reports th:nth-child(7) { width: 110px; }
 .admin-table--reports th:nth-child(8) { width: 145px; }

@@ -4,6 +4,7 @@ import BarChart from '../../../components/charts/BarChart';
 import LineChart from '../../../components/charts/LineChart';
 import './AdminDashboardPage.css';
 
+// 관리자 대시보드: 전체 통계 요약과 강의 인기도·회원 가입·노트 작성 추이 차트를 보여준다.
 function AdminDashboardPage() {
   const [summary, setSummary] = useState(null);
   const [popularity, setPopularity] = useState([]);

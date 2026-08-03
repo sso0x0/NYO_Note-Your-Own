@@ -15,6 +15,7 @@ const EMPTY_FORM = {
   capacity: '',
 };
 
+// 강의 등록/수정 폼: URL의 id 유무로 신규 등록과 수정 모드를 구분해 처리한다.
 function AdminLectureFormPage() {
   const { id } = useParams();
   const isEdit = id != null;
@@ -66,16 +67,19 @@ function AdminLectureFormPage() {
     };
   }, [id, isEdit]);
 
+  // 입력값을 폼 상태에 반영하고, 해당 필드에 남아있던 에러 메시지를 지운다.
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setFieldErrors((prev) => (prev[name] ? { ...prev, [name]: null } : prev));
   };
 
+  // 저장하지 않고 강의 목록 화면으로 되돌아간다.
   const handleCancel = () => {
     navigate('/admin/lectures');
   };
 
+  // 필수 입력 항목이 비어있는지 검사해 필드별 에러 메시지를 만든다.
   const validate = () => {
     const errors = {};
     if (!form.categoryId) errors.categoryId = '카테고리를 선택해주세요.';
@@ -86,6 +90,7 @@ function AdminLectureFormPage() {
     return errors;
   };
 
+  // 폼을 검증한 뒤 수정/신규 모드에 따라 강의를 저장하고 목록으로 이동한다.
   const handleSubmit = async (e) => {
     e.preventDefault();
 

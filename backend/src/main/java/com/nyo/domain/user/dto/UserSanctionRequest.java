@@ -25,7 +25,7 @@ public class UserSanctionRequest {
     @Schema(description = "제재 대상 회원 FK", example = "10")
     private Long userId;
 
-    // 💡 FIXED: String + @Pattern → enum (Jackson이 "SUSPENSION" 문자열을 자동으로 enum에 매핑해줘서
+    // FIXED: String + @Pattern → enum (Jackson이 "SUSPENSION" 문자열을 자동으로 enum에 매핑해줘서
     // 잘못된 값이 오면 @Pattern 검증 전에 아예 400으로 먼저 걸러짐)
     @NotNull(message = "제재 유형은 필수입니다.")
     @Schema(description = "경고/정지/강제 탈퇴", example = "SUSPENSION")

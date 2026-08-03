@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Schema(description = "강의(녹화본) 응답 DTO")
+// 강의 조회 응답으로 내려주는 DTO
 public class LectureResponse {
 
     @Schema(description = "강의 PK", example = "1")

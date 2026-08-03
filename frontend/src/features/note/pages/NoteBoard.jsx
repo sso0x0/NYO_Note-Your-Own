@@ -6,6 +6,7 @@ import BoardSearchBar from '../../../components/BoardSearchBar'
 import '../components/NoteCard.css'
 import './NoteBoard.css'
 
+// 노트 게시판 페이지. 검색·정렬·카테고리 필터와 페이지네이션을 지원하는 노트 목록을 보여준다.
 const sortOptions = [
     { value: 'createdAt', label: '최신순' },
     { value: 'likeCount', label: '인기순' },
@@ -16,6 +17,7 @@ const NOTES_PER_PAGE = 10
 const PAGE_WINDOW = 5
 const NOTE_SORT_VALUES = new Set(sortOptions.map((option) => option.value))
 
+// 현재 URL 쿼리스트링에서 목록 상태(페이지/정렬/검색어 등)를 읽어 초기값으로 사용한다.
 const readListStateFromUrl = () => {
     const params = new URLSearchParams(window.location.search)
     const page = Number.parseInt(params.get('page') ?? '1', 10)
@@ -43,6 +45,7 @@ function getPageNumbers(current, totalPages) {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 }
 
+// 노트 게시판 목록 컴포넌트. 검색/정렬/카테고리 필터와 페이지네이션 상태를 URL과 동기화하며 관리한다.
 function NoteBoard({ onOpenNote }) {
     const { auth } = useAuth()
     const [notes, setNotes] = useState([])
@@ -69,6 +72,7 @@ function NoteBoard({ onOpenNote }) {
     const [totalPages, setTotalPages] = useState(0)
     const [totalElements, setTotalElements] = useState(0)
 
+    // 페이지/정렬/카테고리/태그 검색어 조건으로 노트 목록을 서버에서 조회해 상태에 반영한다.
     const loadNotes = useCallback(async (page, sort, category, tagKeyword) => {
         setLoading(true)
         setError('')
@@ -121,6 +125,7 @@ function NoteBoard({ onOpenNote }) {
         }
     }, [auth, appliedSearchType])
 
+    // 목표 페이지/정렬/카테고리로 이동하면서 그 상태를 URL 쿼리에도 반영한다.
     const movePage = useCallback((page, sort = sortBy, category = categoryId) => {
         const safePage = Math.max(1, page)
         // 목록 상태를 URL에 저장해 새로고침하거나 상세 화면에서 돌아와도 같은 위치를 복원합니다.
@@ -150,6 +155,7 @@ function NoteBoard({ onOpenNote }) {
         setCurrentPage(1)
     }, [sortBy])
 
+    // 검색창에 입력한 키워드로 검색을 적용하고 첫 페이지로 이동한다.
     const submitSearch = (event) => {
         event.preventDefault()
         const nextKeyword = searchInput.trim()
@@ -245,11 +251,13 @@ function NoteBoard({ onOpenNote }) {
         }
     }, [isSortOpen])
 
+    // 정렬 기준을 바꿔 첫 페이지부터 다시 조회하고 드롭다운을 닫는다.
     const changeSort = (value) => {
         movePage(1, value)
         setIsSortOpen(false)
     }
 
+    // 선택한 카테고리로 필터링해 첫 페이지부터 다시 조회한다.
     const changeCategory = (nextCategoryId) => {
         movePage(1, sortBy, nextCategoryId)
     }

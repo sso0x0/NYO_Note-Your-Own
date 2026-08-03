@@ -16,6 +16,7 @@ const initialForm = {
   notice: false,
 }
 
+// 게시글 작성 폼: 제목/본문/공지 여부를 입력받아 게시글을 생성한다.
 function CommunityCreate({ onBack, onCreated }) {
   const { auth } = useAuth()
   const [form, setForm] = useState(initialForm)
@@ -26,6 +27,7 @@ function CommunityCreate({ onBack, onCreated }) {
   const [textColor, setTextColor] = useState('#000000')
   const contentRef = useRef(null)
 
+  // 로그인한 사용자가 공지글을 작성할 권한이 있는지 서버에 확인한다.
   useEffect(() => {
     let cancelled = false
     const checkNoticePermission = async () => {
@@ -47,6 +49,7 @@ function CommunityCreate({ onBack, onCreated }) {
     return () => { cancelled = true }
   }, [auth?.accessToken])
 
+  // 입력 필드 값 변경을 폼 상태에 반영한다 (체크박스는 checked, 그 외는 value 사용).
   const handleChange = (event) => {
     const { name, value, checked, type } = event.target
     setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
@@ -71,6 +74,7 @@ function CommunityCreate({ onBack, onCreated }) {
     return imageInfo
   }
 
+  // 이미지 파일을 선택하면 임시 첨부 목록에 추가하고 에디터 커서 위치에 미리보기를 삽입한다.
   const handleContentImageChange = (event) => {
     const file = event.target.files?.[0]
     if (!file) {
@@ -94,6 +98,7 @@ function CommunityCreate({ onBack, onCreated }) {
     contentRef.current?.applyColor(color)
   }
 
+  // 본문 이미지를 업로드하고 폼 내용을 서버에 전송해 게시글을 생성한다.
   const createPost = async (event) => {
     event.preventDefault()
     // React가 버튼을 다시 그리기 전 발생할 수 있는 연속 제출도 함수 입구에서 차단합니다.

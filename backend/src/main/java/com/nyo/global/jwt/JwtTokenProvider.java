@@ -24,6 +24,7 @@ public class JwtTokenProvider {
     private final SecretKey key;
     private final long accessTokenValidityMs;
 
+    // 설정값으로 받은 secret 문자열을 서명용 SecretKey로 변환해 보관한다
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.access-token-validity-ms:3600000}") long accessTokenValidityMs

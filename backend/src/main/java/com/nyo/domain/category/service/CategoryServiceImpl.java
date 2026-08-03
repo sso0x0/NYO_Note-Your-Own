@@ -14,6 +14,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+// 카테고리 조회 로직을 구현하는 서비스
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;

@@ -34,6 +34,7 @@ export function usePagedList(fetcher, initialPage = 0) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, reloadKey]);
 
+  // reloadKey를 증가시켜 useEffect를 다시 실행, 목록을 재조회한다.
   const reload = () => setReloadKey((k) => k + 1);
 
   return { page, setPage, pageData, status, error, reload };
