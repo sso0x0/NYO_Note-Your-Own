@@ -4,6 +4,7 @@ import { getNoteList, searchNotes } from '../api/note';
 import NoteCard from '../components/NoteCard';
 import './NoteListPage.css';
 
+// 노트 목록 페이지. 키워드 검색과 페이지네이션을 지원한다.
 function NoteListPage() {
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
@@ -12,6 +13,7 @@ function NoteListPage() {
   const [status, setStatus] = useState('idle'); // idle | loading | success | error
   const [error, setError] = useState(null);
 
+  // 페이지 번호나 적용된 검색어가 바뀔 때마다 노트 목록(또는 검색 결과)을 다시 불러온다.
   useEffect(() => {
     let cancelled = false;
 
@@ -40,12 +42,14 @@ function NoteListPage() {
     };
   }, [page, appliedKeyword]);
 
+  // 검색어를 적용하고 첫 페이지로 되돌아간다.
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     setPage(0);
     setAppliedKeyword(keyword.trim());
   };
 
+  // 검색어를 지우고 전체 목록으로 되돌아간다.
   const handleReset = () => {
     setKeyword('');
     setAppliedKeyword('');

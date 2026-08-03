@@ -9,27 +9,31 @@ import java.util.Optional;
 /** 회원(User) 엔티티 조회/중복확인용 리포지토리. 회원가입/로그인/마이페이지/관리자 기능 전반에서 사용. */
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
+    // 특정 시점 이후 가입한 회원 수 (관리자 통계용)
+    long countByCreatedAtAfter(java.time.LocalDateTime createdAt);
 
     // 회원가입, 실시간 중복체크(check-*) API에서 사용
     boolean existsByLoginId(String loginId);
     boolean existsByEmail(String email);
     boolean existsByNickname(String nickname);
 
-    // 💡 로그인할 때 아이디로 유저를 조회하기 위해 추가!
+    // 로그인할 때 아이디로 유저를 조회하기 위해 추가!
     Optional<User> findByLoginId(String loginId);
 
-    // 💡 추가: OAuth2 로그인 시 "이 구글 계정으로 이미 가입했는지" 확인용
+    // 추가: OAuth2 로그인 시 "이 구글 계정으로 이미 가입했는지" 확인용
     Optional<User> findByOauthProviderAndOauthId(String oauthProvider, String oauthId);
-    // 💡 추가: 구글 로그인 시 동일 이메일의 로컬 가입 계정이 있으면 새로 만들지 않고 연동하기 위해 사용
+    // 추가: 구글 로그인 시 동일 이메일의 로컬 가입 계정이 있으면 새로 만들지 않고 연동하기 위해 사용
     Optional<User> findByEmail(String email);
 
-    // 💡 추가: 아이디 찾기(이름+이메일 일치 확인)용
+    // 추가: 아이디 찾기(이름+이메일 일치 확인)용
     Optional<User> findByNameAndEmail(String name, String email);
 
     // 노트 검색에서 작성자 닉네임 일부가 일치하는 사용자 ID를 찾을 때 사용한다.
     List<User> findByNicknameContainingIgnoreCase(String nickname);
-    // 💡 추가: 마이페이지 정보수정 시, 닉네임을 안 바꾸고 그대로 재저장해도
+    // 추가: 마이페이지 정보수정 시, 닉네임을 안 바꾸고 그대로 재저장해도
 // 자기 자신과 중복 체크에 걸리면 안 되므로 "본인 ID 제외" 버전이 필요함
     boolean existsByNicknameAndIdNot(String nickname, Long id);
+    // 추가: 마이페이지에서 이메일 수정 시 본인 제외 중복 체크용
+    boolean existsByEmailAndIdNot(String email, Long id);
 
 }

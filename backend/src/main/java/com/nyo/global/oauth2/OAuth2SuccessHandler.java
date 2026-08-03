@@ -27,6 +27,7 @@ public class    OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     @Value("${app.oauth2.redirect-uri}")
     private String redirectUri;
 
+    // 구글 로그인 성공 시 JWT를 발급해 URL fragment에 담아 프론트 redirect-uri로 되돌려보낸다
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException {

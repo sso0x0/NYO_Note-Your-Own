@@ -22,7 +22,6 @@ import java.time.LocalDateTime;
  * 해당 테이블에는 updated_at 컬럼이 없어서 BaseEntity를 상속하지 않고
  * created_at만 직접 선언합니다.
  * User/Lecture/Note 엔티티가 아직 없어서 연관관계 매핑 대신 FK를 Long 컬럼으로 보관합니다.
- * TODO: 각 도메인 엔티티가 머지되면 @ManyToOne 매핑으로 교체 검토
  */
 @Entity
 @Table(name = "pomodoro_records")
@@ -66,6 +65,7 @@ public class PomodoroRecord {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    // focusMinutes 미지정 시 기본 25분, breakMinutes는 항상 0, recordDate는 startedAt 날짜로 자동 계산해 생성한다
     @Builder
     public PomodoroRecord(Long userId, Long lectureId, Long noteId,
                           Integer focusMinutes,
@@ -80,6 +80,7 @@ public class PomodoroRecord {
         this.recordDate = startedAt.toLocalDate();
     }
 
+    // 타이머 기록을 수정한다 (focusMinutes는 null이면 기존 값 유지, recordDate는 새 startedAt 기준으로 재계산)
     public void update(Long lectureId, Long noteId,
                        Integer focusMinutes,
                        LocalDateTime startedAt, LocalDateTime endedAt) {

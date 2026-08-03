@@ -2,21 +2,13 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signup } from '../api/auth';
 import nyoLogo from '../../../assets/images/nyo_logo.png';
+import eyeOpenIcon from '../../../assets/images/eye.png';
+import eyeCloseIcon from '../../../assets/images/eye_close.png';
 import './AuthPage.css';
 
+// 비밀번호 표시/숨김 상태에 따라 눈 아이콘 이미지를 바꿔 보여준다.
 function EyeIcon({ open }) {
-  return open ? (
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-  ) : (
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M3 3l18 18" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M10.58 10.58a3 3 0 1 0 4.24 4.24" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M6.1 6.1C3.4 7.9 1 12 1 12s4 7 11 7c2.05 0 3.83-.55 5.32-1.35M17.9 17.9C20.6 16.1 23 12 23 12s-1.6-2.8-4.32-4.9" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-  );
+  return <img src={open ? eyeOpenIcon : eyeCloseIcon} alt="" width="20" height="20" />;
 }
 
 const INITIAL_FORM = {
@@ -31,6 +23,8 @@ const INITIAL_FORM = {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^01[0-9]-?\d{3,4}-?\d{4}$/;
+// 영문 대소문자 + 숫자 + 특수문자를 모두 포함해야 함
+const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).+$/;
 
 // 필드별 실시간 검증 규칙. 두 번째 인자(form)는 비밀번호 확인처럼 다른 필드값이
 // 필요한 경우에 사용합니다.
@@ -43,6 +37,7 @@ const validators = {
   password: (value) => {
     if (!value) return '비밀번호를 입력해 주세요.';
     if (value.length < 8 || value.length > 72) return '비밀번호는 8자 이상 입력해 주세요.';
+    if (!PASSWORD_PATTERN.test(value)) return '비밀번호는 영문 대소문자, 숫자, 특수문자를 모두 포함해야 합니다.';
     return '';
   },
   passwordConfirm: (value, form) => {
@@ -52,10 +47,12 @@ const validators = {
   },
   name: (value) => {
     if (!value.trim()) return '이름을 입력해 주세요.';
+    if (value.trim().length < 2) return '이름은 2자 이상 입력해 주세요.';
     return '';
   },
   nickname: (value) => {
     if (!value.trim()) return '닉네임을 입력해 주세요.';
+    if (value.trim().length < 2) return '닉네임은 2자 이상 입력해 주세요.';
     return '';
   },
   email: (value) => {
@@ -64,25 +61,29 @@ const validators = {
     return '';
   },
   phone: (value) => {
-    if (!value) return ''; // 선택 항목
+    if (!value.trim()) return '휴대폰 번호를 입력해 주세요'; // 필수 항목
     if (!PHONE_PATTERN.test(value)) return '올바른 전화번호 형식이 아닙니다. (예: 010-1234-5678)';
     return '';
   },
 };
 
+// 회원가입 페이지. 필드별 실시간 검증 + 제출 시 전체 재검증 후 회원가입 API를 호출한다.
 function SignupPage() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState(INITIAL_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
+  // blur를 거친 필드만 실시간 에러를 보여주기 위한 추적 상태
   const [touched, setTouched] = useState({});
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
 
+  // 이름에 해당하는 validators[name]을 최신 form 값으로 실행하는 헬퍼
   const runValidator = (name, nextForm) => validators[name](nextForm[name], nextForm);
 
+  // 입력 필드 값을 폼 상태에 반영하고, 이미 blur된 필드는 즉시 재검증한다.
   const handleChange = (e) => {
     const { name, value } = e.target;
     const nextForm = { ...form, [name]: value };
@@ -101,12 +102,14 @@ function SignupPage() {
     });
   };
 
+  // 필드에서 포커스가 벗어나면 해당 필드를 touched로 표시하고 검증한다.
   const handleBlur = (e) => {
     const { name } = e.target;
     setTouched((prev) => ({ ...prev, [name]: true }));
     setFieldErrors((prev) => ({ ...prev, [name]: runValidator(name, form) }));
   };
 
+  // 제출 전 모든 필드를 한 번에 검증하고 통과 여부를 반환한다.
   const validateAll = () => {
     const nextErrors = {};
     Object.keys(validators).forEach((name) => {
@@ -117,6 +120,7 @@ function SignupPage() {
     return Object.values(nextErrors).every((msg) => !msg);
   };
 
+  // 전체 검증 통과 시 회원가입 API를 호출하고 성공하면 로그인 페이지로 이동한다.
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -235,6 +239,7 @@ function SignupPage() {
                     name="name"
                     type="text"
                     autoComplete="name"
+                    minLength={2}
                     value={form.name}
                     onChange={handleChange}
                     onBlur={handleBlur}
@@ -250,6 +255,7 @@ function SignupPage() {
                     id="nickname"
                     name="nickname"
                     type="text"
+                    minLength={2}
                     value={form.nickname}
                     onChange={handleChange}
                     onBlur={handleBlur}
@@ -267,6 +273,7 @@ function SignupPage() {
                     id="email"
                     name="email"
                     type="email"
+                    placeholder="nyo@example.com"
                     autoComplete="email"
                     value={form.email}
                     onChange={handleChange}
@@ -278,12 +285,13 @@ function SignupPage() {
               </div>
 
               <div className="auth-page__field">
-                <label htmlFor="phone">전화번호 (선택)</label>
+                <label htmlFor="phone">전화번호</label>
                 <input
                     id="phone"
                     name="phone"
                     type="tel"
                     placeholder="010-1234-5678"
+                    required
                     autoComplete="tel"
                     value={form.phone}
                     onChange={handleChange}

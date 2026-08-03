@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// LikeService 구현체 (노트/게시글/강의 공용 좋아요 등록/취소/조회 처리)
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -71,6 +72,7 @@ public class LikeServiceImpl implements LikeService {
                 userId, parseTargetType(targetType), targetId);
     }
 
+    // 문자열 targetType을 enum으로 변환한다 (잘못된 값이면 400 에러로 변환)
     private TargetType parseTargetType(String targetType) {
         try {
             return TargetType.valueOf(targetType);

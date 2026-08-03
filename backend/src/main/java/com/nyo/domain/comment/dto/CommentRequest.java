@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+// 댓글/대댓글 등록 및 수정 요청 DTO.
 @Schema(description = "댓글/대댓글 등록 및 수정 요청 DTO")
 public class CommentRequest {
 

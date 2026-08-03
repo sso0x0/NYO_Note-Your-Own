@@ -43,11 +43,198 @@
    index.css의 전역 h1,h2,h3 규칙이 system-ui로 되돌려놓기 때문에 명시적으로 다시 지정해야 한다. */
 .lecture-list-page h2 {
   margin: 0;
-  font-size: 28px;
-  font-weight: 800;
+  font-size: 32px;
+  font-weight: 700;
   letter-spacing: -0.5px;
   color: var(--text-h);
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.lecture-list-page__search-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ll-line);
+}
+
+.lecture-list-page__search {
+  display: flex;
+  flex: 1 1 auto;
+  width: auto;
+  max-width: none;
+  min-width: 0;
+  align-items: center;
+  /* 노트 검색바와 동일하게 검색 버튼 한 개 너비만큼 오른쪽을 비운다. */
+  margin: 0 72px 0 0;
+  height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: none;
+  transition: border-color 0.2s;
+}
+
+.lecture-list-page__search:hover {
+  border-color: rgba(96, 101, 251, 0.7);
+  box-shadow: none;
+}
+
+.lecture-list-page__search:focus-within {
+  border-color: #6065fb;
+  box-shadow: none;
+}
+
+.lecture-list-page__search-type {
+  position: relative;
+  z-index: 5;
+  flex: 0 0 128px;
+  align-self: stretch;
+  border-right: 1px solid var(--ll-line);
+  box-sizing: border-box;
+}
+
+.lecture-list-page__search-type-btn {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 16px;
+  border: 0;
+  background: transparent;
+  color: var(--ll-ink);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.lecture-list-page__search-type-btn svg {
+  flex-shrink: 0;
+  color: #999;
+  transition: transform 0.2s ease;
+}
+
+.lecture-list-page__search-type-btn[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+.lecture-list-page__search-type-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--ll-line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(31, 41, 79, 0.16);
+  box-sizing: border-box;
+  list-style: none;
+}
+
+.lecture-list-page__search-type-option {
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ll-ink);
+  font-size: 14px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.lecture-list-page__search-type-option:hover {
+  background: var(--ll-accent-bg);
+  color: var(--ll-accent);
+}
+
+.lecture-list-page__search-type-option.is-selected {
+  background: var(--ll-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.lecture-list-page__search-box {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+}
+
+.lecture-list-page__search-box svg {
+  position: absolute;
+  top: 50%;
+  left: 20px;
+  transform: translateY(-50%);
+  color: #999;
+  pointer-events: none;
+}
+
+.lecture-list-page__search-box input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0 44px 0 50px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 15px;
+  outline: none;
+}
+
+.lecture-list-page__search-box input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.lecture-list-page__search-clear {
+  position: absolute;
+  right: 14px;
+  display: flex;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #ececec;
+  color: #666;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lecture-list-page__search-submit {
+  height: 34px;
+  flex-shrink: 0;
+  margin: 3px 8px 3px 0;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--ll-ink);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.lecture-list-page__search-submit:hover {
+  background: var(--ll-accent);
+}
+
+.lecture-list-page__search-submit:active {
+  transform: translateY(1px);
 }
 
 .lecture-list-page__toolbar {
@@ -90,8 +277,9 @@
 }
 
 .lecture-list-page__filters button:hover {
-  border-color: var(--ll-accent);
-  color: var(--ll-accent);
+  border-color: var(--ll-ink);
+  color: #fff;
+  background: var(--ll-ink);
 }
 
 .lecture-list-page__filters button.is-active {
@@ -183,6 +371,15 @@
   font-weight: 600;
 }
 
+.lecture-list-page__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  color: var(--text);
+  font-size: 15px;
+}
+
 .lecture-list-page__grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -200,8 +397,10 @@
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
-.lecture-list-page__grid .lecture-card:hover {
+.lecture-list-page__grid .lecture-card:hover,
+.lecture-list-page__grid .lecture-card:active {
   transform: translateY(-4px);
+  border-color: var(--ll-accent);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
 }
 

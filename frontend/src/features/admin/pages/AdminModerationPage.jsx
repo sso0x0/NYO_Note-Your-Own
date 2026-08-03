@@ -1,4 +1,5 @@
 import { Fragment, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getAdminPostList, restorePost } from '../api/post';
 import { deletePost } from '../../community/api/post';
 import { usePagedList } from '../hooks/usePagedList';
@@ -6,14 +7,19 @@ import './AdminModerationPage.css';
 
 const PAGE_SIZE = 10;
 
+// 게시글 목록 관리자 화면: 목록 조회, 삭제/복구 처리와 상세 내용·작성자 정보 확인을 담당한다.
 function AdminModerationPage() {
-  const posts = usePagedList(getAdminPostList);
-  const [expandedPostId, setExpandedPostId] = useState(null);
+  const location = useLocation();
+  const posts = usePagedList(getAdminPostList, location.state?.focusPage ?? 0);
+  // 신고 관리에서 선택한 게시글 ID가 있으면 해당 상세 행을 자동으로 연다.
+  const [expandedPostId, setExpandedPostId] = useState(location.state?.focusTargetId ?? null);
 
+  // 클릭한 게시글의 상세 행을 펼치거나, 이미 펼쳐져 있으면 접는다.
   const handleToggle = (postId) => {
     setExpandedPostId((prev) => (prev === postId ? null : postId));
   };
 
+  // 확인 후 게시글을 삭제하고 목록을 다시 불러온다.
   const handleDeletePost = async (post) => {
     if (!window.confirm(`"${post.title}" 게시글을 삭제할까요?`)) return;
     try {
@@ -24,6 +30,7 @@ function AdminModerationPage() {
     }
   };
 
+  // 확인 후 삭제된 게시글을 복구하고 목록을 다시 불러온다.
   const handleRestorePost = async (post) => {
     if (!window.confirm('복구하시겠습니까?')) return;
     try {

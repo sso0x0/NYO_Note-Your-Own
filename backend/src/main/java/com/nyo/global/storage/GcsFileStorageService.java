@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
+// FileStorageService의 GCS(Google Cloud Storage) 구현체
 @Service
 @RequiredArgsConstructor
 public class GcsFileStorageService implements FileStorageService {
@@ -25,9 +26,11 @@ public class GcsFileStorageService implements FileStorageService {
     @Value("${gcp.storage.bucket}")
     private String bucket;
 
-    private static final List<String> ALLOWED_EXT = List.of("jpg", "jpeg", "png", "gif", "webp");
+    // 강사 신청 첨부(이력서 등)도 같은 업로드 엔드포인트를 쓰므로 pdf도 허용한다.
+    private static final List<String> ALLOWED_EXT = List.of("jpg", "jpeg", "png", "gif", "webp", "pdf");
     private static final long MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
+    // 확장자/용량 검증 후 GCS 버킷에 업로드하고 공개 접근 URL을 반환한다
     @Override
     public String store(MultipartFile file) {
         validate(file);
@@ -49,6 +52,7 @@ public class GcsFileStorageService implements FileStorageService {
         return String.format("https://storage.googleapis.com/%s/%s", bucket, objectName);
     }
 
+    // URL에서 GCS 객체명을 뽑아 실제 버킷에서 삭제한다
     @Override
     public void delete(String imageUrl) {
         if (imageUrl == null || imageUrl.isBlank()) {
@@ -74,6 +78,7 @@ public class GcsFileStorageService implements FileStorageService {
         }
     }
 
+    // 다양한 형태의 GCS URL(경로형/버킷 서브도메인형/객체명만 있는 경우)에서 객체명만 뽑아낸다
     private String extractObjectName(String imageUrl) {
         String decodedUrl = URLDecoder.decode(imageUrl, StandardCharsets.UTF_8);
         // 과거에 저장된 URL fragment가 있어도 실제 GCS 객체명만 추출합니다.
@@ -102,11 +107,13 @@ public class GcsFileStorageService implements FileStorageService {
         return null;
     }
 
+    // 객체명 뒤에 붙은 쿼리스트링(?...)이 있으면 제거한다
     private String removeQueryString(String objectName) {
         int queryIndex = objectName.indexOf("?");
         return queryIndex >= 0 ? objectName.substring(0, queryIndex) : objectName;
     }
 
+    // 빈 파일 / 허용되지 않는 확장자 / 최대 용량 초과 여부를 검사한다
     private void validate(MultipartFile file) {
         if (file.isEmpty()) {
             throw new BusinessException(ErrorCode.IMAGE_EMPTY);
@@ -120,6 +127,7 @@ public class GcsFileStorageService implements FileStorageService {
         }
     }
 
+    // 파일명에서 확장자를 추출하고, 확장자가 없으면 예외를 던진다
     private String getExtension(String filename) {
         if (filename == null || !filename.contains(".")) {
             throw new BusinessException(ErrorCode.IMAGE_INVALID_EXTENSION);

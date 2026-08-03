@@ -1,3 +1,4 @@
+// 노트 본문에 색상/굵게/이탤릭/밑줄 저장 문법([color=..], [bold] 등)을 적용하고 파싱하는 유틸.
 export const wrapTextWithColor = (content, selectionStart, selectionEnd, color) => {
   const selectedText = content.slice(selectionStart, selectionEnd)
   const textToWrap = selectedText || '색상을 적용할 글자'
@@ -20,6 +21,7 @@ export const parseTextColors = (text) => {
   let lastIndex = 0
   let match
 
+  // 새 조각을 직전 조각과 같은 스타일이면 이어붙이고, 다르면 새 조각으로 추가한다.
   const appendPart = (partText) => {
     if (!partText) return
     const part = {

@@ -3,25 +3,42 @@ package com.nyo.domain.lecture.service;
 import com.nyo.domain.lecture.dto.LectureAdminResponse;
 import com.nyo.domain.lecture.dto.LectureRequest;
 import com.nyo.domain.lecture.dto.LectureResponse;
+import com.nyo.domain.lecture.entity.LectureStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+// 강의 CRUD, 승인/반려, 좋아요·수강신청, 인기 강의 갱신, 검색 등을 정의하는 서비스 인터페이스
 public interface LectureService {
 
-    // 새로운 강의 등록 (관리자만 가능)
+    // 새로운 강의 등록 (관리자만 가능, 즉시 승인 상태로 공개)
     LectureResponse createLecture(LectureRequest request, Long adminId);
 
-    // 전체 강의 목록 조회 (페이징)
+    // 강사가 강의 등록을 신청 (INSTRUCTOR 권한만 가능). 관리자 승인 전까지는 PENDING 상태로 본인/관리자에게만 보인다.
+    LectureResponse createInstructorLecture(LectureRequest request, Long instructorUserId);
+
+    // 강사 본인이 등록 신청한 강의 목록 조회 (마이페이지 "강의 등록" 탭, 페이징)
+    Page<LectureResponse> getMyLectures(Long userId, Pageable pageable);
+
+    // 강사의 강의 등록 신청을 관리자가 승인 (일반 목록/검색에 노출)
+    void approveLecture(Long lectureId, Long adminId);
+
+    // 강사의 강의 등록 신청을 관리자가 반려
+    void rejectLecture(Long lectureId, Long adminId, String reason);
+
+    // 전체 강의 목록 조회 (페이징, 승인된 강의만)
     Page<LectureResponse> getLectureList(Pageable pageable);
 
-    // 관리자 강의 관리 목록 조회 (노트/댓글 개수 포함, 페이징). categoryId가 null이면 전체 조회.
-    Page<LectureAdminResponse> adminGetLectureList(Long categoryId, Pageable pageable);
+    // 메인 페이지 "인기 강의" 목록 조회 (좋아요*5 + 조회수 가중치 점수 내림차순)
+    Page<LectureResponse> getPopularLectures(Pageable pageable);
 
-    // 카테고리별 강의 목록 조회 (페이징)
+    // 관리자 강의 관리 목록 조회 (노트/댓글 개수 포함, 페이징). categoryId/status가 null이면 필터하지 않는다.
+    Page<LectureAdminResponse> adminGetLectureList(Long categoryId, LectureStatus status, Pageable pageable);
+
+    // 카테고리별 강의 목록 조회 (페이징, 승인된 강의만)
     Page<LectureResponse> getLectureListByCategory(Long categoryId, Pageable pageable);
 
-    // 하나의 강의 조회 (id 기준)
-    LectureResponse getLecture(Long id);
+    // 하나의 강의 조회 (id 기준). 승인 전(PENDING/REJECTED) 강의는 등록한 강사 본인 또는 관리자만 조회할 수 있다.
+    LectureResponse getLecture(Long id, Long userId);
 
     // 관리자 전용 단건 조회 (삭제된 강의도 조회 가능)
     LectureResponse getLectureForAdmin(Long id, Long adminId);
@@ -31,6 +48,9 @@ public interface LectureService {
 
     // 강의 삭제 (관리자만 가능)
     void deleteLecture(Long id, Long adminId);
+
+    // 삭제된 강의 복구 (관리자만 가능, DB에서 완전히 삭제되기 전까지 되돌릴 수 있음)
+    void restoreLecture(Long id, Long adminId);
 
     // 조회수 증가 (하루 1회 제한)
     void increaseViewCount(Long id, Long userId);

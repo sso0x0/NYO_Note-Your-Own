@@ -18,6 +18,7 @@ public class ProhibitedWordFilter {
             "꺼져", "죽어", "미친놈", "미친년", "ㅅㅂ"
     );
 
+    // 제목/내용에 금지어가 포함되어 있는지 검사해 실제로 걸린 단어 목록을 반환한다
     public List<String> findMatchedWords(String title, String content) {
         String source = (String.valueOf(title) + " " + String.valueOf(content))
                 .toLowerCase(Locale.ROOT);

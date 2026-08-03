@@ -4,6 +4,7 @@ import CommunityCreate from './CommunityCreate'
 import CommunityDetail from './CommunityDetail'
 import CommunityEdit from './CommunityEdit'
 
+// 커뮤니티 목록 화면에 글쓰기/상세 이동 핸들러를 연결한다.
 function CommunityBoardRoute() {
     const navigate = useNavigate()
     const location = useLocation()
@@ -17,6 +18,7 @@ function CommunityBoardRoute() {
     )
 }
 
+// 게시글 작성 화면에 목록으로 돌아가기/작성 완료 후 이동 핸들러를 연결한다.
 function CommunityCreateRoute() {
     const navigate = useNavigate()
     const location = useLocation()
@@ -25,6 +27,7 @@ function CommunityCreateRoute() {
     return <CommunityCreate onBack={() => navigate(listUrl)} onCreated={(postId) => navigate({ pathname: `/main/community/${postId}`, search: location.search })} />
 }
 
+// 게시글 상세 화면에 postId와 목록/수정 이동 핸들러를 연결한다.
 function CommunityDetailRoute() {
     const { postId } = useParams()
     const navigate = useNavigate()
@@ -39,6 +42,7 @@ function CommunityDetailRoute() {
     )
 }
 
+// 게시글 수정 화면에 postId와 저장/취소 후 상세로 돌아가는 핸들러를 연결한다.
 function CommunityEditRoute() {
     const { postId } = useParams()
     const navigate = useNavigate()

@@ -11,10 +11,18 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Optional;
 
+// 노트(Note) 엔티티에 대한 조회/집계/카운트 갱신을 담당하는 JPA 리포지토리
 public interface NoteRepository extends JpaRepository<Note, Long> {
+    // 특정 시각 이후 생성된 노트 수를 센다 (통계용).
+    long countByCreatedAtAfter(java.time.LocalDateTime createdAt);
 
     // 노트 게시판 서버 페이지네이션: 삭제되지 않은 노트만 Pageable 조건으로 조회합니다.
     Page<Note> findByIsDeleted(Integer isDeleted, Pageable pageable);
+
+    // 메인 페이지 "인기 노트" 목록: 좋아요*5 + 조회수 가중치 점수 내림차순
+    @Query(value = "select n from Note n where n.isDeleted = 0 order by (n.likeCount * 5 + n.viewCount) desc",
+            countQuery = "select count(n) from Note n where n.isDeleted = 0")
+    Page<Note> findPopular(Pageable pageable);
 
     // 노트의 lectureId와 강의의 categoryId를 연결해 선택한 강의 카테고리의 노트만 조회한다.
     @Query(
@@ -40,8 +48,13 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
     // 마이페이지 - 내가 작성한 노트 목록
     Page<Note> findByUserIdAndIsDeleted(Long userId, Integer isDeleted, Pageable pageable);
 
+    // 챗봇 RAG 검색어 매칭 실패 시 폴백용: 본인이 특정 강의에서 쓴 노트를 최근 수정순으로.
+    Page<Note> findByUserIdAndLectureIdAndIsDeleted(Long userId, Long lectureId, Integer isDeleted, Pageable pageable);
+
+    // 강의별 노트 목록: 삭제되지 않은 노트만 최신순으로 조회한다.
     List<Note> findByLectureIdAndIsDeletedOrderByCreatedAtDesc(Long lectureId, Integer isDeleted);
 
+    // 삭제되지 않은 노트만 단건 조회한다.
     Optional<Note> findByIdAndIsDeleted(Long id, Integer isDeleted);
 
     // 검색 색인(Elasticsearch)이 반환한 id 목록으로 실제 노트 데이터를 한 번에 조회한다.
@@ -56,6 +69,27 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
               and lower(n.title) like lower(concat('%', :keyword, '%'))
             """)
     Page<Note> searchActiveByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+    // 태그 칩 조회는 제목·본문 검색과 섞지 않고, 실제 note_tags 매핑의 태그명이 정확히 같은 노트만 반환한다.
+    @Query(
+            value = """
+                    select n
+                    from Note n, NoteTag nt, Tag t
+                    where n.id = nt.id.noteId
+                      and nt.id.tagId = t.id
+                      and n.isDeleted = 0
+                      and lower(t.name) = lower(:tagName)
+                    """,
+            countQuery = """
+                    select count(n)
+                    from Note n, NoteTag nt, Tag t
+                    where n.id = nt.id.noteId
+                      and nt.id.tagId = t.id
+                      and n.isDeleted = 0
+                      and lower(t.name) = lower(:tagName)
+                    """
+    )
+    Page<Note> findActiveByExactTagName(@Param("tagName") String tagName, Pageable pageable);
 
     // 닉네임과 일치한 사용자 ID 목록으로 삭제되지 않은 노트를 조회한다.
     Page<Note> findByUserIdInAndIsDeleted(List<Long> userIds, Integer isDeleted, Pageable pageable);

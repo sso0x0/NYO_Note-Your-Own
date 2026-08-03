@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+// 노트 수정 이력 한 건을 클라이언트에 내려주는 응답 DTO
 @Schema(description = "노트 수정 이력 응답 DTO (노트 수정 시 서버에서 자동 생성)")
 public class NoteHistoryResponse {
 

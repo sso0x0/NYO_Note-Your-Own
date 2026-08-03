@@ -5,6 +5,7 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
+// 마이페이지 - 내가 작성한 댓글 목록 응답 DTO.
 @Getter
 @Builder
 public class CommentMyResponse {

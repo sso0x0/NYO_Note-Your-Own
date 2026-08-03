@@ -20,6 +20,7 @@ public record PageResponse<T>(
         int totalPages,
         boolean last
 ) {
+    // Page 객체를 프론트에서 필요한 필드만 담은 PageResponse로 변환한다
     public static <T> PageResponse<T> of(Page<T> page) {
         return new PageResponse<>(
                 page.getContent(),

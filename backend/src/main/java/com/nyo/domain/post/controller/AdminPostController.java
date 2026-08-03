@@ -37,6 +37,7 @@ public class AdminPostController {
         return ApiResponse.ok(postService.adminGetPostList(pageable));
     }
 
+    // 삭제된 게시글을 복구한다.
     @Operation(summary = "삭제된 게시글 복구")
     @PostMapping("/{postId}/restore")
     public ApiResponse<Void> restorePost(@PathVariable Long postId) {

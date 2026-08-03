@@ -23,6 +23,7 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
 
     private final ObjectMapper objectMapper;
 
+    // 권한 부족으로 접근이 거부된 요청에 대해 공통 ApiResponse 포맷의 403 JSON을 응답한다
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response,
                         AccessDeniedException accessDeniedException) throws IOException {

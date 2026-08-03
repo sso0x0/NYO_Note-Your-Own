@@ -16,6 +16,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+// 관리자 노트 관리 화면에 작성자 상세 정보(이메일/권한 등)까지 포함해 내려주는 응답 DTO
 @Schema(description = "관리자 노트 관리 목록 응답 DTO (일반 응답에 작성자 상세 정보를 더함)")
 public class NoteAdminResponse {
 

@@ -1,8 +1,10 @@
 package com.nyo.domain.lecture.controller;
 
 import com.nyo.domain.lecture.dto.LectureAdminResponse;
+import com.nyo.domain.lecture.dto.LectureRejectRequest;
 import com.nyo.domain.lecture.dto.LectureRequest;
 import com.nyo.domain.lecture.dto.LectureResponse;
+import com.nyo.domain.lecture.entity.LectureStatus;
 import com.nyo.domain.lecture.service.LectureService;
 import com.nyo.global.response.ApiResponse;
 import com.nyo.global.security.SecurityUtil;
@@ -28,14 +30,15 @@ public class AdminLectureController {
 
     private final LectureService lectureService;
 
-    // 관리자 강의 관리 목록 (강의별 노트/댓글 개수 포함). categoryId를 주면 해당 카테고리로 필터링한다.
-    @Operation(summary = "강의 목록 조회 (노트/댓글 개수 포함, 카테고리 필터)")
+    // 관리자 강의 관리 목록 (강의별 노트/댓글 개수 포함). categoryId/status를 주면 해당 조건으로 필터링한다.
+    @Operation(summary = "강의 목록 조회 (노트/댓글 개수 포함, 카테고리·심사 상태 필터)")
     @GetMapping
     public ApiResponse<Page<LectureAdminResponse>> getLectureList(
             @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) LectureStatus status,
             @PageableDefault(size = 10) Pageable pageable
     ) {
-        return ApiResponse.ok(lectureService.adminGetLectureList(categoryId, pageable));
+        return ApiResponse.ok(lectureService.adminGetLectureList(categoryId, status, pageable));
     }
 
     // 강의 등록
@@ -44,6 +47,22 @@ public class AdminLectureController {
     public ApiResponse<LectureResponse> createLecture(@Valid @RequestBody LectureRequest request) {
         Long adminId = SecurityUtil.getCurrentUserId();
         return ApiResponse.ok(lectureService.createLecture(request, adminId));
+    }
+
+    // 강사가 등록 신청한 강의 승인
+    @Operation(summary = "강의 등록 신청 승인", description = "강사가 등록 신청한 강의를 승인해 일반 목록/검색에 노출합니다.")
+    @PostMapping("/{id}/approve")
+    public ApiResponse<Void> approveLecture(@PathVariable Long id) {
+        lectureService.approveLecture(id, SecurityUtil.getCurrentUserId());
+        return ApiResponse.ok();
+    }
+
+    // 강사가 등록 신청한 강의 반려
+    @Operation(summary = "강의 등록 신청 반려", description = "강사가 등록 신청한 강의를 사유와 함께 반려합니다.")
+    @PostMapping("/{id}/reject")
+    public ApiResponse<Void> rejectLecture(@PathVariable Long id, @Valid @RequestBody LectureRejectRequest request) {
+        lectureService.rejectLecture(id, SecurityUtil.getCurrentUserId(), request.reason());
+        return ApiResponse.ok();
     }
 
     // 관리자 전용 단건 조회 (삭제된 강의도 조회 가능)
@@ -72,6 +91,16 @@ public class AdminLectureController {
             @Parameter(description = "삭제할 강의 ID") @PathVariable Long id) {
         Long adminId = SecurityUtil.getCurrentUserId();
         lectureService.deleteLecture(id, adminId);
+        return ApiResponse.ok();
+    }
+
+    // 삭제된 강의 복구
+    @Operation(summary = "삭제된 강의 복구", description = "관리자가 삭제 처리한 강의를 복구하여 다시 노출합니다.")
+    @PostMapping("/{id}/restore")
+    public ApiResponse<Void> restoreLecture(
+            @Parameter(description = "복구할 강의 ID") @PathVariable Long id) {
+        Long adminId = SecurityUtil.getCurrentUserId();
+        lectureService.restoreLecture(id, adminId);
         return ApiResponse.ok();
     }
 

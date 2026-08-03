@@ -1,30 +1,33 @@
 import { useEffect, useRef, useState } from 'react'
-import { createPendingContentImage, uploadPendingContentImages } from '../../../utils/contentImages'
+import {
+  createPendingContentImage,
+  findFirstContentImageUrl,
+  uploadPendingContentImages,
+} from '../../../utils/contentImages'
 import { useAuth } from '../../../context/AuthContext'
 import RichTextEditor from '../../../components/RichTextEditor'
-import ResizableMainImage from '../../../components/ResizableMainImage'
+import TextColorPicker from '../../note/components/TextColorPicker'
 import { storeMainImageWidth } from '../../../utils/mainImage'
+import './CommunityCreate.css'
 
 const initialForm = {
   title: '',
   content: '',
-  thumbnailUrl: '',
-  thumbnailWidth: 500,
   notice: false,
 }
 
+// 게시글 작성 폼: 제목/본문/공지 여부를 입력받아 게시글을 생성한다.
 function CommunityCreate({ onBack, onCreated }) {
   const { auth } = useAuth()
   const [form, setForm] = useState(initialForm)
-  const [imageFile, setImageFile] = useState(null)
   const [contentImageFiles, setContentImageFiles] = useState([])
-  const [previewUrl, setPreviewUrl] = useState('')
-  const [imageInputKey, setImageInputKey] = useState(0)
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [canCreateNotice, setCanCreateNotice] = useState(false)
+  const [textColor, setTextColor] = useState('#000000')
   const contentRef = useRef(null)
 
+  // 로그인한 사용자가 공지글을 작성할 권한이 있는지 서버에 확인한다.
   useEffect(() => {
     let cancelled = false
     const checkNoticePermission = async () => {
@@ -46,6 +49,7 @@ function CommunityCreate({ onBack, onCreated }) {
     return () => { cancelled = true }
   }, [auth?.accessToken])
 
+  // 입력 필드 값 변경을 폼 상태에 반영한다 (체크박스는 checked, 그 외는 value 사용).
   const handleChange = (event) => {
     const { name, value, checked, type } = event.target
     setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
@@ -70,27 +74,7 @@ function CommunityCreate({ onBack, onCreated }) {
     return imageInfo
   }
 
-  const handleImageChange = (event) => {
-    // 파일 선택 시에는 GCS에 올리지 않고 화면 미리보기만 만든다.
-    const file = event.target.files?.[0]
-    if (!file) {
-      return
-    }
-
-    if (previewUrl) URL.revokeObjectURL(previewUrl)
-    setImageFile(file)
-    setPreviewUrl(URL.createObjectURL(file))
-  }
-
-  const clearMainImage = () => {
-    // 선택 취소 시 브라우저 미리보기 URL과 파일 입력값을 함께 초기화합니다.
-    if (previewUrl) URL.revokeObjectURL(previewUrl)
-    setImageFile(null)
-    setPreviewUrl('')
-    setImageInputKey((key) => key + 1)
-    setForm((prev) => ({ ...prev, thumbnailUrl: '' }))
-  }
-
+  // 이미지 파일을 선택하면 임시 첨부 목록에 추가하고 에디터 커서 위치에 미리보기를 삽입한다.
   const handleContentImageChange = (event) => {
     const file = event.target.files?.[0]
     if (!file) {
@@ -104,6 +88,17 @@ function CommunityCreate({ onBack, onCreated }) {
     event.target.value = ''
   }
 
+  const applyTextStyle = (styleName) => {
+    // 선택한 본문에 볼드 또는 밑줄을 적용하고, 이미 적용된 상태라면 해제한다.
+    contentRef.current?.applyTextStyle(styleName)
+  }
+
+  const applyTextColor = (color) => {
+    // 선택한 글자에 팔레트에서 고른 색상을 적용한다.
+    contentRef.current?.applyColor(color)
+  }
+
+  // 본문 이미지를 업로드하고 폼 내용을 서버에 전송해 게시글을 생성한다.
   const createPost = async (event) => {
     event.preventDefault()
     // React가 버튼을 다시 그리기 전 발생할 수 있는 연속 제출도 함수 입구에서 차단합니다.
@@ -116,10 +111,10 @@ function CommunityCreate({ onBack, onCreated }) {
     setMessage('')
 
     try {
-      // 저장 버튼을 눌렀을 때만 GCS에 업로드하고, 받은 URL을 게시글 저장 요청에 넣는다.
-      const uploadedImage = imageFile ? await uploadImage(imageFile) : null
-      const imageUrl = uploadedImage?.imageUrl ?? form.thumbnailUrl
       const uploadedContent = await uploadPendingContentImages(form.content, contentImageFiles, uploadImage)
+      // 별도 메인 이미지 없이 본문에서 가장 먼저 등장하는 이미지를 자동 썸네일로 사용한다.
+      const firstImageUrl = findFirstContentImageUrl(uploadedContent.savedContent)
+      const firstImageInfo = uploadedContent.contentImages.find((image) => image.imageUrl === firstImageUrl)
 
       const response = await fetch('/api/posts', {
         method: 'POST',
@@ -131,10 +126,9 @@ function CommunityCreate({ onBack, onCreated }) {
         body: JSON.stringify({
           title: form.title,
           content: uploadedContent.savedContent,
-          thumbnailUrl: imageUrl ? storeMainImageWidth(imageUrl, form.thumbnailWidth) : null,
-          // 업로드 응답의 원본 파일명과 파일 크기를 DB 저장용으로 같이 보낸다.
-          imageOriginalName: uploadedImage?.originalName ?? null,
-          imageFileSize: uploadedImage?.fileSize ?? null,
+          thumbnailUrl: firstImageUrl ? storeMainImageWidth(firstImageUrl, 500) : null,
+          imageOriginalName: firstImageInfo?.originalName ?? null,
+          imageFileSize: firstImageInfo?.fileSize ?? null,
           contentImages: uploadedContent.contentImages,
           notice: canCreateNotice && form.notice,
         }),
@@ -160,68 +154,65 @@ function CommunityCreate({ onBack, onCreated }) {
     }
   }
 
-  const imagePreview = previewUrl || form.thumbnailUrl
-
   return (
-    <>
-      <header className="note-header community-create-header">
+    <section className="community-write-page">
+      <header className="community-write-page__header">
         <div>
+          <span className="community-write-page__eyebrow">COMMUNITY</span>
           <h1>게시글 작성</h1>
+          {/* 게시글 상세의 목록 버튼과 문구까지 동일하게 맞춘다. */}
+          <button type="button" className="community-write-page__back" onClick={onBack}>← 목록</button>
         </div>
-        <button type="button" onClick={onBack}>목록</button>
       </header>
 
-      <section className="note-write-panel">
-        <form className="note-write-form" onSubmit={createPost}>
-          <label>
-            제목
-            <input name="title" value={form.title} onChange={handleChange} />
-          </label>
-
+      <form className="community-write-page__form" onSubmit={createPost}>
+        <div className="community-write-page__titlebar">
+          <input
+            className="community-write-page__title"
+            name="title"
+            value={form.title}
+            onChange={handleChange}
+            placeholder="제목을 입력하세요"
+          />
           {canCreateNotice && (
-            // 관리자 공지 작성: ADMIN 사용자에게만 공지 체크박스를 표시합니다.
-            <label className="notice-checkbox">
+            // 관리자에게만 공지 작성 선택지를 표시한다.
+            <label className="community-write-page__notice">
               <input type="checkbox" name="notice" checked={form.notice} onChange={handleChange} />
-              공지로 작성
+              공지
             </label>
           )}
+        </div>
 
-          {/* 파일 입력을 label 전체로 감싸지 않아 빈 영역 클릭 시 파일 선택창이 열리지 않게 합니다. */}
-          <div className="note-content-field">
-            <span className="note-field-label">메인 이미지</span>
-            <input key={imageInputKey} type="file" accept="image/*" onChange={handleImageChange} disabled={loading} />
+        {message && <p className="community-write-page__message">{message}</p>}
+
+        <div className="community-write-page__toolbar">
+          <div className="community-write-page__toolbar-group">
+            <label className="community-write-page__image-button" title="이미지 삽입">
+              이미지
+              <input type="file" accept="image/*" onChange={handleContentImageChange} disabled={loading} hidden />
+            </label>
+            <button type="button" onClick={() => applyTextStyle('bold')} title="볼드"><strong>B</strong></button>
+            <button type="button" onClick={() => applyTextStyle('underline')} title="밑줄"><u>U</u></button>
+            <TextColorPicker value={textColor} onChange={setTextColor} onApply={applyTextColor} />
           </div>
+        </div>
 
-          {imagePreview && (
-            <div className="image-preview-box">
-              <ResizableMainImage
-                src={imagePreview}
-                alt="커뮤니티 메인 이미지 미리보기"
-                width={form.thumbnailWidth}
-                onWidthChange={(thumbnailWidth) => setForm((prev) => ({ ...prev, thumbnailWidth }))}
-              />
-              {imageFile && <p className="image-preview-name">{imageFile.name}</p>}
-              <button type="button" className="image-preview-remove" onClick={clearMainImage} disabled={loading}>이미지 선택 취소</button>
-            </div>
-          )}
+        <div className="community-write-page__editor">
+          <RichTextEditor
+            ref={contentRef}
+            value={form.content}
+            onChange={(content) => setForm((prev) => ({ ...prev, content }))}
+          />
+        </div>
 
-          {/* 본문 영역도 파일 입력과 분리해 에디터 주변 공백이 이미지 선택을 실행하지 않게 합니다. */}
-          <div className="note-content-field">
-            <span className="note-field-label">내용</span>
-            <input type="file" accept="image/*" onChange={handleContentImageChange} disabled={loading} />
-            <RichTextEditor
-              ref={contentRef}
-              value={form.content}
-              onChange={(content) => setForm((prev) => ({ ...prev, content }))}
-            />
-          </div>
-
-          {/* 저장 요청 중에는 버튼을 비활성화해 이미지 및 게시글이 중복 저장되지 않게 합니다. */}
-          <button type="submit" disabled={loading}>{loading ? '저장 중...' : '저장'}</button>
-        </form>
-        {message && <p className="note-message">{message}</p>}
-      </section>
-    </>
+        {/* 저장 버튼은 작성 내용을 확인한 뒤 누를 수 있도록 에디터 아래에 배치한다. */}
+        <div className="community-write-page__actions">
+          <button type="submit" className="community-write-page__submit" disabled={loading}>
+            {loading ? '저장 중...' : '저장'}
+          </button>
+        </div>
+      </form>
+    </section>
   )
 }
 

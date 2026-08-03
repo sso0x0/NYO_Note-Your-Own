@@ -5,6 +5,7 @@ export function getAdminPostList({ page = 0, size = 10 } = {}) {
   return apiGet('/api/admin/posts', { page, size });
 }
 
+// 신고/삭제 처리된 게시글을 복구한다.
 export function restorePost(postId) {
   return apiPost(`/api/admin/posts/${postId}/restore`);
 }

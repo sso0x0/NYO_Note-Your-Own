@@ -10,11 +10,12 @@ const EMPTY_FORM = {
   title: '',
   description: '',
   lectureUrl: '',
-  thumbnailUrl: '',
+  reviewUrl: '',
   instructor: '',
   capacity: '',
 };
 
+// 강의 등록/수정 폼: URL의 id 유무로 신규 등록과 수정 모드를 구분해 처리한다.
 function AdminLectureFormPage() {
   const { id } = useParams();
   const isEdit = id != null;
@@ -48,7 +49,7 @@ function AdminLectureFormPage() {
           title: lecture.title ?? '',
           description: lecture.description ?? '',
           lectureUrl: lecture.lectureUrl ?? '',
-          thumbnailUrl: lecture.thumbnailUrl ?? '',
+          reviewUrl: lecture.reviewUrl ?? '',
           instructor: lecture.instructor ?? '',
           capacity: lecture.capacity ?? '',
         });
@@ -66,23 +67,30 @@ function AdminLectureFormPage() {
     };
   }, [id, isEdit]);
 
+  // 입력값을 폼 상태에 반영하고, 해당 필드에 남아있던 에러 메시지를 지운다.
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setFieldErrors((prev) => (prev[name] ? { ...prev, [name]: null } : prev));
   };
 
+  // 저장하지 않고 강의 목록 화면으로 되돌아간다.
   const handleCancel = () => {
     navigate('/admin/lectures');
   };
 
+  // 필수 입력 항목이 비어있는지 검사해 필드별 에러 메시지를 만든다.
   const validate = () => {
     const errors = {};
     if (!form.categoryId) errors.categoryId = '카테고리를 선택해주세요.';
     if (!form.title.trim()) errors.title = '강의명을 입력해주세요.';
+    if (!form.instructor.trim()) errors.instructor = '강사명을 입력해주세요.';
+    if (!form.lectureUrl.trim()) errors.lectureUrl = '강의 URL을 입력해주세요.';
+    if (!form.description.trim()) errors.description = '강의 설명을 입력해주세요.';
     return errors;
   };
 
+  // 폼을 검증한 뒤 수정/신규 모드에 따라 강의를 저장하고 목록으로 이동한다.
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -98,7 +106,7 @@ function AdminLectureFormPage() {
       title: form.title,
       description: form.description || null,
       lectureUrl: form.lectureUrl || null,
-      thumbnailUrl: form.thumbnailUrl || null,
+      reviewUrl: form.reviewUrl || null,
       instructor: form.instructor || null,
       capacity: form.capacity ? Number(form.capacity) : null,
     };
@@ -131,6 +139,9 @@ function AdminLectureFormPage() {
         {!loading && !loadError && (
           <form className="admin-lecture-form" onSubmit={handleSubmit} noValidate>
             {formError && <p className="admin-error" role="alert">{formError}</p>}
+            <p className="admin-lecture-form__hint">
+              현재는 유튜브 링크만 강의 URL로 등록할 수 있으며, 썸네일은 해당 링크에서 자동으로 추출됩니다. 다른 영상 플랫폼 지원은 추후 추가될 예정입니다.
+            </p>
 
             <div className="admin-lecture-form__grid">
               <label>
@@ -162,23 +173,51 @@ function AdminLectureFormPage() {
               </label>
               <label>
                 강사명
-                <input name="instructor" value={form.instructor} onChange={handleFormChange} maxLength={100} />
+                <input
+                  name="instructor"
+                  value={form.instructor}
+                  onChange={handleFormChange}
+                  maxLength={100}
+                  className={fieldErrors.instructor ? 'admin-field--invalid' : undefined}
+                />
+                {fieldErrors.instructor && <span className="admin-field-error">{fieldErrors.instructor}</span>}
               </label>
               <label>
-                수강 정원 (미입력 시 무제한)
+                수강 정원 (선택, 미입력 시 무제한)
                 <input type="number" name="capacity" value={form.capacity} onChange={handleFormChange} min={1} />
               </label>
               <label>
                 강의 URL
-                <input name="lectureUrl" value={form.lectureUrl} onChange={handleFormChange} placeholder="https://..." />
+                <input
+                  name="lectureUrl"
+                  value={form.lectureUrl}
+                  onChange={handleFormChange}
+                  placeholder="https://..."
+                  className={fieldErrors.lectureUrl ? 'admin-field--invalid' : undefined}
+                />
+                {fieldErrors.lectureUrl && <span className="admin-field-error">{fieldErrors.lectureUrl}</span>}
               </label>
               <label>
-                썸네일 URL
-                <input name="thumbnailUrl" value={form.thumbnailUrl} onChange={handleFormChange} placeholder="https://..." />
+                복습용 URL (선택)
+                <input
+                  name="reviewUrl"
+                  value={form.reviewUrl}
+                  onChange={handleFormChange}
+                  placeholder="https://..."
+                  className={fieldErrors.reviewUrl ? 'admin-field--invalid' : undefined}
+                />
+                {fieldErrors.reviewUrl && <span className="admin-field-error">{fieldErrors.reviewUrl}</span>}
               </label>
               <label className="admin-lecture-form__full">
                 강의 설명
-                <textarea name="description" value={form.description} onChange={handleFormChange} rows={8} />
+                <textarea
+                  name="description"
+                  value={form.description}
+                  onChange={handleFormChange}
+                  rows={8}
+                  className={fieldErrors.description ? 'admin-field--invalid' : undefined}
+                />
+                {fieldErrors.description && <span className="admin-field-error">{fieldErrors.description}</span>}
               </label>
             </div>
           </form>

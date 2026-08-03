@@ -4,6 +4,7 @@ import { getPostList, searchPosts } from '../api/post';
 import PostCard from '../components/PostCard';
 import './CommunityListPage.css';
 
+// 커뮤니티 게시글 목록(공지/일반, 검색, 페이지네이션)을 보여주는 페이지
 function CommunityListPage() {
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
@@ -12,6 +13,7 @@ function CommunityListPage() {
   const [status, setStatus] = useState('idle'); // idle | loading | success | error
   const [error, setError] = useState(null);
 
+  // 페이지 번호나 적용된 검색어가 바뀔 때마다 게시글 목록(또는 검색 결과)을 조회한다.
   useEffect(() => {
     let cancelled = false;
 
@@ -40,12 +42,14 @@ function CommunityListPage() {
     };
   }, [page, appliedKeyword]);
 
+  // 입력한 검색어를 적용하고 첫 페이지로 이동한다.
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     setPage(0);
     setAppliedKeyword(keyword.trim());
   };
 
+  // 검색어를 지우고 전체 목록 첫 페이지로 되돌린다.
   const handleReset = () => {
     setKeyword('');
     setAppliedKeyword('');

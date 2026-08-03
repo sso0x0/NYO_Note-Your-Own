@@ -15,6 +15,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+// 커뮤니티 게시글 등록/수정 요청 DTO.
 @Schema(description = "커뮤니티 게시글 등록/수정 요청 DTO")
 public class PostRequest {
 

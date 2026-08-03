@@ -29,6 +29,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
 
+    /**
+     * OncePerRequestFilter는 기본적으로 비동기 디스패치(async dispatch)에서는 다시 실행되지 않는다.
+     * 그런데 /api/chats/stream처럼 SseEmitter를 쓰는 컨트롤러는 emitter.complete()가 호출되면
+     * 서블릿 컨테이너가 응답을 마무리하려고 이 필터 체인을 async 디스패치로 다시 태우는데,
+     * 이 필터가 그때 건너뛰어지면 SecurityContext가 비어 있는 채로 AuthorizationFilter를 만나
+     * "Access Denied"가 나고 응답이 깨끗하게 안 끝난다(클라이언트 fetch가 멈춘 것처럼 보임).
+     * false를 반환해 async 디스패치에서도 이 필터가 다시 실행되어 인증을 다시 세팅하게 한다.
+     */
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
+
+    // 요청의 Bearer 토큰을 검증하고, 유효하며 회원 상태가 ACTIVE일 때만 SecurityContext에 인증 정보를 세팅한다
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {

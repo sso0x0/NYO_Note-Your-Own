@@ -19,6 +19,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+// 커뮤니티 게시글 엔티티.
 @Table(name = "posts")
 public class Post extends BaseEntity {
 
@@ -52,6 +53,7 @@ public class Post extends BaseEntity {
     @Column(name = "is_notice", nullable = false)
     private Integer isNotice;
 
+    // 새 게시글을 생성한다 (조회수/좋아요수 0으로 초기화).
     public static Post create(Long userId, String title, String content, String thumbnailUrl, boolean notice) {
         return Post.builder()
                 .userId(userId)
@@ -65,6 +67,7 @@ public class Post extends BaseEntity {
                 .build();
     }
 
+    // 게시글 제목/본문/썸네일/공지 여부를 수정한다.
     public void update(String title, String content, String thumbnailUrl, boolean notice) {
         this.title = title;
         this.content = content;
@@ -72,18 +75,22 @@ public class Post extends BaseEntity {
         this.isNotice = notice ? 1 : 0;
     }
 
+    // 게시글을 소프트 삭제 처리한다.
     public void delete() {
         this.isDeleted = 1;
     }
 
+    // 삭제된 게시글을 복구한다.
     public void restore() {
         this.isDeleted = 0;
     }
 
+    // isDeleted 값이 1인지로 삭제 여부를 판단한다.
     public boolean isDeleted() {
         return Integer.valueOf(1).equals(isDeleted);
     }
 
+    // isNotice 값이 1인지로 공지 여부를 판단한다.
     public boolean isNotice() {
         return Integer.valueOf(1).equals(isNotice);
     }

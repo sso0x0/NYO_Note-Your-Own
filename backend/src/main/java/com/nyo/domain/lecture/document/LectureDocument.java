@@ -50,6 +50,7 @@ public class LectureDocument {
     @Field(type = FieldType.Long)
     private Long categoryId;
 
+    // Lecture 엔티티에서 검색 색인에 필요한 필드만 추출해 LectureDocument로 변환한다
     public static LectureDocument from(Lecture lecture) {
         return LectureDocument.builder()
                 .id(lecture.getId())

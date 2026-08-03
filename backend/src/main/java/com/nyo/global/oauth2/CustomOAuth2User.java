@@ -21,6 +21,7 @@ public class CustomOAuth2User implements OAuth2User {
     private final User user;
     private final Map<String, Object> attributes;
 
+    // User 엔티티와 구글이 내려준 원본 attribute를 감싸 OAuth2User로 만든다
     public CustomOAuth2User(User user, Map<String, Object> attributes) {
         this.user = user;
         this.attributes = attributes;

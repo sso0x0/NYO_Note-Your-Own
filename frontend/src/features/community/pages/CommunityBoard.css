@@ -24,6 +24,11 @@
   font-family: inherit;
 }
 
+/* 게시글 제목 옆 댓글 수만 빨간색으로 구분한다. */
+.community-board-page__list .post-card__comment-count {
+    color: #ff4f4f;
+}
+
 .community-board-page__crumbs {
   display: flex;
   align-items: center;
@@ -49,13 +54,14 @@
 
 .community-board-page h2 {
   margin: 0;
-  font-size: 28px;
-  font-weight: 800;
+  font-size: 32px;
+  font-weight: 700;
   letter-spacing: -0.5px;
   color: var(--text-h);
 }
 
 .community-board-page__toolbar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -63,6 +69,46 @@
   margin-top: 20px;
   padding-bottom: 18px;
   border-bottom: 1px solid var(--cb-line);
+}
+
+.community-board-page__toolbar .board-search {
+  /* 커뮤니티 검색바만 연한 검은색 테두리를 사용하고 글쓰기와 같은 줄에 배치한다. */
+  position: absolute;
+  /* 노트·강의 검색바처럼 검색 버튼 한 개 너비(72px)만큼 오른쪽 여백을 더 둔다. */
+  right: 432px;
+  bottom: 18px;
+  left: 0;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  border: 1px solid var(--border);
+  transform: none;
+  height: 42px;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.community-board-page__toolbar .board-search:hover {
+  border-color: rgba(96, 101, 251, 0.7);
+  box-shadow: none;
+}
+
+.community-board-page__toolbar .board-search:focus-within {
+  border-color: #6065fb;
+  box-shadow: none;
+}
+
+.community-board-page__toolbar .board-search__box input {
+  height: 100%;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.community-board-page__toolbar .board-search__submit {
+  height: 34px;
+  margin: 3px 8px 3px 0;
+  padding: 0 18px;
+  border-radius: 8px;
 }
 
 /* 정렬 박스 바로 왼쪽에 붙도록, 왼쪽의 남는 공간을 이 요소가 흡수해 오른쪽으로 붙는다. */
@@ -160,20 +206,22 @@
 .community-board-page__write-btn {
   flex-shrink: 0;
   padding: 8px 20px;
-  border: none;
+  border: 1px solid #000;
   border-radius: 8px;
-  background: var(--cb-ink);
+  background: #000;
   color: #fff;
   font: inherit;
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
 
 .community-board-page__write-btn:hover {
-  opacity: 0.85;
+  border-color: #000;
+  background: #fff;
+  color: #000;
 }
 
 /* 카드는 공용 PostCard 스타일을 그대로 쓰되, 이미지 없이 제목/작성자/조회수/좋아요/작성일자를
@@ -213,6 +261,9 @@
 }
 
 .community-board-page__list .post-card {
+  position: relative;
+  /* 기본 카드의 overflow:hidden 때문에 썸네일 미리보기가 한 줄 안에서 잘리는 것을 방지한다. */
+  overflow: visible;
   border: none;
   border-bottom: 1px solid var(--cb-line);
   border-radius: 0;
@@ -221,7 +272,37 @@
   transition: background 0.15s ease;
 }
 
+.community-board-page__list .post-card__hover-thumb {
+  position: absolute;
+  z-index: 30;
+  left: 28px;
+  bottom: calc(100% - 8px);
+  display: none;
+  width: min(240px, calc(100vw - 72px));
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid var(--cb-line);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(31, 41, 79, 0.2);
+  pointer-events: none;
+}
+
+.community-board-page__list .post-card__hover-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fff;
+}
+
+.community-board-page__list .post-card:hover .post-card__hover-thumb {
+  display: block;
+}
+
 .community-board-page__list .post-card:hover {
+  /* 미리보기가 다음 게시글보다 위에 표시되도록 현재 행의 쌓임 순서를 높인다. */
+  z-index: 20;
   transform: none;
   background: #f5f5f5;
 }

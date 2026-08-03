@@ -34,6 +34,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     private final UserRepository userRepository;
     private final UserService userService;
 
+    // 구글 프로필을 조회해 회원을 찾거나 가입시키고, 정지/탈퇴 상태를 검증한 뒤 CustomOAuth2User로 반환한다
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
         OAuth2User oAuth2User = super.loadUser(userRequest);

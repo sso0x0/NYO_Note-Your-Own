@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { getLectureList, searchLectures } from '../../lecture/api/lecture';
+import { Link, useNavigate } from 'react-router-dom';
+import { getLectureList, getPopularLectures, searchLectures } from '../../lecture/api/lecture';
 import { getCategoryList } from '../../lecture/api/category';
-import { getNoteList, getNoteListByCategory, searchNotes } from '../../note/api/note';
-import { getPostList, searchPosts } from '../../community/api/post';
+import { getNoteListByCategory, getPopularNotes, searchNotes } from '../../note/api/note';
+import { getPopularPosts, searchPosts } from '../../community/api/post';
 import LectureCard from '../../lecture/components/LectureCard';
 import NoteCard from '../../note/components/NoteCard';
 import PostCard from '../../community/components/PostCard';
+import frontendImg from '../../../assets/images/category/frontend.jpg';
+import backendImg from '../../../assets/images/category/backend.jpg';
+import csImg from '../../../assets/images/category/cs.png';
+import bigdataImg from '../../../assets/images/category/bigdata.jpg';
 import './MainPage.css';
 
 const HIGHLIGHT_SIZE = 5;
@@ -35,6 +39,14 @@ function getCategoryDefinition(name = '') {
     return '대량의 데이터를 수집·저장·처리·분석해 의미 있는 인사이트를 뽑아내는 분야예요. 통계와 데이터 파이프라인 구축부터 머신러닝·딥러닝 모델링까지 폭넓게 다루며, Python이나 SQL 같은 도구로 데이터를 정제하고 시각화하는 작업도 포함돼요. 서비스에서 쌓인 로그와 사용자 데이터를 바탕으로 의사결정을 돕거나 새로운 기능을 만들어내는, 데이터 기반 문제 해결 능력이 중요한 영역이에요. Hadoop, Spark 같은 분산 처리 프레임워크로 대규모 데이터를 다루는 경험이나, 데이터 웨어하우스·데이터 레이크 설계처럼 데이터를 체계적으로 관리하는 역량도 함께 요구돼요. 최근에는 AI/ML 모델을 실제 서비스에 배포하고 운영하는 MLOps 역량까지 데이터 분야의 범위가 점점 넓어지고 있어요.';
   }
   return '';
+}
+
+// 카테고리 이름에 어울리는 대표 이미지를 매칭한다. 매칭되는 게 없으면 프론트엔드 이미지를 기본값으로 쓴다.
+function getCategoryImage(name = '') {
+  if (/백엔드|back/i.test(name)) return backendImg;
+  if (/^cs$|컴퓨터|알고리즘/i.test(name)) return csImg;
+  if (/빅데이터|데이터|data/i.test(name)) return bigdataImg;
+  return frontendImg;
 }
 
 // 카테고리 이름에 어울리는 칩 아이콘을 대략적으로 매칭한다. 매칭되는 게 없으면 기본 태그 아이콘을 쓴다.
@@ -77,7 +89,9 @@ function CategoryIcon({ name = '' }) {
   );
 }
 
+// 메인 페이지: 통합 검색, 카테고리 탐색, 인기 강의/노트/커뮤니티 하이라이트를 보여준다.
 function MainPage() {
+  const navigate = useNavigate();
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
   const [searchType, setSearchType] = useState('all');
@@ -103,12 +117,14 @@ function MainPage() {
   const [categoryNotes, setCategoryNotes] = useState([]);
   const [categoryStatus, setCategoryStatus] = useState('idle'); // idle | loading | success | error
 
+  // 카테고리 칩 목록을 불러온다.
   useEffect(() => {
     getCategoryList()
       .then((data) => setCategories(Array.isArray(data) ? data : []))
       .catch(() => setCategories([]));
   }, []);
 
+  // 선택한 카테고리의 인기 강의/노트를 함께 불러온다.
   useEffect(() => {
     if (!selectedCategory) return;
     let cancelled = false;
@@ -136,6 +152,7 @@ function MainPage() {
     };
   }, [selectedCategory]);
 
+  // 같은 카테고리를 다시 클릭하면 닫고, 다른 카테고리면 상세 시트를 연다.
   const handleToggleCategory = (category) => {
     setSelectedCategory((prev) => (prev?.id === category.id ? null : category));
   };
@@ -161,6 +178,7 @@ function MainPage() {
     };
   }, [isSearchTypeOpen]);
 
+  // 검색 종류를 선택하고 드롭다운을 닫는다.
   const handleSelectSearchType = (value) => {
     setSearchType(value);
     setIsSearchTypeOpen(false);
@@ -182,6 +200,7 @@ function MainPage() {
     };
   }, [selectedCategory]);
 
+  // 검색어 유무에 따라 강의/노트/커뮤니티 인기 목록 또는 검색 결과를 불러온다.
   useEffect(() => {
     let cancelled = false;
 
@@ -191,20 +210,22 @@ function MainPage() {
 
     const requests = appliedKeyword
       ? [
-          searchLectures({ keyword: appliedKeyword, searchType: appliedSearchType, size: LECTURE_HIGHLIGHT_SIZE }),
+          // 검색 상태에서는 이동 없는 한 화면에 맞춰 강의 결과를 최대 5개만 요청한다.
+          searchLectures({ keyword: appliedKeyword, searchType: appliedSearchType, size: HIGHLIGHT_SIZE }),
           searchNotes({ keyword: appliedKeyword, searchType: appliedSearchType, size: HIGHLIGHT_SIZE }),
           searchPosts({ keyword: appliedKeyword, searchType: appliedSearchType, size: HIGHLIGHT_SIZE }),
         ]
       : [
-          getLectureList({ size: LECTURE_HIGHLIGHT_SIZE, sort: 'likeCount,desc' }),
-          getNoteList({ size: HIGHLIGHT_SIZE, sort: 'likeCount,desc' }),
-          getPostList({ size: HIGHLIGHT_SIZE, sort: 'likeCount,desc' }),
+          getPopularLectures({ size: LECTURE_HIGHLIGHT_SIZE }),
+          getPopularNotes({ size: HIGHLIGHT_SIZE }),
+          getPopularPosts({ size: HIGHLIGHT_SIZE }),
         ];
 
     Promise.all(requests)
       .then(([lectureData, noteData, postData]) => {
         if (cancelled) return;
-        setLectures((lectureData?.content ?? []).slice(0, LECTURE_HIGHLIGHT_SIZE));
+        const lectureLimit = appliedKeyword ? HIGHLIGHT_SIZE : LECTURE_HIGHLIGHT_SIZE;
+        setLectures((lectureData?.content ?? []).slice(0, lectureLimit));
         setNotes(noteData?.content ?? []);
         setPosts(postData?.content ?? []);
         setStatus('success');
@@ -220,12 +241,14 @@ function MainPage() {
     };
   }, [appliedKeyword, appliedSearchType]);
 
+  // 입력한 검색어와 검색 종류를 적용해 검색 결과를 조회한다.
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     setAppliedKeyword(keyword.trim());
     setAppliedSearchType(searchType);
   };
 
+  // 검색어와 검색 종류를 초기화해 인기 목록으로 되돌린다.
   const handleReset = () => {
     setKeyword('');
     setAppliedKeyword('');
@@ -235,8 +258,9 @@ function MainPage() {
 
   // 앞뒤로 원본 리스트를 하나씩 더 이어붙여서, 끝에 닿아도 반대편으로 튀지 않고 계속 이어지는 것처럼 보이게 한다.
   const extendedLectures = useMemo(
-    () => (lectures.length > 1 ? [...lectures, ...lectures, ...lectures] : lectures),
-    [lectures]
+    // 검색 결과는 복제하지 않고 최대 5개만 정지 상태로 표시한다.
+    () => (appliedKeyword || lectures.length <= 1 ? lectures : [...lectures, ...lectures, ...lectures]),
+    [lectures, appliedKeyword]
   );
 
   // 카드 한 장 + gap 만큼을 한 스텝으로 계산해서, 이동 속도/거리를 카드 크기 기준으로 맞춘다.
@@ -262,6 +286,10 @@ function MainPage() {
   useEffect(() => {
     const el = lectureScrollRef.current;
     const n = lectures.length;
+    if (appliedKeyword) {
+      if (el) el.scrollLeft = 0;
+      return undefined;
+    }
     if (!el || n <= 1) return undefined;
 
     const step = getLectureItemStep();
@@ -310,7 +338,7 @@ function MainPage() {
         lectureRafIdRef.current = null;
       }
     };
-  }, [lectures]);
+  }, [lectures, appliedKeyword]);
 
   // 창 크기가 바뀌면 카드 폭이 달라지므로 속도/주기 계산에 쓰는 값을 다시 재보정한다.
   useEffect(() => {
@@ -325,10 +353,12 @@ function MainPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, [lectures]);
 
+  // 마우스를 올리면 인기 강의 캐러셀 자동 흐름을 멈춘다.
   const pauseLectureAutoplay = () => {
     lectureAutoplayPausedRef.current = true;
   };
 
+  // 마우스가 벗어나면 인기 강의 캐러셀 자동 흐름을 다시 시작한다.
   const resumeLectureAutoplay = () => {
     lectureAutoplayPausedRef.current = false;
   };
@@ -438,7 +468,12 @@ function MainPage() {
             >
               <div className="main-page__category-detail-scroll">
                 <div className="main-page__category-detail-head">
-                  <div>
+                  <img
+                    className="main-page__category-detail-image"
+                    src={getCategoryImage(selectedCategory.name)}
+                    alt={selectedCategory.name}
+                  />
+                  <div className="main-page__category-detail-text">
                     <span className="main-page__eyebrow">CATEGORY</span>
                     <h2>{selectedCategory.name}</h2>
                     <p>{getCategoryDefinition(selectedCategory.name)}</p>
@@ -486,7 +521,11 @@ function MainPage() {
                       ) : (
                         <div className="main-page__list">
                           {categoryNotes.map((note) => (
-                            <NoteCard key={note.id} note={note} />
+                            <NoteCard
+                              key={note.id}
+                              note={note}
+                              onTagClick={(tagName) => navigate(`/main/notes?keyword=${encodeURIComponent(tagName)}`)}
+                            />
                           ))}
                         </div>
                       )}
@@ -524,18 +563,20 @@ function MainPage() {
                 <p className="main-page__empty">결과가 없습니다.</p>
               ) : (
                 <div
-                  className="main-page__carousel"
+                  className={`main-page__carousel${appliedKeyword ? ' is-search-result' : ''}`}
                   onMouseEnter={pauseLectureAutoplay}
                   onMouseLeave={resumeLectureAutoplay}
                 >
-                  <button
-                    type="button"
-                    className="main-page__nav-btn main-page__nav-btn--prev"
-                    onClick={() => scrollLectures(-1)}
-                    aria-label="이전 강의"
-                  >
-                    ‹
-                  </button>
+                  {!appliedKeyword && (
+                    <button
+                      type="button"
+                      className="main-page__nav-btn main-page__nav-btn--prev"
+                      onClick={() => scrollLectures(-1)}
+                      aria-label="이전 강의"
+                    >
+                      ‹
+                    </button>
+                  )}
                   <div className="main-page__scroll" ref={lectureScrollRef}>
                     {extendedLectures.map((lecture, index) => (
                       <div className="main-page__scroll-item" key={`${lecture.id}-${index}`}>
@@ -543,14 +584,16 @@ function MainPage() {
                       </div>
                     ))}
                   </div>
-                  <button
-                    type="button"
-                    className="main-page__nav-btn main-page__nav-btn--next"
-                    onClick={() => scrollLectures(1)}
-                    aria-label="다음 강의"
-                  >
-                    ›
-                  </button>
+                  {!appliedKeyword && (
+                    <button
+                      type="button"
+                      className="main-page__nav-btn main-page__nav-btn--next"
+                      onClick={() => scrollLectures(1)}
+                      aria-label="다음 강의"
+                    >
+                      ›
+                    </button>
+                  )}
                 </div>
               )}
             </section>
@@ -575,7 +618,11 @@ function MainPage() {
               ) : (
                 <div className="main-page__list">
                   {notes.map((note) => (
-                    <NoteCard key={note.id} note={note} />
+                    <NoteCard
+                      key={note.id}
+                      note={note}
+                      onTagClick={(tagName) => navigate(`/main/notes?keyword=${encodeURIComponent(tagName)}`)}
+                    />
                   ))}
                 </div>
               )}

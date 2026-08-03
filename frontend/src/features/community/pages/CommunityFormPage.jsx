@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { canCreateNotice, createPost, getPost, updatePost } from '../api/post';
 import './CommunityFormPage.css';
 
+// 게시글 작성/수정 공용 폼 (id 파라미터 유무로 모드를 구분한다)
 function CommunityFormPage() {
   const { id } = useParams();
   const isEdit = !!id;
@@ -17,12 +18,14 @@ function CommunityFormPage() {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // 현재 사용자가 공지글을 작성할 수 있는지 확인한다.
   useEffect(() => {
     canCreateNotice()
       .then((v) => setCanNotice(!!v))
       .catch(() => setCanNotice(false));
   }, []);
 
+  // 수정 모드일 때 기존 게시글 데이터를 불러와 폼을 채운다.
   useEffect(() => {
     if (!isEdit) return;
     let cancelled = false;
@@ -47,6 +50,7 @@ function CommunityFormPage() {
     };
   }, [id, isEdit]);
 
+  // 모드에 따라 게시글을 생성 또는 수정하고 상세 화면으로 이동한다.
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);

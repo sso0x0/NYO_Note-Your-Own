@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   getUserList,
-  changeUserRole,
   sanctionUser,
   getSanctionHistory,
   releaseUserSuspension,
@@ -31,6 +31,7 @@ const formatSanctionDateTime = (value) => {
   return value.slice(0, 19).replace('T', ' ');
 };
 
+// 특정 회원의 제재(경고/정지/강제 탈퇴) 등록과 제재 이력 조회, 정지 해제를 담당하는 패널.
 function SanctionPanel({ user, onDone }) {
   const [type, setType] = useState('WARNING');
   const [reason, setReason] = useState('');
@@ -41,6 +42,7 @@ function SanctionPanel({ user, onDone }) {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [releasing, setReleasing] = useState(false);
 
+  // 해당 회원의 제재 이력을 서버에서 불러온다.
   const loadHistory = () => {
     setHistoryLoading(true);
     getSanctionHistory(user.id)
@@ -49,22 +51,7 @@ function SanctionPanel({ user, onDone }) {
       .finally(() => setHistoryLoading(false));
   };
 
-  const handleRoleChange = async (nextRole) => {
-    // 관리자 부여와 일반 회원 전환 모두 대상 회원과 변경 권한을 한 번 더 확인합니다.
-    const nextRoleLabel = nextRole === 'ADMIN' ? '관리자' : '일반 회원';
-    if (!window.confirm(`${user.nickname}을(를) ${nextRoleLabel}(으)로 전환하시겠습니까?`)) {
-      return;
-    }
-
-    setError(null);
-    try {
-      await changeUserRole(user.id, nextRole);
-      onDone();
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
+  // 입력한 내용으로 제재(경고/정지/강제 탈퇴)를 등록하고, 폼 초기화 후 이력을 다시 불러온다.
   const handleSanctionSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -91,6 +78,7 @@ function SanctionPanel({ user, onDone }) {
     }
   };
 
+  // 확인 후 회원의 정지를 해제하고 회원 상태와 이력을 다시 불러온다.
   const handleReleaseSuspension = async () => {
     // 실수로 정지를 해제하지 않도록 대상 회원의 닉네임을 확인받습니다.
     if (!window.confirm(`${user.nickname}의 정지를 해제하시겠습니까?`)) {
@@ -118,18 +106,6 @@ function SanctionPanel({ user, onDone }) {
   return (
     <div className="admin-users__panel">
       {error && <p className="admin-error" role="alert">{error}</p>}
-
-      <div className="admin-users__panel-block">
-        <h4 className="admin-section-title">권한 변경</h4>
-        <div className="admin-users__role-actions">
-          <button type="button" className="admin-btn" disabled={user.role === 'USER'} onClick={() => handleRoleChange('USER')}>
-            일반회원으로 변경
-          </button>
-          <button type="button" className="admin-btn" disabled={user.role === 'ADMIN'} onClick={() => handleRoleChange('ADMIN')}>
-            관리자로 변경
-          </button>
-        </div>
-      </div>
 
       <div className="admin-users__panel-block">
         <h4 className="admin-section-title">제재 등록</h4>
@@ -200,14 +176,19 @@ function SanctionPanel({ user, onDone }) {
   );
 }
 
+// 회원 목록 관리자 화면: 회원별 제재 등록/이력 패널을 펼쳐서 관리한다.
 function AdminUsersPage() {
-  const users = usePagedList(getUserList);
-  const [expandedUserId, setExpandedUserId] = useState(null);
+  const location = useLocation();
+  const users = usePagedList(getUserList, location.state?.focusPage ?? 0);
+  // 신고 관리에서 넘어오면 신고 대상 작성자의 관리 패널을 바로 펼친다.
+  const [expandedUserId, setExpandedUserId] = useState(location.state?.focusUserId ?? null);
 
+  // 클릭한 회원의 관리 패널을 펼치거나, 이미 펼쳐져 있으면 접는다.
   const handleToggle = (userId) => {
     setExpandedUserId((prev) => (prev === userId ? null : userId));
   };
 
+  // 제재 패널에서 처리(등록/해제)가 끝나면 회원 목록을 최신 상태로 다시 불러온다.
   const handlePanelDone = () => {
     users.reload();
   };
@@ -235,7 +216,10 @@ function AdminUsersPage() {
               </tr>
             </thead>
             <tbody>
-              {users.pageData.content.map((user, index) => (
+              {/* 시드/테스트용 admin 계정(loginId "admin")은 목록에서 숨긴다 */}
+              {users.pageData.content
+                .filter((user) => user.loginId !== 'admin')
+                .map((user, index) => (
                 <Fragment key={user.id}>
                   <tr>
                     <td>{users.page * PAGE_SIZE + index + 1}</td>
@@ -263,7 +247,12 @@ function AdminUsersPage() {
               ))}
               {/* 데이터가 적은 페이지(특히 마지막 페이지)에서도 표 높이가 항상 동일하도록
                   빈 줄을 채워, 이전/다음 버튼 위치가 페이지마다 흔들리지 않게 한다. */}
-              {Array.from({ length: Math.max(0, PAGE_SIZE - users.pageData.content.length) }).map((_, i) => (
+              {Array.from({
+                length: Math.max(
+                  0,
+                  PAGE_SIZE - users.pageData.content.filter((user) => user.loginId !== 'admin').length
+                ),
+              }).map((_, i) => (
                 <tr key={`filler-${i}`} className="admin-filler-row" aria-hidden="true">
                   <td colSpan={9}>&nbsp;</td>
                 </tr>

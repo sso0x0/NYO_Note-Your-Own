@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
+// ViewService 구현체 (노트/게시글/강의 공용 조회 로그 등록 처리)
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -22,18 +23,12 @@ public class ViewServiceImpl implements ViewService {
     private final ViewLogRepository viewLogRepository;
     private final UserRepository userRepository;
 
-    // 조회 기록 등록 (하루 1회 제한, 이미 조회했으면 카운트 증가 없이 false 반환)
+    // 조회 기록 등록 (조회할 때마다 카운트 증가)
     @Override
     @Transactional
     public boolean recordView(Long userId, ViewRequest request) {
         TargetType targetType = parseTargetType(request.getTargetType());
         LocalDate today = LocalDate.now();
-
-        boolean alreadyViewed = viewLogRepository.existsByTargetTypeAndTargetIdAndViewedDateAndUserId(
-                targetType, request.getTargetId(), today, userId);
-        if (alreadyViewed) {
-            return false;
-        }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
@@ -47,6 +42,7 @@ public class ViewServiceImpl implements ViewService {
         return true;
     }
 
+    // 문자열 targetType을 enum으로 변환한다 (잘못된 값이면 400 에러로 변환)
     private TargetType parseTargetType(String targetType) {
         try {
             return TargetType.valueOf(targetType);

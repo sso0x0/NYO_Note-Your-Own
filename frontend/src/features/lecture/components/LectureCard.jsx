@@ -3,6 +3,7 @@ import fallbackThumbnail from '../../../assets/images/null.png';
 import { resolveLectureThumbnail } from '../../../utils/youtubeThumbnail';
 import './LectureCard.css';
 
+// 강의 목록/추천 영역에서 쓰는 카드 하나: 썸네일 + 인기 배지 + 카테고리/제목/태그/통계를 보여준다.
 function LectureCard({ lecture }) {
   const {
     id,

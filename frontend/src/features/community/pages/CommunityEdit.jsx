@@ -1,27 +1,28 @@
 import { useEffect, useRef, useState } from 'react'
-import { createPendingContentImage, uploadPendingContentImages } from '../../../utils/contentImages'
+import {
+  createPendingContentImage,
+  findFirstContentImageUrl,
+  uploadPendingContentImages,
+} from '../../../utils/contentImages'
 import { useAuth } from '../../../context/AuthContext'
 import RichTextEditor from '../../../components/RichTextEditor'
-import ResizableMainImage from '../../../components/ResizableMainImage'
-import { parseMainImage, storeMainImageWidth } from '../../../utils/mainImage'
+import { storeMainImageWidth } from '../../../utils/mainImage'
 
+// 게시글 수정 폼: 기존 게시글을 불러와 채운 뒤 수정 내용을 저장한다.
 function CommunityEdit({ postId, onBack, onSaved }) {
   const { auth } = useAuth()
   const [form, setForm] = useState({
     title: '',
     content: '',
-    thumbnailUrl: '',
-    thumbnailWidth: 500,
     notice: false,
   })
-  const [imageFile, setImageFile] = useState(null)
   const [contentImageFiles, setContentImageFiles] = useState([])
-  const [previewUrl, setPreviewUrl] = useState('')
   const [message, setMessage] = useState('게시글을 불러오는 중입니다.')
   const [loading, setLoading] = useState(false)
   const [canCreateNotice, setCanCreateNotice] = useState(false)
   const contentRef = useRef(null)
 
+  // 기존 게시글 정보를 불러와 폼을 채우고, 공지 작성 권한도 함께 확인한다.
   useEffect(() => {
     const loadPost = async () => {
       setLoading(true)
@@ -36,12 +37,9 @@ function CommunityEdit({ postId, onBack, onSaved }) {
           return
         }
 
-        const mainImage = parseMainImage(data.thumbnailUrl)
         setForm({
           title: data.title ?? '',
           content: data.content ?? '',
-          thumbnailUrl: mainImage.url,
-          thumbnailWidth: mainImage.width,
           notice: data.notice ?? false,
         })
         // 관리자 공지 수정: 작성자의 현재 ADMIN 권한을 확인해 공지 옵션을 노출합니다.
@@ -60,6 +58,7 @@ function CommunityEdit({ postId, onBack, onSaved }) {
     loadPost()
   }, [postId, auth.accessToken])
 
+  // 입력 필드 값 변경을 폼 상태에 반영한다 (체크박스는 checked, 그 외는 value 사용).
   const handleChange = (event) => {
     const { name, value, checked, type } = event.target
     setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
@@ -84,17 +83,7 @@ function CommunityEdit({ postId, onBack, onSaved }) {
     return imageInfo
   }
 
-  const handleImageChange = (event) => {
-    // 파일 선택 시에는 GCS에 올리지 않고 화면 미리보기만 만든다.
-    const file = event.target.files?.[0]
-    if (!file) {
-      return
-    }
-
-    setImageFile(file)
-    setPreviewUrl(URL.createObjectURL(file))
-  }
-
+  // 이미지 파일을 선택하면 임시 첨부 목록에 추가하고 에디터 커서 위치에 미리보기를 삽입한다.
   const handleContentImageChange = (event) => {
     const file = event.target.files?.[0]
     if (!file) {
@@ -108,6 +97,7 @@ function CommunityEdit({ postId, onBack, onSaved }) {
     event.target.value = ''
   }
 
+  // 본문 이미지를 업로드하고 수정 내용을 서버에 전송해 게시글을 갱신한다.
   const updatePost = async (event) => {
     event.preventDefault()
     // React가 버튼을 다시 그리기 전 발생할 수 있는 연속 제출도 함수 입구에서 차단합니다.
@@ -116,10 +106,10 @@ function CommunityEdit({ postId, onBack, onSaved }) {
     setMessage('')
 
     try {
-      // 새 이미지가 있으면 저장 시점에만 GCS에 올리고, 없으면 기존 URL을 유지한다.
-      const uploadedImage = imageFile ? await uploadImage(imageFile) : null
-      const imageUrl = uploadedImage?.imageUrl ?? form.thumbnailUrl
       const uploadedContent = await uploadPendingContentImages(form.content, contentImageFiles, uploadImage)
+      // 수정 후에도 현재 본문에서 첫 번째로 등장하는 이미지를 자동 썸네일로 다시 지정한다.
+      const firstImageUrl = findFirstContentImageUrl(uploadedContent.savedContent)
+      const firstImageInfo = uploadedContent.contentImages.find((image) => image.imageUrl === firstImageUrl)
 
       const response = await fetch(`/api/posts/${postId}`, {
         method: 'PUT',
@@ -131,10 +121,9 @@ function CommunityEdit({ postId, onBack, onSaved }) {
         body: JSON.stringify({
           title: form.title,
           content: uploadedContent.savedContent,
-          thumbnailUrl: imageUrl ? storeMainImageWidth(imageUrl, form.thumbnailWidth) : null,
-          // 새 이미지를 업로드한 경우 원본 파일명과 파일 크기를 DB 저장용으로 같이 보낸다.
-          imageOriginalName: uploadedImage?.originalName ?? null,
-          imageFileSize: uploadedImage?.fileSize ?? null,
+          thumbnailUrl: firstImageUrl ? storeMainImageWidth(firstImageUrl, 500) : null,
+          imageOriginalName: firstImageInfo?.originalName ?? null,
+          imageFileSize: firstImageInfo?.fileSize ?? null,
           contentImages: uploadedContent.contentImages,
           notice: canCreateNotice ? form.notice : undefined,
         }),
@@ -155,14 +144,11 @@ function CommunityEdit({ postId, onBack, onSaved }) {
     }
   }
 
-  const imagePreview = previewUrl || form.thumbnailUrl
-
   return (
     <>
       <header className="note-header">
         <div>
           <h1>게시글 수정</h1>
-          <p>새 이미지를 선택한 뒤 수정 저장하면 GCS 이미지와 DB URL이 교체됩니다.</p>
         </div>
         <button type="button" onClick={onBack}>상세</button>
       </header>
@@ -180,23 +166,6 @@ function CommunityEdit({ postId, onBack, onSaved }) {
               <input type="checkbox" name="notice" checked={form.notice} onChange={handleChange} />
               공지로 설정
             </label>
-          )}
-
-          <label>
-            {/* 커뮤니티 메인 이미지 명칭 변경: 게시판 제목 미리보기에 사용하는 대표 이미지입니다. */}
-            메인 이미지
-            <input type="file" accept="image/*" onChange={handleImageChange} disabled={loading} />
-          </label>
-
-          {imagePreview && (
-            <div className="image-preview-box">
-              <ResizableMainImage
-                src={imagePreview}
-                alt="커뮤니티 메인 이미지 미리보기"
-                width={form.thumbnailWidth}
-                onWidthChange={(thumbnailWidth) => setForm((prev) => ({ ...prev, thumbnailWidth }))}
-              />
-            </div>
           )}
 
           {/* 파일 입력과 편집기를 label 하나로 감싸면 편집기 클릭도 파일 선택 클릭으로 전달된다.

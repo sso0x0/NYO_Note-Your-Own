@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getCommentList, deleteComment, restoreComment } from '../api/comment';
 import { usePagedList } from '../hooks/usePagedList';
 import './AdminCommentsPage.css';
@@ -10,10 +11,16 @@ const TARGET_TYPE_LABEL = {
   LECTURE: '강의',
 };
 
+// 댓글 목록 관리자 화면: 대상 유형(게시글/강의)별 필터링과 삭제/복구 처리를 담당한다.
 function AdminCommentsPage() {
+  const location = useLocation();
   const [targetType, setTargetType] = useState('');
-  const comments = usePagedList(({ page, size }) => getCommentList({ page, size, targetType: targetType || undefined }));
-  const [expandedCommentId, setExpandedCommentId] = useState(null);
+  const comments = usePagedList(
+    ({ page, size }) => getCommentList({ page, size, targetType: targetType || undefined }),
+    location.state?.focusPage ?? 0,
+  );
+  // 신고 관리에서 선택한 댓글 ID가 있으면 해당 상세 행을 자동으로 연다.
+  const [expandedCommentId, setExpandedCommentId] = useState(location.state?.focusTargetId ?? null);
 
   // usePagedList는 page/reload 변경에만 반응하므로, 유형 필터를 바꾸면
   // 1페이지로 되돌리고 reload()로 최신 targetType을 반영해 다시 조회한다.
@@ -28,10 +35,12 @@ function AdminCommentsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetType]);
 
+  // 클릭한 댓글의 상세 행을 펼치거나, 이미 펼쳐져 있으면 접는다.
   const handleToggle = (commentId) => {
     setExpandedCommentId((prev) => (prev === commentId ? null : commentId));
   };
 
+  // 확인 후 댓글을 삭제하고 목록을 다시 불러온다.
   const handleDeleteComment = async (comment) => {
     if (!window.confirm('이 댓글을 삭제할까요?')) return;
     try {
@@ -42,6 +51,7 @@ function AdminCommentsPage() {
     }
   };
 
+  // 확인 후 삭제된 댓글을 복구하고 목록을 다시 불러온다.
   const handleRestoreComment = async (comment) => {
     if (!window.confirm('복구하시겠습니까?')) return;
     try {
@@ -96,7 +106,7 @@ function AdminCommentsPage() {
                     <td>{comment.parentCommentId ? '답글' : '댓글'}</td>
                     <td>
                       <button type="button" className="admin-table__title-btn" onClick={() => handleToggle(comment.id)}>
-                        {comment.targetTitle ?? '(삭제된 대상)'} {comment.isDeleted && <span className="admin-deleted-label">(삭제됨)</span>}
+                        {comment.targetTitle ?? '(삭제된 대상)'} {comment.targetDeleted && <span className="admin-deleted-label">(삭제됨)</span>}
                       </button>
                     </td>
                     <td>{comment.authorNickname}</td>

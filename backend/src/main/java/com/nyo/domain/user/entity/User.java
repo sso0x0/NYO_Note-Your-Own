@@ -21,45 +21,57 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
+    // PK
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 로그인 아이디. OAuth 가입 회원도 내부적으로 값이 채워진다(구글 이메일 등 기반으로 생성).
     @Column(nullable = false, unique = true, length = 50)
     private String loginId;
 
+    // 암호화된 비밀번호. OAuth 전용 계정은 null(일반 로그인 불가).
     @Column(nullable = true)
     private String password;
 
+    // 실명
     @Column(nullable = false, length = 50)
     private String name;
 
+    // 화면에 노출되는 닉네임 (unique)
     @Column(nullable = false, unique = true, length = 50)
     private String nickname;
 
+    // 이메일 (unique) - 비밀번호 재설정 인증코드 발송 등에 사용
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
+    // 휴대폰 번호 (선택 입력)
     @Column(length = 20)
     private String phone;
 
-    // 💡 FIXED: String → enum. @Enumerated(STRING)이라 DB 컬럼(VARCHAR)엔 "USER"/"ADMIN" 그대로 저장되어
+    // FIXED: String → enum. @Enumerated(STRING)이라 DB 컬럼(VARCHAR)엔 "USER"/"ADMIN" 그대로 저장되어
     // 기존 데이터 마이그레이션 없이 호환됩니다.
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;
 
+    // 계정 상태(ACTIVE/SUSPENDED/WITHDRAWN 등). soft delete라 탈퇴해도 row는 남는다.
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private UserStatus status;
 
+    // OAuth 제공자(예: "google"). 일반 가입 회원은 null.
     private String oauthProvider;
+    // OAuth 제공자 쪽 고유 사용자 ID. 일반 가입 회원은 null.
     private String oauthId;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    // 탈퇴 처리 시각. 탈퇴 전에는 null.
     private LocalDateTime withdrawnAt;
 
+    // 일반 회원가입용 생성자. role/status를 안 넘기면 각각 USER/ACTIVE로 기본값 처리.
     @Builder
     public User(String loginId, String password, String name, String nickname, String email, String phone, Role role, UserStatus status) {
         this.loginId = loginId;
@@ -96,10 +108,11 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // 마이페이지에서 이름/닉네임/전화번호 수정 (아이디·이메일·비밀번호는 여기서 변경 불가)
-    public void updateProfile(String name, String nickname, String phone) {
+    // 마이페이지에서 이름/닉네임/이메일/전화번호 수정 (아이디·비밀번호는 여기서 변경 불가)
+    public void updateProfile(String name, String nickname, String email, String phone) {
         this.name = name;
         this.nickname = nickname;
+        this.email = email;
         this.phone = phone;
         this.updatedAt = LocalDateTime.now();
     }
@@ -111,6 +124,13 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
+    // 탈퇴 유예기간 내 재로그인 시 계정을 되살릴 때 사용 (UserService.reactivateIfWithinGracePeriod)
+    public void restoreFromWithdrawal() {
+        this.status = UserStatus.ACTIVE;
+        this.withdrawnAt = null;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     // 마이페이지 비밀번호 변경 (UserService.updatePassword) - 인코딩은 호출하는 쪽에서 끝내고 결과만 저장
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
@@ -118,14 +138,14 @@ public class User {
     }
 
     // 관리자가 USER ↔ ADMIN 권한을 변경할 때 사용 (UserService.adminChangeRole)
-    // 💡 FIXED: 파라미터 타입 String → Role
+    // FIXED: 파라미터 타입 String → Role
     public void changeRole(Role role) {
         this.role = role;
         this.updatedAt = LocalDateTime.now();
     }
 
     // 정지/정지해제 등 상태 전환에 사용 (UserService.applySanctionEffect, reactivateIfSuspensionExpired)
-    // 💡 FIXED: 파라미터 타입 String → UserStatus
+    // FIXED: 파라미터 타입 String → UserStatus
     public void changeStatus(UserStatus status) {
         this.status = status;
         this.updatedAt = LocalDateTime.now();

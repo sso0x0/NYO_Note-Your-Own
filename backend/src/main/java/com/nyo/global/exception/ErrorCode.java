@@ -23,6 +23,8 @@ public enum ErrorCode {
     CAPACITY_LESS_THAN_ENROLLED(HttpStatus.BAD_REQUEST, "정원은 현재 등록 인원보다 작을 수 없습니다."),
     COURSE_ALREADY_ENROLLED(HttpStatus.CONFLICT, "이미 수강신청한 강의입니다."),
     COURSE_ENROLLMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "수강신청 내역이 없습니다."),
+    LECTURE_ALREADY_PROCESSED(HttpStatus.CONFLICT, "이미 처리된 강의 등록 신청입니다."),
+    LECTURE_URL_NOT_YOUTUBE(HttpStatus.BAD_REQUEST, "현재는 유튜브 링크만 강의 URL로 등록할 수 있습니다."),
 
     // category (박소현)
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."),
@@ -50,6 +52,16 @@ public enum ErrorCode {
     // 좋아요와 조회 기록은 NOTE 또는 POST처럼 서버가 지원하는 대상 타입만 허용합니다.
     TARGET_TYPE_INVALID(HttpStatus.BAD_REQUEST, "지원하지 않는 대상 타입입니다."),
 
+    // 신고 관련 에러코드
+    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 신고입니다."),
+    REPORT_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND, "신고 대상을 찾을 수 없습니다."),
+    REPORT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 신고한 대상입니다."),
+
+    // 강사 등록 신청 관련 에러코드
+    INSTRUCTOR_APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 강사 신청입니다."),
+    INSTRUCTOR_APPLICATION_ALREADY_PENDING(HttpStatus.CONFLICT, "이미 심사 대기 중인 강사 신청이 있습니다."),
+    INSTRUCTOR_APPLICATION_ALREADY_PROCESSED(HttpStatus.CONFLICT, "이미 처리된 강사 신청입니다."),
+
     // 노트/게시글 이미지 관련 에러코드
     IMAGE_EMPTY(HttpStatus.BAD_REQUEST, "업로드할 이미지가 없습니다."),
     IMAGE_INVALID_EXTENSION(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 확장자입니다."),
@@ -73,16 +85,22 @@ public enum ErrorCode {
     MEMBER_SUSPENSION_NOT_ACTIVE(HttpStatus.CONFLICT, "현재 정지 상태인 회원이 아닙니다."),
     MEMBER_CURRENT_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "현재 비밀번호가 일치하지 않습니다."),
     MEMBER_OAUTH_PASSWORD_CHANGE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "소셜 로그인 계정은 비밀번호를 변경할 수 없습니다."),
-    MEMBER_INVALID_NEW_PASSWORD(HttpStatus.BAD_REQUEST, "새 비밀번호는 8자 이상 72자 이하로 입력해주세요."),
+    MEMBER_INVALID_NEW_PASSWORD(HttpStatus.BAD_REQUEST, "새 비밀번호는 영문 대소문자, 숫자, 특수문자를 모두 포함해 8자 이상 72자 이하로 입력해주세요."),
     // 아이디/비밀번호 찾기 관련 에러코드. 계정 열거를 막기 위해 "이름/이메일 불일치"와 "아이디/이메일 불일치"
     // 둘 다 각각 동일한 메시지("일치하는 회원 정보가 없습니다")로 통일해서 사용한다.
     MEMBER_FIND_ID_NOT_FOUND(HttpStatus.NOT_FOUND, "일치하는 회원 정보가 없습니다."),
     PASSWORD_RESET_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND, "일치하는 회원 정보가 없습니다."),
     PASSWORD_RESET_CODE_INVALID(HttpStatus.BAD_REQUEST, "인증코드가 일치하지 않거나 만료되었습니다."),
-    EMAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "이메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요."),
+    SMS_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "문자 발송에 실패했습니다. 잠시 후 다시 시도해주세요."),
+    // 마이페이지 전화번호 변경 인증 관련
+    PHONE_VERIFICATION_CODE_INVALID(HttpStatus.BAD_REQUEST, "인증코드가 일치하지 않거나 만료되었습니다."),
+    PHONE_VERIFICATION_REQUIRED(HttpStatus.BAD_REQUEST, "전화번호를 변경하려면 먼저 인증을 완료해주세요."),
 
-    // ai / pomodoro (장예지)
+    // ai / pomodoro / tag (장예지)
     AI_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "AI 응답 생성에 실패했습니다."),
+    TAG_NAME_INVALID(HttpStatus.BAD_REQUEST, "태그 이름은 1자 이상 50자 이하로 입력해주세요."),
+    TAG_ALREADY_ADDED(HttpStatus.CONFLICT, "이미 추가된 태그입니다."),
+    NOTE_TAG_NOT_FOUND(HttpStatus.NOT_FOUND, "노트에 연결되지 않은 태그입니다."),
     POMODORO_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 뽀모도로 기록입니다."),
     POMODORO_ACCESS_DENIED(HttpStatus.FORBIDDEN, "본인의 타이머 기록만 수정할 수 있습니다."),
     POMODORO_INVALID_TIME_RANGE(HttpStatus.BAD_REQUEST, "종료 시각은 시작 시각보다 빠를 수 없습니다."),

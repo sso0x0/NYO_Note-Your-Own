@@ -51,6 +51,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+// 노트의 등록/조회/검색/수정/삭제와 검색 색인(Elasticsearch) 동기화를 담당하는 서비스
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -72,6 +73,7 @@ public class NoteService {
     private final JdbcTemplate jdbcTemplate;
     private final UserService userService;
 
+    // 노트를 생성하고 대표 이미지/본문 이미지를 저장한 뒤 검색 색인에 반영한다.
     @Transactional
     public NoteResponse create(Long userId, NoteRequest request) {
         // 강의 시청 화면에서는 현재 URL의 강의 ID를 사용하고, 레거시 작성 화면만 첫 활성 강의로 보완한다.
@@ -102,6 +104,28 @@ public class NoteService {
     public PageResponse<NoteResponse> searchNotes(String keyword, String searchType, Pageable pageable) {
         if (!StringUtils.hasText(keyword)) {
             return PageResponse.of(Page.empty(pageable));
+        }
+
+        // 태그 칩 클릭은 Elasticsearch의 제목·본문 전문 검색을 거치지 않고 DB의 태그 매핑만 정확히 조회한다.
+        if ("tag".equals(searchType)) {
+            Page<Note> tagPage = noteRepository.findActiveByExactTagName(keyword.trim(), pageable);
+            List<Note> notes = tagPage.getContent();
+            Map<Long, String> nicknames = userService.getDisplayNicknames(
+                    notes.stream().map(Note::getUserId).distinct().toList()
+            );
+            Map<Long, List<NoteTagResponse>> tagsByNoteId = getTagsByNoteIds(
+                    notes.stream().map(Note::getId).toList()
+            );
+            Map<Long, Lecture> lecturesById = getLecturesByIds(
+                    notes.stream().map(Note::getLectureId).toList()
+            );
+
+            return PageResponse.of(tagPage.map(note -> toResponse(
+                    note,
+                    nicknames.getOrDefault(note.getUserId(), "알 수 없는 사용자"),
+                    lecturesById.get(note.getLectureId()),
+                    tagsByNoteId.getOrDefault(note.getId(), List.of())
+            )));
         }
 
         // 검색 결과는 ES 관련도 점수순으로 정렬되므로 요청에 담긴 정렬 조건(sort)은 무시한다.
@@ -227,12 +251,23 @@ public class NoteService {
                 )));
     }
 
+    // 전체 노트 목록 조회 (categoryId가 있으면 해당 강의 카테고리로 필터링)
     public PageResponse<NoteResponse> findAll(Pageable pageable, Long categoryId) {
         // 전체 목록을 메모리에 올리지 않고 요청받은 페이지의 노트만 DB에서 조회합니다.
         // categoryId가 있으면 노트가 연결된 강의의 카테고리를 기준으로 서버에서 필터링한다.
         Page<Note> notePage = categoryId == null
                 ? noteRepository.findByIsDeleted(0, pageable)
                 : noteRepository.findByLectureCategoryId(categoryId, pageable);
+        return toPageResponse(notePage);
+    }
+
+    // 메인 페이지 "인기 노트" 목록 조회 (좋아요*5 + 조회수 가중치 점수 내림차순)
+    public PageResponse<NoteResponse> getPopular(Pageable pageable) {
+        return toPageResponse(noteRepository.findPopular(pageable));
+    }
+
+    // Note 페이지를 작성자 닉네임/태그/강의 정보까지 배치 조회해 응답 DTO 페이지로 변환한다.
+    private PageResponse<NoteResponse> toPageResponse(Page<Note> notePage) {
         List<Note> notes = notePage.getContent();
         // 카드형 게시판 nickname 표시: 목록 작성자를 한 번에 조회해 N+1 쿼리를 방지한다.
         Map<Long, String> nicknames = userService.getDisplayNicknames(
@@ -319,13 +354,31 @@ public class NoteService {
         return PageResponse.of(new PageImpl<>(content, pageable, likePage.getTotalElements()));
     }
 
+    // 강의별 노트 목록 조회
     public List<NoteResponse> findByLecture(Long lectureId) {
-        return noteRepository.findByLectureIdAndIsDeletedOrderByCreatedAtDesc(lectureId, 0)
-                .stream()
-                .map(this::toResponse)
+        List<Note> notes = noteRepository.findByLectureIdAndIsDeletedOrderByCreatedAtDesc(lectureId, 0);
+        Map<Long, String> nicknames = userService.getDisplayNicknames(
+                notes.stream().map(Note::getUserId).distinct().toList()
+        );
+        Map<Long, List<NoteTagResponse>> tagsByNoteId = getTagsByNoteIds(
+                notes.stream().map(Note::getId).toList()
+        );
+        Map<Long, Lecture> lecturesById = getLecturesByIds(
+                notes.stream().map(Note::getLectureId).toList()
+        );
+
+        // 강의 안의 다른 학습자 노트 목록에서도 AI 여부를 포함한 태그 목록을 함께 내려준다.
+        return notes.stream()
+                .map(note -> toResponse(
+                        note,
+                        nicknames.getOrDefault(note.getUserId(), "알 수 없는 사용자"),
+                        lecturesById.get(note.getLectureId()),
+                        tagsByNoteId.getOrDefault(note.getId(), List.of())
+                ))
                 .toList();
     }
 
+    // 노트 상세 조회
     public NoteResponse findOne(Long noteId) {
         Note note = getNote(noteId);
         String lectureTitle = lectureRepository.findActiveLectureTitleById(note.getLectureId())
@@ -334,16 +387,18 @@ public class NoteService {
         return toResponse(note, userService.getDisplayNickname(note.getUserId()), lectureTitle);
     }
 
+    // 현재 사용자가 해당 노트에 좋아요를 눌렀는지 조회한다 (노트 존재 여부도 함께 검증).
     public boolean isLiked(Long noteId, Long userId) {
         getNote(noteId);
         return likeService.isLiked(userId, "NOTE", noteId);
     }
 
+    // 노트 상세 조회수를 증가시킨다 (동일 사용자의 중복 조회는 카운트하지 않음).
     @Transactional
     public void increaseViewCount(Long noteId, Long userId) {
         getNote(noteId);
 
-        // common의 view_logs에 오늘 조회 기록이 없을 때만 notes.view_count를 증가시킨다.
+        // 조회할 때마다 notes.view_count를 증가시킨다.
         boolean isNewView = viewService.recordView(userId, ViewRequest.builder()
                 .targetType("NOTE")
                 .targetId(noteId)
@@ -355,6 +410,7 @@ public class NoteService {
         }
     }
 
+    // 노트에 좋아요를 등록한다.
     @Transactional
     public void likeNote(Long noteId, Long userId) {
         getNote(noteId);
@@ -368,6 +424,7 @@ public class NoteService {
         noteRepository.increaseLikeCountOnly(noteId);
     }
 
+    // 노트 좋아요를 취소한다.
     @Transactional
     public void unlikeNote(Long noteId, Long userId) {
         getNote(noteId);
@@ -381,6 +438,7 @@ public class NoteService {
         noteRepository.decreaseLikeCountOnly(noteId);
     }
 
+    // 노트를 수정한다. 수정 전 스냅샷을 이력으로 남기고, 이미지/검색 색인도 함께 갱신한다.
     @Transactional
     public NoteResponse update(Long noteId, Long userId, NoteRequest request) {
         Note note = getNote(noteId);
@@ -404,6 +462,7 @@ public class NoteService {
         return toResponse(note);
     }
 
+    // 노트를 삭제한다. 작성자 본인 또는 관리자만 가능하며, 이미지 삭제 및 검색 색인 제거도 함께 처리한다.
     @Transactional
     public void delete(Long noteId, Long userId) {
         Note note = getNote(noteId);
@@ -437,11 +496,13 @@ public class NoteService {
         }
     }
 
+    // 삭제되지 않은 노트를 조회하되, 없으면 예외를 던진다.
     private Note getNote(Long noteId) {
         return noteRepository.findByIdAndIsDeleted(noteId, 0)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOTE_NOT_FOUND));
     }
 
+    // JDBC로 users 테이블의 role을 직접 조회해 관리자 여부를 확인한다.
     private boolean isAdmin(Long userId) {
         try {
             String role = jdbcTemplate.queryForObject(
@@ -455,6 +516,7 @@ public class NoteService {
         }
     }
 
+    // 노트 엔티티를 관리자 목록용 응답 DTO로 변환한다 (작성자 상세 정보, 강의 정보, 금지어 포함).
     private NoteAdminResponse toAdminResponse(Note note, Map<Long, UserResponse> usersById, Map<Long, Lecture> lecturesById) {
         UserResponse author = usersById.get(note.getUserId());
         Lecture lecture = lecturesById.get(note.getLectureId());
@@ -484,18 +546,22 @@ public class NoteService {
                 .build();
     }
 
+    // 작성자 닉네임을 직접 조회해 응답 DTO로 변환하는 편의 오버로드.
     private NoteResponse toResponse(Note note) {
         return toResponse(note, userService.getDisplayNickname(note.getUserId()));
     }
 
+    // 강의 제목 없이 응답 DTO로 변환하는 편의 오버로드.
     private NoteResponse toResponse(Note note, String authorNickname) {
         return toResponse(note, authorNickname, null);
     }
 
+    // 태그 없이 강의 제목까지 채워 응답 DTO로 변환하는 편의 오버로드.
     private NoteResponse toResponse(Note note, String authorNickname, String lectureTitle) {
         return toResponse(note, authorNickname, lectureTitle, List.of());
     }
 
+    // 노트 엔티티를 작성자 닉네임/강의 제목/태그 목록과 함께 응답 DTO로 변환한다.
     private NoteResponse toResponse(Note note, String authorNickname, String lectureTitle, List<NoteTagResponse> tags) {
         return NoteResponse.builder()
                 .id(note.getId())
@@ -555,6 +621,7 @@ public class NoteService {
                 .collect(Collectors.toMap(Lecture::getId, Function.identity()));
     }
 
+    // 노트 대표 이미지가 있으면 images 테이블에 저장한다.
     private void saveNoteImage(Long noteId, String imageUrl, String originalName, Long fileSize) {
         // 노트 이미지가 없으면 images 테이블에는 저장하지 않는다.
         if (imageUrl == null || imageUrl.isBlank()) {
@@ -565,6 +632,7 @@ public class NoteService {
         imageRepository.save(Image.createForNote(noteId, imageUrl, originalName, fileSize));
     }
 
+    // 대표 이미지가 실제로 바뀐 경우에만 기존 이미지를 지우고 새 이미지 정보를 저장한다.
     private void saveChangedNoteImage(Long noteId, String previousImageUrl, NoteRequest request) {
         String newImageUrl = request.getThumbnailUrl();
         // 수정 화면에서 새 이미지 URL로 바뀐 경우에만 images 테이블에 추가 기록한다.
@@ -578,6 +646,7 @@ public class NoteService {
         imageRepository.save(Image.createForNote(noteId, newImageUrl, request.getImageOriginalName(), request.getImageFileSize()));
     }
 
+    // 본문에 삽입된 이미지 목록을 순서와 함께 images 테이블에 저장한다.
     private void saveNoteContentImages(Long noteId, List<ImageRequest> contentImages) {
         if (contentImages == null || contentImages.isEmpty()) {
             return;
@@ -600,6 +669,7 @@ public class NoteService {
         }
     }
 
+    // 지정한 이미지 URL을 GCS와 images 테이블에서 함께 삭제한다.
     private void deleteNoteImageUrl(Long noteId, String imageUrl) {
         if (imageUrl == null || imageUrl.isBlank()) {
             return;
@@ -619,6 +689,7 @@ public class NoteService {
         return fragmentIndex >= 0 ? imageUrl.substring(0, fragmentIndex) : imageUrl;
     }
 
+    // 노트에 연결된 대표 이미지와 본문 이미지를 모두 모아 GCS 파일과 images 레코드를 삭제한다.
     private void deleteNoteImages(Long noteId, String thumbnailUrl) {
         List<Image> images = imageRepository.findByNoteId(noteId);
         Set<String> imageUrls = new LinkedHashSet<>();

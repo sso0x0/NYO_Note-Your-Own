@@ -1,10 +1,13 @@
+// 회원(로그인/회원가입/중복체크) 관련 API 호출 모음
 import axiosClient from '../../../api/axiosClient';
 
+// 회원가입 요청 (POST /api/users/signup)
 export const signUpUser = async (userData) => {
     const response = await axiosClient.post('/users/signup', userData);
     return response.data;
 };
 
+// 로그인 요청 (POST /api/users/login) - 성공 시 accessToken 등을 담은 data만 반환
 export const loginUser = async (credentials) => {
     const response = await axiosClient.post('/users/login', credentials);
     return response.data.data;

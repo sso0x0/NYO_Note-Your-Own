@@ -9,6 +9,8 @@ const NAV_ITEMS = [
   { to: '/admin/moderation', label: '게시물 관리' },
   { to: '/admin/notes', label: '노트 관리' },
   { to: '/admin/comments', label: '댓글 관리' },
+  { to: '/admin/reports', label: '신고 관리' },
+  { to: '/admin/instructor-applications', label: '강사 신청 관리' },
 ];
 
 // 일반 회원용 ProtectedLayout(헤더/네비게이션)을 공유하지 않는 관리자 전용 콘솔 셸.
@@ -21,6 +23,14 @@ function AdminLayout() {
     item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)
   );
   const pageTitle = currentNavItem?.label ?? '대시보드';
+
+  // router의 navigate()로 이동시키면 auth가 사라진 순간 ProtectedRoute가
+  // 옛 위치(/admin) 기준으로 다시 렌더링되면서 /login으로 되돌리는 레이스가 생긴다.
+  // 그래서 로그아웃은 SPA 이동 대신 전체 페이지 이동으로 랜딩 페이지에 확실히 도착시킨다.
+  const handleLogout = () => {
+    logout();
+    window.location.href = '/';
+  };
 
   return (
     <div className="admin-shell">
@@ -50,7 +60,7 @@ function AdminLayout() {
           <span className="admin-shell__topbar-title">{pageTitle}</span>
           <div className="admin-shell__topbar-user">
             <span>{auth?.nickname}님</span>
-            <button type="button" onClick={logout}>로그아웃</button>
+            <button type="button" onClick={handleLogout}>로그아웃</button>
           </div>
         </header>
         <main className="admin-shell__content">

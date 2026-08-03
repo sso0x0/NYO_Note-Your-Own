@@ -4,6 +4,7 @@ import { getLectureList } from '../../lecture/api/lecture';
 import { createNote, getNote, updateNote } from '../api/note';
 import './NoteFormPage.css';
 
+// 노트 작성/수정 폼. id 파라미터 유무로 작성/수정 모드를 구분한다.
 function NoteFormPage() {
   const { id } = useParams();
   const isEdit = !!id;
@@ -18,12 +19,14 @@ function NoteFormPage() {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // 강의 선택 드롭다운을 채우기 위해 강의 목록을 불러온다.
   useEffect(() => {
     getLectureList({ size: 100 })
       .then((data) => setLectures(data?.content ?? []))
       .catch(() => setLectures([]));
   }, []);
 
+  // 수정 모드일 때만 기존 노트 데이터를 불러와 폼에 채운다.
   useEffect(() => {
     if (!isEdit) return;
     let cancelled = false;
@@ -48,6 +51,7 @@ function NoteFormPage() {
     };
   }, [id, isEdit]);
 
+  // 작성/수정 모드에 따라 알맞은 API를 호출하고 저장된 노트 상세로 이동한다.
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);

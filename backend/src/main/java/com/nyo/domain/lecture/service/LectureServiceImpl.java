@@ -15,11 +15,14 @@ import com.nyo.domain.lecture.dto.LectureAdminResponse;
 import com.nyo.domain.lecture.dto.LectureRequest;
 import com.nyo.domain.lecture.dto.LectureResponse;
 import com.nyo.domain.lecture.entity.Lecture;
+import com.nyo.domain.lecture.entity.LectureStatus;
 import com.nyo.domain.lecture.repository.LectureRepository;
 import com.nyo.domain.lecture.repository.LectureSearchRepository;
+import com.nyo.domain.lecture.util.YoutubeUrlUtils;
 import com.nyo.domain.note.repository.NoteRepository;
 import com.nyo.domain.user.entity.User;
 import com.nyo.domain.user.repository.UserRepository;
+import com.nyo.global.enums.Role;
 import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +45,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+// 강의 CRUD와 승인/반려, 좋아요·조회수·수강신청, 검색 색인 연동을 담당하는 서비스 구현체
 public class LectureServiceImpl implements LectureService {
 
     // 인기 강의로 표시할 상위 개수 (AdminStatsController의 인기도 조회 기본값과 동일하게 맞춤)
@@ -84,6 +88,20 @@ public class LectureServiceImpl implements LectureService {
         return likeRepository.existsByUserIdAndTargetTypeAndTargetId(userId, TargetType.ENROLL, lectureId);
     }
 
+    // 강의 URL(현재는 유튜브만 지원)에서 대표 썸네일을 자동으로 뽑아낸다. 유튜브 링크가 아니면 등록 자체를 막는다.
+    private String resolveThumbnailUrl(String lectureUrl) {
+        String thumbnailUrl = YoutubeUrlUtils.buildThumbnailUrl(lectureUrl);
+        if (thumbnailUrl == null) {
+            throw new BusinessException(ErrorCode.LECTURE_URL_NOT_YOUTUBE);
+        }
+        return thumbnailUrl;
+    }
+
+    // 복습용 URL은 선택 입력이라, 빈 문자열은 저장하지 않고 null로 정규화한다.
+    private String normalizeReviewUrl(String reviewUrl) {
+        return StringUtils.hasText(reviewUrl) ? reviewUrl : null;
+    }
+
     // 강의 등록
     @Override
     @Transactional
@@ -99,9 +117,11 @@ public class LectureServiceImpl implements LectureService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .lectureUrl(request.getLectureUrl())
-                .thumbnailUrl(request.getThumbnailUrl())
+                .thumbnailUrl(resolveThumbnailUrl(request.getLectureUrl()))
+                .reviewUrl(normalizeReviewUrl(request.getReviewUrl()))
                 .instructor(request.getInstructor())
                 .capacity(request.getCapacity())
+                .status(LectureStatus.APPROVED) // 관리자가 직접 등록하는 강의는 심사 없이 즉시 공개
                 .build();
 
         Lecture saved = lectureRepository.save(lecture);
@@ -110,23 +130,107 @@ public class LectureServiceImpl implements LectureService {
         return LectureResponse.from(saved);
     }
 
-    // 강의 전체 목록 조회
+    // 강사의 강의 등록 신청. INSTRUCTOR 권한만 가능하며, 관리자 승인 전까지는 PENDING 상태로 검색/목록에 노출되지 않는다.
     @Override
-    public Page<LectureResponse> getLectureList(Pageable pageable) {
-        return lectureRepository.findByIsDeletedFalse(pageable) // 삭제된 강의 제외
+    @Transactional
+    public LectureResponse createInstructorLecture(LectureRequest request, Long instructorUserId) {
+        User instructor = userRepository.findById(instructorUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+        if (instructor.getRole() != Role.INSTRUCTOR) {
+            throw new BusinessException(ErrorCode.ACCESS_FORBIDDEN);
+        }
+
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
+
+        Lecture lecture = Lecture.builder()
+                .category(category)
+                .createdBy(instructor)
+                .title(request.getTitle())
+                .description(request.getDescription())
+                .lectureUrl(request.getLectureUrl())
+                .thumbnailUrl(resolveThumbnailUrl(request.getLectureUrl()))
+                .reviewUrl(normalizeReviewUrl(request.getReviewUrl()))
+                .instructor(request.getInstructor())
+                .capacity(request.getCapacity())
+                .status(LectureStatus.PENDING) // 관리자 승인 전까지는 비공개
+                .build();
+
+        Lecture saved = lectureRepository.save(lecture);
+        // 승인되기 전에는 검색 결과에 나오면 안 되므로 여기서는 색인하지 않는다 (approveLecture에서 색인).
+
+        return LectureResponse.from(saved);
+    }
+
+    // 강사 본인의 강의 등록 신청 내역 (마이페이지 "강의 등록" 탭)
+    @Override
+    public Page<LectureResponse> getMyLectures(Long userId, Pageable pageable) {
+        return lectureRepository.findByCreatedByIdOrderByCreatedAtDesc(userId, pageable)
                 .map(LectureResponse::from);
     }
 
-    // 관리자 강의 관리 목록: 강의별 노트/댓글 개수를 함께 집계해 내려준다. categoryId가 있으면 해당 카테고리로 필터링한다.
+    // 강의 등록 신청 승인
     @Override
-    public Page<LectureAdminResponse> adminGetLectureList(Long categoryId, Pageable pageable) {
+    @Transactional
+    public void approveLecture(Long lectureId, Long adminId) {
+        findAdmin(adminId);
+        Lecture lecture = getPendingLectureOrThrow(lectureId);
+        lecture.approve();
+        indexLecture(LectureDocument.from(lecture)); // 승인 시점부터 검색/목록에 노출
+    }
+
+    // 강의 등록 신청 반려
+    @Override
+    @Transactional
+    public void rejectLecture(Long lectureId, Long adminId, String reason) {
+        findAdmin(adminId);
+        Lecture lecture = getPendingLectureOrThrow(lectureId);
+        lecture.reject(reason);
+    }
+
+    // 심사 대기(PENDING) 상태의 강의를 조회. 존재하지 않거나 이미 처리(승인/반려)된 강의면 예외
+    private Lecture getPendingLectureOrThrow(Long lectureId) {
+        Lecture lecture = lectureRepository.findById(lectureId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND));
+        if (lecture.getStatus() != LectureStatus.PENDING) {
+            throw new BusinessException(ErrorCode.LECTURE_ALREADY_PROCESSED);
+        }
+        return lecture;
+    }
+
+    // 강의 전체 목록 조회 (승인된 강의만)
+    @Override
+    public Page<LectureResponse> getLectureList(Pageable pageable) {
+        return lectureRepository.findByIsDeletedFalseAndStatus(LectureStatus.APPROVED, pageable)
+                .map(LectureResponse::from);
+    }
+
+    // 메인 페이지 "인기 강의" 목록 조회 (승인된 강의만, 좋아요*5 + 조회수 가중치 점수 내림차순)
+    @Override
+    public Page<LectureResponse> getPopularLectures(Pageable pageable) {
+        return lectureRepository.findPopularByStatus(LectureStatus.APPROVED, pageable)
+                .map(LectureResponse::from);
+    }
+
+    // 관리자 강의 관리 목록: 강의별 노트/댓글 개수를 함께 집계해 내려준다.
+    // categoryId/status가 있으면 각각 필터링하고, 없으면(null) 전체를 대상으로 한다.
+    @Override
+    public Page<LectureAdminResponse> adminGetLectureList(Long categoryId, LectureStatus status, Pageable pageable) {
         if (categoryId != null && !categoryRepository.existsById(categoryId)) {
             throw new BusinessException(ErrorCode.CATEGORY_NOT_FOUND);
         }
 
-        Page<Lecture> lectures = categoryId != null
-                ? lectureRepository.findByCategoryIdAndIsDeletedFalse(categoryId, pageable)
-                : lectureRepository.findByIsDeletedFalse(pageable);
+        // 삭제된 강의도 관리자 목록에는 그대로 남겨 두고(복구 전까지 내역 확인용) 화면에서 구분 표시한다.
+        Page<Lecture> lectures;
+        if (categoryId != null && status != null) {
+            lectures = lectureRepository.findByCategoryIdAndStatusForAdmin(categoryId, status, pageable);
+        } else if (categoryId != null) {
+            lectures = lectureRepository.findByCategoryIdForAdmin(categoryId, pageable);
+        } else if (status != null) {
+            lectures = lectureRepository.findByStatusForAdmin(status, pageable);
+        } else {
+            lectures = lectureRepository.findAllForAdmin(pageable);
+        }
         List<Long> lectureIds = lectures.getContent().stream().map(Lecture::getId).toList();
 
         Map<Long, Long> noteCountsById = lectureIds.isEmpty() ? Map.of() : noteRepository.countByLectureIdsGrouped(lectureIds).stream()
@@ -141,26 +245,39 @@ public class LectureServiceImpl implements LectureService {
         ));
     }
 
-    // 카테고리별 강의 목록 조회
+    // 카테고리별 강의 목록 조회 (승인된 강의만)
     @Override
     public Page<LectureResponse> getLectureListByCategory(Long categoryId, Pageable pageable) {
         if (!categoryRepository.existsById(categoryId)) {
             throw new BusinessException(ErrorCode.CATEGORY_NOT_FOUND); // 존재하지 않는 카테고리
         }
-        return lectureRepository.findByCategoryIdAndIsDeletedFalse(categoryId, pageable)
+        return lectureRepository.findByCategoryIdAndIsDeletedFalseAndStatus(categoryId, LectureStatus.APPROVED, pageable)
                 .map(LectureResponse::from);
     }
 
-    // 하나의 강의 조회
+    // 하나의 강의 조회. 승인 전(PENDING/REJECTED) 강의는 등록한 강사 본인 또는 관리자만 볼 수 있고,
+    // 그 외 사용자에게는 존재 자체를 드러내지 않기 위해 조회된 강의와 동일하게 404로 처리한다.
     @Override
-    public LectureResponse getLecture(Long id) {
+    public LectureResponse getLecture(Long id, Long userId) {
         Lecture lecture = lectureRepository.findById(id)
                 .filter(l -> !l.getIsDeleted()) // 강의 삭제 여부 확인
                 .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND)); // 존재하지 않는 강의
+
+        if (lecture.getStatus() != LectureStatus.APPROVED && !canViewUnapprovedLecture(lecture, userId)) {
+            throw new BusinessException(ErrorCode.COURSE_NOT_FOUND);
+        }
+
         return LectureResponse.from(lecture);
     }
 
-    // TODO: 이게 과연 필요한가?
+    // 미승인(PENDING/REJECTED) 강의를 볼 수 있는지 판단 (등록한 강사 본인이거나 관리자인 경우만 허용)
+    private boolean canViewUnapprovedLecture(Lecture lecture, Long userId) {
+        if (lecture.getCreatedBy().getId().equals(userId)) {
+            return true;
+        }
+        return userRepository.findById(userId).map(u -> u.getRole() == Role.ADMIN).orElse(false);
+    }
+
     // 관리자용 하나의 강의 조회
     @Override
     public LectureResponse getLectureForAdmin(Long id, Long adminId) {
@@ -194,8 +311,12 @@ public class LectureServiceImpl implements LectureService {
         }
 
         lecture.update(category, request.getTitle(), request.getDescription(),
-                request.getLectureUrl(), request.getThumbnailUrl(), request.getInstructor(), request.getCapacity());
-        indexLecture(LectureDocument.from(lecture)); // 검색 색인 반영
+                request.getLectureUrl(), resolveThumbnailUrl(request.getLectureUrl()),
+                normalizeReviewUrl(request.getReviewUrl()), request.getInstructor(), request.getCapacity());
+        // 아직 승인 전(PENDING/REJECTED)인 강의는 수정해도 색인하지 않는다 — 승인 전 검색 노출 방지.
+        if (lecture.getStatus() == LectureStatus.APPROVED) {
+            indexLecture(LectureDocument.from(lecture)); // 검색 색인 반영
+        }
 
         return LectureResponse.from(lecture);
     }
@@ -224,6 +345,23 @@ public class LectureServiceImpl implements LectureService {
         deindexLecture(id); // 검색 결과에서도 제외
     }
 
+    // 삭제된 강의 복구 (DB에서 완전히 삭제되기 전까지는 관리자가 되돌릴 수 있다)
+    @Override
+    @Transactional
+    public void restoreLecture(Long id, Long adminId) {
+        findAdmin(adminId);
+
+        Lecture lecture = lectureRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_FOUND));
+
+        lecture.restore();
+
+        // 승인된 강의만 일반 목록/검색에 노출되므로, 그 경우에만 색인을 되살린다.
+        if (lecture.getStatus() == LectureStatus.APPROVED) {
+            indexLecture(LectureDocument.from(lecture));
+        }
+    }
+
     // ES 색인 저장 실패가 강의 생성/수정 트랜잭션 자체를 롤백시키지 않도록 격리한다.
     // 색인이 어긋나더라도 /api/admin/lectures/reindex로 복구할 수 있으므로 예외를 삼키고 로그만 남긴다.
     private void indexLecture(LectureDocument document) {
@@ -245,7 +383,7 @@ public class LectureServiceImpl implements LectureService {
 
     // ===== 조회수 / 좋아요 / 수강신청 =====
 
-    // 조회수 증가 (하루 1회 제한)
+    // 조회수 증가 (조회할 때마다 증가)
     @Override
     @Transactional
     public void increaseViewCount(Long id, Long userId) {
@@ -257,7 +395,7 @@ public class LectureServiceImpl implements LectureService {
                 .build());
 
         if (isNewView) {
-            lectureRepository.increaseViewCount(id); // 오늘 처음 본 경우에만 캐시된 조회수 원자 증가
+            lectureRepository.increaseViewCount(id); // 캐시된 조회수 원자 증가
         }
     }
 
@@ -402,7 +540,9 @@ public class LectureServiceImpl implements LectureService {
     @Override
     @Transactional
     public void reindexAllLectures() {
-        List<Lecture> lectures = lectureRepository.findByIsDeletedFalse(Pageable.unpaged()).getContent();
+        // 심사 대기/반려된 강의는 검색 결과에 노출되면 안 되므로 승인된 강의만 색인한다.
+        List<Lecture> lectures = lectureRepository
+                .findByIsDeletedFalseAndStatus(LectureStatus.APPROVED, Pageable.unpaged()).getContent();
         List<LectureDocument> documents = lectures.stream().map(LectureDocument::from).toList();
 
         lectureSearchRepository.deleteAll();

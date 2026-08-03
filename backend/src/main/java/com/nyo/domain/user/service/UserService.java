@@ -11,9 +11,10 @@ import com.nyo.global.enums.UserStatus;
 import com.nyo.global.exception.BusinessException;
 import com.nyo.global.exception.ErrorCode;
 import com.nyo.global.jwt.JwtTokenProvider;
-import com.nyo.global.mail.MailService;
+import com.nyo.global.sms.SmsService;
 import com.nyo.global.security.LoginAttemptGuard;
 import com.nyo.global.security.PasswordResetCodeStore;
+import com.nyo.global.security.PhoneVerificationCodeStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -26,14 +27,8 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * 회원 도메인 핵심 서비스. 크게 세 영역으로 나뉜다.
- * 1) 일반 회원 기능: 회원가입/로그인/중복체크/마이페이지 조회·수정/탈퇴
- * 2) 관리자 기능: 회원 목록·상세 조회, 권한 변경, 제재 등록/이력 조회 (adminXxx 메서드들)
- * 3) 인증 공용 로직: 정지 자동 해제 + 활성 상태 검증(validateActiveOrReactivate) — 일반 로그인과
- *    구글 로그인(CustomOAuth2UserService) 양쪽에서 동일하게 호출되어 정지/탈퇴 회원이
- *    어느 로그인 방식으로도 우회할 수 없게 한다.
- */
+// 회원가입/로그인/비밀번호·전화번호 인증/마이페이지 정보수정/탈퇴와 관리자 회원 관리(권한 변경, 제재)까지
+// 회원 관련 비즈니스 로직을 전담하는 서비스.
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -44,9 +39,13 @@ public class UserService {
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginAttemptGuard loginAttemptGuard;
     private final PasswordResetCodeStore passwordResetCodeStore;
-    private final MailService mailService;
+    private final PhoneVerificationCodeStore phoneVerificationCodeStore;
+    private final SmsService smsService;
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final java.util.regex.Pattern PASSWORD_PATTERN =
+            java.util.regex.Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^a-zA-Z0-9]).+$");
+    private static final long WITHDRAWAL_GRACE_PERIOD_DAYS = 30;
 
     // 회원가입
     @Transactional
@@ -62,7 +61,6 @@ public class UserService {
                 .phone(request.getPhone())
                 .build();
 
-        // validateDuplicate 통과 이후에도 동시 요청이 겹치면 DB unique 제약에서 걸릴 수 있어 방어적으로 처리
         try {
             return toResponse(userRepository.save(user));
         } catch (DataIntegrityViolationException e) {
@@ -70,33 +68,28 @@ public class UserService {
         }
     }
 
-    // 로그인 (id, pw). 정지 자동 해제 시 상태 변경을 DB에 반영
+    // 로그인 (id, pw).
     @Transactional
     public LoginResponse login(LoginRequest request) {
-        // 무차별 대입 방어: 최근 실패가 많이 쌓인 아이디면 조회 전에 바로 차단
         loginAttemptGuard.checkAllowed(request.getLoginId());
 
-        // id를 가져옴. 계정 존재 여부가 드러나지 않도록 비밀번호 불일치와 동일한 에러코드(MEMBER_LOGIN_FAILED) 사용
         User user = userRepository.findByLoginId(request.getLoginId())
                 .orElseThrow(() -> loginFailed(request.getLoginId()));
 
         // 정지 기간이 이미 끝났으면 로그인 시점에 자동으로 ACTIVE로 되돌림
         reactivateIfSuspensionExpired(user);
 
-        // 비밀번호 불일치일 경우. 상태 체크보다 먼저 수행해서, 비밀번호가 틀리면 계정 상태(정지/탈퇴)와
-        // 무관하게 항상 동일한 MEMBER_LOGIN_FAILED를 반환한다. 그렇지 않으면 아이디만으로 "이 계정이
-        // 존재하고 정지/탈퇴 상태인지"를 알아낼 수 있는 계정 열거(enumeration) 문제가 생긴다.
-        if (user.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw loginFailed(request.getLoginId());
-        }
+        // [수정] 탈퇴 유예기간 자동 복구 로직 주석 처리 (탈퇴 회원은 즉시 로그인 차단)
+        // reactivateIfWithinGracePeriod(user);
 
-        // 여기까지 왔다는 건 비밀번호가 맞다는 뜻이므로, 탈퇴/정지 사유를 알려줘도 계정 열거로 이어지지 않는다.
-        // (비밀번호 추측과 무관한 상태 체크라 시도 횟수에는 포함하지 않는다)
+        // 탈퇴한 계정은 "이미 탈퇴한 회원입니다." 에러를 던져 프론트엔드에서 다시가입 안내를 띄우게 함
+        if (user.getStatus() == UserStatus.WITHDRAWN) {
+            throw new BusinessException(ErrorCode.MEMBER_ALREADY_WITHDRAWN);
+        }
         if (user.getStatus() != UserStatus.ACTIVE) {
             throw new BusinessException(ErrorCode.MEMBER_INACTIVE);
         }
 
-        // 로그인 성공 시 이전 실패 기록 삭제
         loginAttemptGuard.onSuccess(request.getLoginId());
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getRole());
 
@@ -108,36 +101,28 @@ public class UserService {
                 .build();
     }
 
-    // 로그인 실패 처리 공통화: 실패 횟수를 올리고 통일된 에러를 반환
+    // 로그인 실패를 시도 횟수에 반영하고 공통 로그인 실패 예외를 생성한다
     private BusinessException loginFailed(String loginId) {
         loginAttemptGuard.onFailure(loginId);
-        return new BusinessException(ErrorCode.MEMBER_LOGIN_FAILED); // id 또는 비번 불일치 메시지
+        return new BusinessException(ErrorCode.MEMBER_LOGIN_FAILED);
     }
 
-    // 아이디 찾기: 이름+이메일이 모두 일치하는 회원의 아이디를 마스킹해서 반환.
-    // 이름만 또는 이메일만 일치하는 경우까지 구분해서 알려주면 계정 정보를 유추할 수 있어 하나로 통일한 에러만 던진다.
+    // 이름+이메일이 일치하는 회원을 찾아 마스킹된 아이디를 반환한다
     @Transactional(readOnly = true)
     public FindLoginIdResponse findLoginId(FindLoginIdRequest request) {
         User user = userRepository.findByNameAndEmail(request.getName(), request.getEmail())
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_FIND_ID_NOT_FOUND));
 
         return FindLoginIdResponse.builder()
-                .maskedLoginId(maskLoginId(user.getLoginId()))
+                .maskedLoginId(user.getLoginId())
                 .build();
     }
 
-    // 앞부분 일부만 남기고 나머지를 마스킹. loginId는 4자 이상이 보장되어 있어(UserRequest 검증) 항상 1자 이상은 마스킹된다.
-    private String maskLoginId(String loginId) {
-        int visibleLength = Math.max(1, loginId.length() / 3);
-        return loginId.substring(0, visibleLength) + "*".repeat(loginId.length() - visibleLength);
-    }
-
-    // 비밀번호 재설정 1단계: 아이디+이메일이 실제 회원과 일치하면 6자리 인증코드를 생성해 이메일로 발송.
-    // 소셜 로그인 전용 계정(password 없음)은 재설정할 비밀번호 자체가 없으므로 여기서 차단한다.
+    // 아이디+휴대폰 번호가 일치하는 회원에게 비밀번호 재설정용 6자리 인증코드를 SMS로 발송한다
     @Transactional(readOnly = true)
     public void sendPasswordResetCode(PasswordResetCodeRequest request) {
         User user = userRepository.findByLoginId(request.getLoginId())
-                .filter(u -> u.getEmail().equals(request.getEmail()))
+                .filter(u -> u.getPhone() != null && u.getPhone().equals(request.getPhone()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.PASSWORD_RESET_TARGET_NOT_FOUND));
 
         if (user.getPassword() == null) {
@@ -146,15 +131,24 @@ public class UserService {
 
         String code = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
         passwordResetCodeStore.save(request.getLoginId(), code);
-        mailService.sendPasswordResetCode(user.getEmail(), code);
+        smsService.sendPasswordResetCode(user.getPhone(), code);
     }
 
-    // 비밀번호 재설정 2단계: 발송된 인증코드를 검증한 뒤 새 비밀번호로 교체.
-    // 아이디+이메일을 다시 검사하는 이유는, 1단계 이후 이메일이 유출된 코드만으로는 재설정이 안 되게 하기 위함이다.
+    // 최종 재설정 전에 인증코드만 미리 검증하고 소비하지는 않는다
+    @Transactional(readOnly = true)
+    public void verifyPasswordResetCode(PasswordResetCodeVerifyRequest request) {
+        userRepository.findByLoginId(request.getLoginId())
+                .filter(u -> u.getPhone() != null && u.getPhone().equals(request.getPhone()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.PASSWORD_RESET_TARGET_NOT_FOUND));
+
+        passwordResetCodeStore.verifyOnly(request.getLoginId(), request.getCode());
+    }
+
+    // 인증코드를 검증한 뒤 소비 처리하고 새 비밀번호로 교체한다
     @Transactional
     public void resetPassword(PasswordResetRequest request) {
         User user = userRepository.findByLoginId(request.getLoginId())
-                .filter(u -> u.getEmail().equals(request.getEmail()))
+                .filter(u -> u.getPhone() != null && u.getPhone().equals(request.getPhone()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.PASSWORD_RESET_TARGET_NOT_FOUND));
 
         passwordResetCodeStore.verify(request.getLoginId(), request.getCode());
@@ -162,81 +156,117 @@ public class UserService {
         user.changePassword(passwordEncoder.encode(request.getNewPassword()));
     }
 
-    // 회원가입 폼 실시간 검증용 중복 체크 3종 (id, email, nickname)
+    // 로그인 아이디 중복 여부를 조회한다
     @Transactional(readOnly = true)
     public boolean checkLoginIdDuplicate(String loginId) {
         return userRepository.existsByLoginId(loginId);
     }
+
+    // 이메일 중복 여부를 조회한다
     @Transactional(readOnly = true)
     public boolean checkEmailDuplicate(String email) {
         return userRepository.existsByEmail(email);
     }
+
+    // 닉네임 중복 여부를 조회한다
     @Transactional(readOnly = true)
     public boolean checkNicknameDuplicate(String nickname) {
         return userRepository.existsByNickname(nickname);
     }
 
-
-    // 마이페이지 조회. 탈퇴 회원은 findActiveUserOrThrow에서 걸러짐
+    // 탈퇴하지 않은 회원인지 확인 후 내 정보를 조회한다
     @Transactional(readOnly = true)
     public UserResponse getMyInfo(Long userId) {
         User user = findActiveUserOrThrow(userId);
         return toResponse(user);
     }
 
-    // 마이페이지 수정. 닉네임이 실제로 바뀔 때만 중복 검사(자기 자신 제외)해서 불필요한 쿼리 방지.
-    // newPassword가 채워져 있으면 비밀번호도 같이 변경한다(선택 항목).
+    // 마이페이지 개인정보(이름/닉네임/이메일/전화번호, 선택적 비밀번호)를 검증 후 수정한다
     @Transactional
     public UserResponse updateMyProfile(Long userId, UserProfileUpdateRequest request) {
         User user = findActiveUserOrThrow(userId);
 
-        if (!user.getNickname().equals(request.getNickname())
-                && userRepository.existsByNicknameAndIdNot(request.getNickname(), userId)) {
+        boolean nicknameChanged = !user.getNickname().equals(request.getNickname());
+        boolean emailChanged = !user.getEmail().equals(request.getEmail());
+        boolean phoneChanged = !java.util.Objects.equals(user.getPhone(), request.getPhone());
+        boolean passwordChangeRequested = request.getNewPassword() != null && !request.getNewPassword().isBlank();
+        boolean anyChanged = nicknameChanged || emailChanged || phoneChanged || passwordChangeRequested;
+
+        if (user.getPassword() != null) {
+            if (anyChanged
+                    && (request.getCurrentPassword() == null
+                    || !passwordEncoder.matches(request.getCurrentPassword(), user.getPassword()))) {
+                throw new BusinessException(ErrorCode.MEMBER_CURRENT_PASSWORD_MISMATCH);
+            }
+        } else if (passwordChangeRequested) {
+            throw new BusinessException(ErrorCode.MEMBER_OAUTH_PASSWORD_CHANGE_NOT_ALLOWED);
+        }
+
+        if (nicknameChanged && userRepository.existsByNicknameAndIdNot(request.getNickname(), userId)) {
             throw new BusinessException(ErrorCode.MEMBER_DUPLICATE_NICKNAME);
         }
 
-        user.updateProfile(request.getName(), request.getNickname(), request.getPhone());
-
-        if (request.getNewPassword() != null && !request.getNewPassword().isBlank()) {
-            changePassword(user, request.getCurrentPassword(), request.getNewPassword());
+        if (emailChanged && userRepository.existsByEmailAndIdNot(request.getEmail(), userId)) {
+            throw new BusinessException(ErrorCode.MEMBER_DUPLICATE_EMAIL);
         }
 
-        // 사전 중복 체크 이후에도 동시 요청이 겹치면 DB unique 제약(nickname)에서 걸릴 수 있어 방어적으로 처리
+        if (phoneChanged) {
+            if (request.getPhoneVerificationCode() == null || request.getPhoneVerificationCode().isBlank()) {
+                throw new BusinessException(ErrorCode.PHONE_VERIFICATION_REQUIRED);
+            }
+            phoneVerificationCodeStore.verify(userId, request.getPhone(), request.getPhoneVerificationCode());
+        }
+
+        user.updateProfile(request.getName(), request.getNickname(), request.getEmail(), request.getPhone());
+
+        if (passwordChangeRequested) {
+            changePassword(user, request.getNewPassword());
+        }
+
         try {
             userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException e) {
+            if (userRepository.existsByEmailAndIdNot(request.getEmail(), userId)) {
+                throw new BusinessException(ErrorCode.MEMBER_DUPLICATE_EMAIL);
+            }
             throw new BusinessException(ErrorCode.MEMBER_DUPLICATE_NICKNAME);
         }
 
         return toResponse(user);
     }
 
-    // updateMyProfile에서 newPassword가 같이 온 경우에만 호출됨. 소셜 로그인 회원(password null)은 변경 자체를 차단
-    private void changePassword(User user, String currentPassword, String newPassword) {
-        if (user.getPassword() == null) {
-            throw new BusinessException(ErrorCode.MEMBER_OAUTH_PASSWORD_CHANGE_NOT_ALLOWED);
-        }
+    // 마이페이지 전화번호 변경용 6자리 인증코드를 새 번호로 발송한다
+    @Transactional
+    public void sendPhoneVerificationCode(Long userId, String phone) {
+        findActiveUserOrThrow(userId);
+        String code = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+        phoneVerificationCodeStore.save(userId, phone, code);
+        smsService.sendPhoneVerificationCode(phone, code);
+    }
 
-        if (currentPassword == null || !passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new BusinessException(ErrorCode.MEMBER_CURRENT_PASSWORD_MISMATCH);
-        }
+    // 최종 저장 전에 전화번호 변경 인증코드만 미리 검증한다
+    @Transactional(readOnly = true)
+    public void verifyPhoneVerificationCode(Long userId, String phone, String code) {
+        phoneVerificationCodeStore.verifyOnly(userId, phone, code);
+    }
 
-        if (newPassword.length() < 8 || newPassword.length() > 72) {
+    // 새 비밀번호 형식을 검증하고 암호화하여 저장한다
+    private void changePassword(User user, String newPassword) {
+        if (newPassword.length() < 8 || newPassword.length() > 72 || !PASSWORD_PATTERN.matcher(newPassword).matches()) {
             throw new BusinessException(ErrorCode.MEMBER_INVALID_NEW_PASSWORD);
         }
 
         user.changePassword(passwordEncoder.encode(newPassword));
     }
 
-    // 소프트 딜리트: row는 지우지 않고 status만 WITHDRAWN으로 변경 (작성했던 노트 등은 그대로 남음)
+    // 회원 탈퇴(소프트 딜리트) 처리
     @Transactional
     public void withdraw(Long userId) {
         User user = findActiveUserOrThrow(userId);
         user.withdraw();
-        // TODO: 노트 작성자 표시를 "탈퇴한 사용자"로 보여주는 처리는 Note 도메인에서 협의 필요
     }
 
-    /** 💡 Note 등 다른 도메인에서 작성자 표시명을 물어볼 때 사용 */
+    // 게시글/댓글 등에 노출할 닉네임 조회 - 탈퇴 회원이면 "탈퇴한 사용자"로 대체한다
     @Transactional(readOnly = true)
     public String getDisplayNickname(Long userId) {
         return userRepository.findById(userId)
@@ -244,7 +274,7 @@ public class UserService {
                 .orElse("알 수 없는 사용자");
     }
 
-    // 위 메서드의 다건 버전 (게시글 목록처럼 여러 작성자 이름을 한 번에 조회할 때)
+    // 여러 회원의 노출용 닉네임을 한 번에 조회한다 (탈퇴 회원은 "탈퇴한 사용자"로 대체)
     @Transactional(readOnly = true)
     public java.util.Map<Long, String> getDisplayNicknames(List<Long> userIds) {
         return userRepository.findAllById(userIds).stream()
@@ -254,14 +284,14 @@ public class UserService {
                 ));
     }
 
-    // 댓글 관리 등 다른 도메인에서 여러 작성자의 상세 정보(이메일/권한 등)를 한 번에 조회할 때 사용
+    // 여러 회원 ID를 한 번에 조회해 회원 ID → 응답 DTO 맵으로 반환한다 (관리자용)
     @Transactional(readOnly = true)
     public java.util.Map<Long, UserResponse> adminGetUsersByIds(List<Long> userIds) {
         return userRepository.findAllById(userIds).stream()
                 .collect(java.util.stream.Collectors.toMap(User::getId, this::toResponse));
     }
 
-    // 작성자 닉네임 검색을 사용자 조회와 노트 조회로 분리하기 위해 일치하는 사용자 ID만 반환한다.
+    // 닉네임에 검색어가 포함된 회원들의 ID 목록을 조회한다 (노트 검색용)
     @Transactional(readOnly = true)
     public List<Long> findUserIdsByNickname(String keyword) {
         return userRepository.findByNicknameContainingIgnoreCase(keyword).stream()
@@ -269,16 +299,13 @@ public class UserService {
                 .toList();
     }
 
-    // ================== 여기까지 관리자 기능 ==================
-    // ================== 관리자 기능 ==================
-
-    // 회원 목록 페이징 조회 (탈퇴 회원 포함, 필터 없이 전체)
+    // 관리자용 회원 목록을 페이징 조회한다
     @Transactional(readOnly = true)
     public Page<UserResponse> adminGetUserList(Pageable pageable) {
         return userRepository.findAll(pageable).map(this::toResponse);
     }
 
-    // 마이페이지용 조회(findActiveUserOrThrow)와 달리 탈퇴 회원도 조회 가능해야 해서 별도 메서드로 분리
+    // 관리자용 회원 상세 조회 (탈퇴 회원 포함)
     @Transactional(readOnly = true)
     public UserResponse adminGetUser(Long userId) {
         User user = userRepository.findById(userId)
@@ -286,7 +313,7 @@ public class UserService {
         return toResponse(user);
     }
 
-    // USER ↔ ADMIN 권한 변경. 관리자가 자기 자신의 권한을 바꾸면 마지막 ADMIN이 스스로를 강등시킬 수 있어 차단
+    // 관리자가 회원의 권한(USER/ADMIN)을 변경한다 - 자기 자신은 대상 불가
     @Transactional
     public UserResponse adminChangeRole(Long adminId, Long userId, Role role) {
         if (adminId.equals(userId)) {
@@ -299,7 +326,7 @@ public class UserService {
         return toResponse(user);
     }
 
-    // 제재 등록: 제재 종류에 따라 회원 상태를 바꾸고(applySanctionEffect), 이력을 별도 테이블에 남김
+    // 관리자가 회원에게 제재(경고/정지/강제탈퇴)를 등록하고 상태에 반영한다 - 자기 자신은 대상 불가
     @Transactional
     public UserSanctionResponse adminSanctionUser(Long adminId, UserSanctionRequest request) {
         if (adminId.equals(request.getUserId())) {
@@ -309,8 +336,6 @@ public class UserService {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
-        // 탈퇴 회원은 소프트 삭제된 상태이므로 제재로 상태를 건드리면 안 됨
-        // (SUSPENSION을 걸면 이후 정지 기간 만료 시 reactivateIfSuspensionExpired가 ACTIVE로 되돌려 탈퇴 계정이 부활함)
         if (user.getStatus() == UserStatus.WITHDRAWN) {
             throw new BusinessException(ErrorCode.MEMBER_ALREADY_WITHDRAWN);
         }
@@ -328,16 +353,16 @@ public class UserService {
         return toSanctionResponse(userSanctionRepository.save(sanction));
     }
 
-    // 제재 유형별로 회원 상태에 실제로 반영할 효과 (경고는 상태 변화 없이 이력만 남음)
+    // 제재 유형에 따라 회원 상태에 실제 효과를 반영한다 (정지/강제탈퇴만 상태 변경, 경고는 상태 변경 없음)
     private void applySanctionEffect(User user, SanctionType type) {
         switch (type) {
             case SUSPENSION -> user.changeStatus(UserStatus.SUSPENDED);
             case WITHDRAWAL -> user.withdraw();
-            case WARNING -> { /* 상태 변화 없음, 이력만 남김 */ }
+            case WARNING -> { }
         }
     }
 
-    // 특정 회원에게 내려진 제재 이력 전체 (최신순)
+    // 특정 회원의 제재 이력을 최신순으로 조회한다
     @Transactional(readOnly = true)
     public List<UserSanctionResponse> adminGetSanctionHistory(Long userId) {
         return userSanctionRepository.findByUserIdOrderByCreatedAtDesc(userId)
@@ -346,7 +371,7 @@ public class UserService {
                 .toList();
     }
 
-    // 로그인 후 아직 확인하지 않은 최신 경고를 한 번만 반환하고 즉시 확인 시각을 기록합니다.
+    // 미확인 경고들을 모두 확인 처리하고 가장 최근 경고를 반환한다
     @Transactional
     public UserSanctionResponse acknowledgeLatestWarning(Long userId) {
         List<UserSanction> warnings = userSanctionRepository
@@ -356,12 +381,11 @@ public class UserService {
                 );
         if (warnings.isEmpty()) return null;
 
-        // 여러 경고가 로그인 전에 누적돼도 다음 로그인에 오래된 경고가 다시 뜨지 않게 모두 확인 처리합니다.
         warnings.forEach(UserSanction::acknowledge);
         return toSanctionResponse(warnings.get(0));
     }
 
-    // 현재 적용 중인 최신 정지를 즉시 해제하고, 실제 해제 시각을 해당 정지 이력의 종료일로 기록합니다.
+    // 관리자가 현재 적용 중인 정지를 즉시 해제한다 (정지 상태가 아니면 예외)
     @Transactional
     public UserResponse adminReleaseSuspension(Long userId) {
         User user = userRepository.findById(userId)
@@ -380,10 +404,7 @@ public class UserService {
         return toResponse(user);
     }
 
-    // ================== 여기까지 관리자 기능 ==================
-
-    // 구글 로그인 시에도 일반 로그인(login())과 동일한 정책 적용: 정지 만료면 자동 해제, 아니면 상태 확인 후 차단
-    // (OAuth2 로그인은 password 체크가 없어 이 검증이 유일한 관문이라 CustomOAuth2UserService에서 호출)
+    // 구글 로그인 등에서도 상태 검증
     @Transactional
     public void validateActiveOrReactivate(Long userId) {
         User user = userRepository.findById(userId)
@@ -391,41 +412,56 @@ public class UserService {
 
         reactivateIfSuspensionExpired(user);
 
+        // [수정] 구글 로그인 시에도 탈퇴 유예기간 복구 로직 주석 처리
+        // reactivateIfWithinGracePeriod(user);
+
+        if (user.getStatus() == UserStatus.WITHDRAWN) {
+            throw new BusinessException(ErrorCode.MEMBER_ALREADY_WITHDRAWN);
+        }
         if (user.getStatus() != UserStatus.ACTIVE) {
             throw new BusinessException(ErrorCode.MEMBER_INACTIVE);
         }
     }
 
-    // 가장 최근 정지 이력의 endAt이 지났으면 별도 배치 없이 로그인 시점에 ACTIVE로 되돌림
+    // 정지 기간이 이미 끝났다면 상태를 ACTIVE로 자동 복구한다
     private void reactivateIfSuspensionExpired(User user) {
         if (user.getStatus() != UserStatus.SUSPENDED) return;
 
-        // 정지 여부 판단
         userSanctionRepository.findTopByUserIdAndTypeOrderByCreatedAtDesc(user.getId(), SanctionType.SUSPENSION)
                 .filter(sanction -> sanction.getEndAt() != null && !sanction.getEndAt().isAfter(LocalDateTime.now()))
-                // 정지 기간 만료, 정지 해제 기간이 없을 경우 정상 상태로 변경
                 .ifPresent(sanction -> user.changeStatus(UserStatus.ACTIVE));
     }
 
-    // 본인 관련 API(마이페이지 등)에서 공통으로 쓰는 조회: 탈퇴 회원이면 예외로 막음
+    // 탈퇴 유예기간 내라면 계정을 ACTIVE로 되살린다 (현재는 호출부에서 주석 처리되어 미사용)
+    private void reactivateIfWithinGracePeriod(User user) {
+        if (user.getStatus() != UserStatus.WITHDRAWN) return;
+        if (user.getWithdrawnAt() == null) return;
+
+        LocalDateTime graceDeadline = user.getWithdrawnAt().plusDays(WITHDRAWAL_GRACE_PERIOD_DAYS);
+        if (LocalDateTime.now().isBefore(graceDeadline)) {
+            user.restoreFromWithdrawal();
+        }
+    }
+
+    // 회원을 조회하되 탈퇴한 회원이면 예외를 던진다
     private User findActiveUserOrThrow(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
-        // 탈퇴 회원일 경우 로그인 실패
         if (user.getStatus() == UserStatus.WITHDRAWN) {
             throw new BusinessException(ErrorCode.MEMBER_ALREADY_WITHDRAWN);
         }
         return user;
     }
 
-    // 회원가입 시 아이디/이메일/닉네임 중복을 한 번에 검사
+    // 회원가입 시 아이디/이메일/닉네임 중복 여부를 검증한다
     private void validateDuplicate(String loginId, String email, String nickname) {
         if (userRepository.existsByLoginId(loginId)) throw new BusinessException(ErrorCode.MEMBER_DUPLICATE_LOGIN_ID);
         if (userRepository.existsByEmail(email)) throw new BusinessException(ErrorCode.MEMBER_DUPLICATE_EMAIL);
         if (userRepository.existsByNickname(nickname)) throw new BusinessException(ErrorCode.MEMBER_DUPLICATE_NICKNAME);
     }
 
+    // User 엔티티를 UserResponse DTO로 변환한다
     private UserResponse toResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
@@ -443,6 +479,7 @@ public class UserService {
                 .build();
     }
 
+    // UserSanction 엔티티를 UserSanctionResponse DTO로 변환한다
     private UserSanctionResponse toSanctionResponse(UserSanction sanction) {
         return UserSanctionResponse.builder()
                 .id(sanction.getId())

@@ -184,7 +184,8 @@
 .admin-table--post,
 .admin-table--note,
 .admin-table--comment,
-.admin-table--lecture {
+.admin-table--lecture,
+.admin-table--instructor-application {
   /* 넓은 화면은 오른쪽 끝까지 채우고, 좁은 화면에서만 최소 너비와 가로 스크롤을 유지한다. */
   width: 100%;
   min-width: 1180px;
@@ -229,14 +230,23 @@
   white-space: nowrap;
 }
 
+/* 관리(액션) 열에 단독으로 오는 삭제됨 표시는, 같은 열에 오는 버튼(.admin-btn--sm)과
+   박스 모델(패딩/보더/줄 높이)을 맞춰야 행 높이와 오른쪽 끝 정렬이 버튼 행과 어긋나지 않는다. */
+.admin-actions__deleted-label {
+  padding: 6px 12px 6px 0;
+  border: 1px solid transparent;
+  line-height: 19px;
+}
+
 /* 삭제 상태 문구를 누르면 관리자 복구 확인창을 열 수 있음을 버튼 형태로 표현한다. */
 .admin-deleted-button {
-  padding: 0;
-  border: 0;
+  padding: 6px 12px 6px 0;
+  border: 1px solid transparent;
   background: transparent;
   color: #d92d20;
   font: inherit;
   font-weight: 700;
+  line-height: 19px;
   white-space: nowrap;
   cursor: pointer;
   text-decoration: underline;
@@ -266,9 +276,10 @@
 .admin-table--post th:nth-child(3),
 .admin-table--post td:nth-child(3) {
   width: 140px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   text-align: left;
-  /* 셀 배경은 움직이지 않고 작성자 글자만 왼쪽으로 30px 이동한다. */
-  text-indent: -30px;
 }
 
 .admin-table--post th:nth-child(4),
@@ -293,14 +304,15 @@
 }
 
 .admin-table--note {
-
-  table-layout: auto;
+  table-layout: fixed;
 }
 
 .admin-table--note th:nth-child(3),
 .admin-table--note td:nth-child(3) {
-  min-width: 135px;
+  width: 200px;
+  overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
   /* 셀 배경은 움직이지 않고 강의 글자만 오른쪽으로 60px 이동한다. */
   text-indent: 60px;
 }
@@ -308,9 +320,10 @@
 .admin-table--note th:nth-child(4),
 .admin-table--note td:nth-child(4) {
   width: 150px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   text-align: left;
-  /* 셀 배경은 움직이지 않고 작성자 글자만 왼쪽으로 10px 이동한다. */
-  text-indent: -10px;
 }
 
 .admin-table--note th:nth-child(5),
@@ -334,16 +347,19 @@
   text-align: right;
 }
 
-/* 강의 관리 "번호·ID·카테고리·강의명·강사·수강·인기·관리" 8열도 같은 이유로
-   강의명만 남은 공간을 쓰게 두고 나머지 열 폭을 고정한다. */
+/* 강의 관리 "번호·ID·카테고리·강의명·강사·등록자·수강·상태·관리" 9열도 같은 이유로
+   강의명만 남은 공간을 쓰게 두고 나머지 열 폭을 고정한다. (인기 여부는 상세 펼침에서 확인) */
 .admin-table--lecture {
   table-layout: fixed;
 }
 
-/* 화면이 좁아져도 강의 관리의 열 제목과 값이 서로 겹치지 않게 한 줄을 유지한다. */
+/* 화면이 좁아져도 강의 관리의 열 제목과 값이 서로 겹치지 않게 한 줄을 유지하고,
+   폭보다 긴 내용은 다음 열을 침범하지 않도록 말줄임 처리한다. */
 .admin-table--lecture th,
 .admin-table--lecture td {
+  overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .admin-table--lecture th:nth-child(2),
@@ -363,16 +379,23 @@
 
 .admin-table--lecture th:nth-child(6),
 .admin-table--lecture td:nth-child(6) {
-  width: 100px;
+  width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-table--lecture th:nth-child(7),
 .admin-table--lecture td:nth-child(7) {
-  width: 70px;
+  width: 90px;
 }
 
 .admin-table--lecture th:nth-child(8),
 .admin-table--lecture td:nth-child(8) {
+  width: 110px;
+}
+
+.admin-table--lecture th:nth-child(9),
+.admin-table--lecture td:nth-child(9) {
   width: 170px;
 }
 
@@ -573,6 +596,12 @@
 
 .admin-filler-row {
   visibility: hidden;
+}
+
+/* border-collapse 상태에서는 visibility: hidden만으로 셀 테두리까지 숨겨지지 않아
+   빈 필러 행마다 줄이 그대로 남는다. 테두리 색을 투명하게 해 실제로 안 보이게 한다. */
+.admin-filler-row td {
+  border-color: transparent;
 }
 
 .admin-actions {

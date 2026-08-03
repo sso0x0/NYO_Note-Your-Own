@@ -45,8 +45,8 @@
    index.css의 전역 h1,h2,h3 규칙이 system-ui로 되돌려놓기 때문에 명시적으로 다시 지정해야 한다. */
 .note-board-page h2 {
   margin: 0;
-  font-size: 28px;
-  font-weight: 800;
+  font-size: 32px;
+  font-weight: 700;
   letter-spacing: -0.5px;
   color: var(--text-h);
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -72,16 +72,36 @@
   white-space: nowrap;
 }
 
+.note-board-page__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  color: var(--text);
+  font-size: 15px;
+}
+
 .note-board-page__filters {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+}
+
+/* 태그 검색 안내 문구를 '전체 노트 보기' 버튼 글자와 같은 세로 중앙선에 맞춘다. */
+.note-board-page__filters > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .note-board-page__filters button {
   padding: 7px 16px;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  /* 프론트엔드·백엔드·CS·빅데이터 버튼도 노트 카드와 같은 기본 테두리색을 사용한다. */
+  border: 1px solid var(--nb-line);
   background: var(--bg);
   color: var(--text);
   font: inherit;
@@ -92,8 +112,9 @@
 }
 
 .note-board-page__filters button:hover {
-  border-color: var(--nb-accent);
-  color: var(--nb-accent);
+  border-color: var(--nb-ink);
+  color: #fff;
+  background: var(--nb-ink);
 }
 
 .note-board-page__filters button.is-active {
@@ -188,8 +209,8 @@
 /* 카드는 공용 NoteCard를 그대로 쓰되, 메인 페이지의 "인기 노트" 목록과 같은
    가로형(썸네일 + 본문) 레이아웃으로 덮어써서 노트 표시 형식을 통일한다. */
 .note-board-page__list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   margin-top: 20px;
 }
@@ -210,13 +231,61 @@
 .note-board-page__list .note-card__link {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 14px 18px;
+  /* 메인 인기 노트와 썸네일 바깥 여백 및 본문 사이 간격을 동일하게 맞춘다. */
+  gap: 18px;
+  padding: 12px;
+}
+
+.note-board-page__search-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 20px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--nb-line);
+}
+
+.note-board-page__search-row .board-search {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  height: 42px;
+  /* 검색 버튼 한 개 너비만큼 오른쪽을 비우고, 검색바가 그만큼 줄어들게 한다. */
+  margin: 0 72px 0 0;
+  border: 1px solid var(--border);
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.note-board-page__search-row .board-search:hover {
+  border-color: rgba(96, 101, 251, 0.7);
+  box-shadow: none;
+}
+
+.note-board-page__search-row .board-search:focus-within {
+  border-color: #6065fb;
+  box-shadow: none;
+}
+
+.note-board-page__search-row .board-search__box input {
+  height: 100%;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.note-board-page__search-row .board-search__submit {
+  height: 34px;
+  margin: 3px 8px 3px 0;
+  padding: 0 18px;
+  border-radius: 8px;
 }
 
 .note-board-page__list .note-card__thumb {
-  width: 128px;
-  height: 128px;
+  /* 메인 페이지 인기 노트와 같은 썸네일 크기와 정렬을 사용한다. */
+  width: 112px;
+  height: 112px;
+  align-self: center;
   flex-shrink: 0;
   aspect-ratio: auto;
   border-radius: 12px;
@@ -228,8 +297,34 @@
   min-width: 0;
 }
 
+/* 노트 게시판 카드의 태그는 한 줄만 표시하고 넘치는 부분은 말줄임표로 처리한다. */
+.note-board-page__list .note-card__tags {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #2563eb;
+}
+
+.note-board-page__list .note-card__tag {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
 .note-board-page__list .note-card__category {
   color: var(--nb-accent);
+}
+
+.note-board-page__list .note-card__tag--clickable {
+  cursor: pointer;
+}
+
+.note-board-page__list .note-card__tag--clickable:hover,
+.note-board-page__list .note-card__tag--clickable:focus-visible {
+  background: #dbeafe;
+  color: #1d4ed8;
+  outline: none;
 }
 
 .note-board-page__pagination {
@@ -289,6 +384,10 @@
 }
 
 @media (max-width: 720px) {
+  .note-board-page__list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .note-board-page__list .note-card__link {
     align-items: flex-start;
   }

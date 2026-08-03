@@ -27,7 +27,7 @@ public class UserSanctionResponse {
     @Schema(description = "제재를 처리한 관리자 FK", example = "1")
     private Long adminId;
 
-    // 💡 FIXED: String → SanctionType (UserSanction 엔티티가 이미 enum으로 바뀌어서 여기도 맞춰야 함)
+    // FIXED: String → SanctionType (UserSanction 엔티티가 이미 enum으로 바뀌어서 여기도 맞춰야 함)
     @Schema(description = "경고/정지/강제 탈퇴", example = "SUSPENSION")
     private SanctionType type;
 

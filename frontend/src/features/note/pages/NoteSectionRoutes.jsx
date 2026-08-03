@@ -4,6 +4,7 @@ import NoteCreate from './NoteCreate'
 import NoteDetail from './NoteDetail'
 import NoteEdit from './NoteEdit'
 
+// 노트 게시판 목록 화면을 라우팅에 연결한다.
 function NoteBoardRoute() {
     const navigate = useNavigate()
     const location = useLocation()
@@ -16,6 +17,7 @@ function NoteBoardRoute() {
     )
 }
 
+// 노트 작성 화면을 라우팅에 연결한다.
 function NoteCreateRoute() {
     const navigate = useNavigate()
     const location = useLocation()
@@ -24,24 +26,29 @@ function NoteCreateRoute() {
     return <NoteCreate onBack={() => navigate(listUrl)} onCreated={(noteId) => navigate({ pathname: `/main/notes/${noteId}`, search: location.search })} />
 }
 
+// 노트 상세 화면을 라우팅에 연결한다.
 function NoteDetailRoute() {
     const { noteId } = useParams()
     const navigate = useNavigate()
-    const location = useLocation()
 
     return (
         <NoteDetail
             noteId={noteId}
-            onBack={() => navigate({ pathname: '/main/notes', search: location.search })}
+            // 상세 진입 경로를 보존해 노트 게시판·강의 화면 등 실제 이전 화면으로 돌아간다.
+            onBack={() => navigate(-1)}
             // 노트 상세의 수정 버튼은 별도 수정 페이지가 아니라 연결된 강의 시청 페이지의
             // 노트 작성 영역으로 이동한다. 강의 페이지가 로그인 사용자의 기존 노트를 불러와 수정한다.
             onEdit={(note) => navigate(`/main/lectures/${note.lectureId}/watch`)}
             // 태그 칩을 누르면 같은 태그가 붙은 다른 노트들을 목록에서 검색해 보여준다.
-            onTagClick={(tagName) => navigate({ pathname: '/main/notes', search: `?keyword=${encodeURIComponent(tagName)}` })}
+            onTagClick={(tagName) => navigate({
+                pathname: '/main/notes',
+                search: `?keyword=${encodeURIComponent(tagName)}&searchType=tag`,
+            })}
         />
     )
 }
 
+// 노트 수정 화면을 라우팅에 연결한다.
 function NoteEditRoute() {
     const { noteId } = useParams()
     const navigate = useNavigate()

@@ -11,8 +11,12 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
+// 커뮤니티 게시글(Post) 조회/집계를 위한 레포지토리.
 public interface PostRepository extends JpaRepository<Post, Long> {
+    // 특정 시점 이후 생성된 게시글 수를 센다 (통계용).
+    long countByCreatedAtAfter(java.time.LocalDateTime createdAt);
 
+    // 삭제 여부로 게시글을 최신순으로 조회한다.
     List<Post> findByIsDeletedOrderByCreatedAtDesc(Integer isDeleted);
 
     // 커뮤니티 서버 페이지네이션: 삭제되지 않은 게시글만 DB 단계에서 페이지 단위로 조회한다.
@@ -20,6 +24,11 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     // 공지 분리 조회: 일반 페이지와 공지 전용 페이지가 서로 섞이지 않게 조회한다.
     Page<Post> findByIsDeletedAndIsNotice(Integer isDeleted, Integer isNotice, Pageable pageable);
+
+    // 메인 페이지 "커뮤니티" 인기 목록: 좋아요*5 + 조회수 가중치 점수 내림차순 (공지 제외)
+    @Query(value = "select p from Post p where p.isDeleted = 0 and p.isNotice = 0 order by (p.likeCount * 5 + p.viewCount) desc",
+            countQuery = "select count(p) from Post p where p.isDeleted = 0 and p.isNotice = 0")
+    Page<Post> findPopular(Pageable pageable);
 
     Optional<Post> findByIdAndIsDeleted(Long id, Integer isDeleted);
 

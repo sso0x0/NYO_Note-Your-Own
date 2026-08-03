@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { parseTextColors } from '../utils/textColor'
 
+// contentEditable DOM 노드 트리를 저장용 마크다운 유사 문자열로 직렬화한다.
 const serializeNode = (node) => {
   if (node.nodeType === Node.TEXT_NODE) return node.nodeValue ?? ''
   if (node.nodeName === 'BR') return '\n'
@@ -23,6 +24,7 @@ const serializeNode = (node) => {
   return ['DIV', 'P'].includes(node.nodeName) ? `${wrappedContent}\n` : wrappedContent
 }
 
+// 드래그로 크기 조절 가능한 이미지 래퍼(이미지 + 리사이즈 핸들)를 만들어 에디터에 삽입한다.
 const createResizableImage = (source, previewUrl, savedWidth) => {
   const wrapper = document.createElement('span')
   wrapper.className = 'editor-image-wrapper'
@@ -41,6 +43,7 @@ const createResizableImage = (source, previewUrl, savedWidth) => {
   handle.title = '드래그하여 이미지 크기 조절'
   wrapper.append(handle)
 
+  // 요청된 너비를 에디터/원본 이미지 크기 범위 안으로 제한해 래퍼와 저장용 데이터 속성에 반영한다.
   const applyWidth = (width) => {
     const editorWidth = wrapper.parentElement?.clientWidth || width
     const originalWidth = image.naturalWidth || width
@@ -73,13 +76,16 @@ const createResizableImage = (source, previewUrl, savedWidth) => {
   return wrapper
 }
 
+// 에디터 DOM 전체를 직렬화해 저장용 문자열(value)로 만든다.
 const serializeEditor = (editor) => Array.from(editor.childNodes)
   .map(serializeNode)
   .join('')
   .replace(/\n$/, '')
 
+// 저장된 value 문자열을 파싱해 에디터 DOM(색상/서식 span, 이미지)을 다시 그린다.
 const renderValue = (editor, value) => {
   editor.replaceChildren()
+  // 텍스트를 색상/서식 조각으로 나눠 서식이 있으면 span으로, 없으면 텍스트 노드로 추가한다.
   const appendText = (text) => parseTextColors(text).forEach((part) => {
     if (!part.color && !part.bold && !part.italic && !part.underline) {
       editor.append(document.createTextNode(part.text))
@@ -120,15 +126,19 @@ const renderValue = (editor, value) => {
   appendText(value.slice(lastIndex))
 }
 
+// 노트 본문 작성용 서식(색상/굵게/기울임/밑줄) + 이미지 삽입을 지원하는 contentEditable 에디터.
+// ref로 insertImage/insertCodeBlock/applyColor/applyTextStyle 명령을 노출해 외부 툴바에서 호출한다.
 const RichTextEditor = forwardRef(function RichTextEditor({ value, onChange }, ref) {
   const editorRef = useRef(null)
   const selectionRef = useRef(null)
 
+  // 외부에서 바뀐 value가 현재 에디터 내용과 다르면 에디터 DOM을 다시 그려 동기화한다.
   useEffect(() => {
     const editor = editorRef.current
     if (editor && serializeEditor(editor) !== value) renderValue(editor, value)
   }, [value])
 
+  // 에디터 내부의 현재 선택 범위(커서 포함)를 기억해 나중에 이미지 삽입 등에 사용한다.
   const rememberSelection = () => {
     const selection = window.getSelection()
     const editor = editorRef.current
@@ -141,19 +151,23 @@ const RichTextEditor = forwardRef(function RichTextEditor({ value, onChange }, r
     selectionRef.current = range.cloneRange()
   }
 
+  // mouseup 시점에 선택 범위를 기억한다.
   const rememberSelectionAfterMouseUp = () => {
     // 브라우저가 뒤→앞 선택 범위를 확정한 다음 프레임에서 저장합니다.
     requestAnimationFrame(rememberSelection)
   }
 
+  // 에디터 DOM을 직렬화해 상위 컴포넌트의 onChange로 전달한다.
   const emitChange = () => onChange(serializeEditor(editorRef.current))
 
+  // 드롭 이벤트의 기본 동작을 막는다.
   const preventDroppedContent = (event) => {
     // contentEditable의 기본 드롭 동작이 blob: 이미지 태그를 자동 생성하지 못하게 차단합니다.
     event.preventDefault()
   }
 
   useImperativeHandle(ref, () => ({
+    // 저장된 커서 위치(또는 현재 선택 영역)에 리사이즈 가능한 이미지를 삽입한다.
     insertImage(source, previewUrl) {
       const editor = editorRef.current
       if (!editor) return false
@@ -182,6 +196,7 @@ const RichTextEditor = forwardRef(function RichTextEditor({ value, onChange }, r
       emitChange()
       return true
     },
+    // 현재 커서 위치에 코드블록 텍스트를 그대로 삽입한다.
     insertCodeBlock(codeBlock) {
       const editor = editorRef.current
       if (!editor) return false
@@ -203,6 +218,7 @@ const RichTextEditor = forwardRef(function RichTextEditor({ value, onChange }, r
       emitChange()
       return true
     },
+    // 선택 영역을 색상 span으로 감싸고, 중첩된 기존 색상 span은 풀어서 하나로 합친다.
     applyColor(color) {
       const range = selectionRef.current
       if (!range || range.collapsed) return false
@@ -224,6 +240,7 @@ const RichTextEditor = forwardRef(function RichTextEditor({ value, onChange }, r
       emitChange()
       return true
     },
+    // 선택 영역에 굵게/기울임/밑줄 서식을 토글 적용한다(이미 적용돼 있으면 해제).
     applyTextStyle(styleName) {
       const range = selectionRef.current
       if (!range || range.collapsed || !['bold', 'italic', 'underline'].includes(styleName)) return false

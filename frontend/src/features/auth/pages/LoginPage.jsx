@@ -1,27 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { login as loginRequest } from '../api/auth';
 import { useAuth } from '../../../context/AuthContext';
 import nyoLogo from '../../../assets/images/nyo_logo.png';
+import eyeOpenIcon from '../../../assets/images/eye.png';
+import eyeCloseIcon from '../../../assets/images/eye_close.png';
 
 import './AuthPage.css';
 
+// 로그인 페이지. 아이디/비밀번호 폼 로그인과 구글 OAuth 로그인을 함께 제공한다.
+const WITHDRAWN_MESSAGE = '이미 탈퇴한 회원입니다.';
+
+// 비밀번호 표시/숨김 상태에 따라 눈 아이콘 이미지를 바꿔 보여준다.
 function EyeIcon({ open }) {
-    return open ? (
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-    ) : (
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M3 3l18 18" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M10.58 10.58a3 3 0 1 0 4.24 4.24" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M6.1 6.1C3.4 7.9 1 12 1 12s4 7 11 7c2.05 0 3.83-.55 5.32-1.35M17.9 17.9C20.6 16.1 23 12 23 12s-1.6-2.8-4.32-4.9" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-    );
+    return <img src={open ? eyeOpenIcon : eyeCloseIcon} alt="" width="20" height="20" />;
 }
 
-// 필드별 실시간 검증 규칙: 값이 바뀔 때마다 이 함수들로 즉시 재검사합니다.
 const validators = {
     loginId: (value) => {
         if (!value.trim()) return '아이디를 입력해 주세요.';
@@ -33,6 +27,7 @@ const validators = {
     },
 };
 
+// 로그인 페이지. 아이디/비밀번호 폼 로그인과 구글 OAuth 로그인을 함께 제공한다.
 function LoginPage() {
     const { login } = useAuth();
     const navigate = useNavigate();
@@ -45,21 +40,35 @@ function LoginPage() {
     const [submitting, setSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
+    // OAuth2RedirectPage에서 넘어온 에러 처리
+    useEffect(() => {
+        if (location.state?.oauthError) {
+            setError(location.state.oauthError);
+
+            // 새로고침 시 에러 메시지가 계속 남아있는 것을 방지하기 위해 state에서 oauthError를 지움
+            const newState = { ...location.state };
+            delete newState.oauthError;
+            navigate(location.pathname, { state: newState, replace: true });
+        }
+    }, [location, navigate]);
+
+    // 입력 필드 값을 폼 상태에 반영하고, 이미 blur된 필드는 즉시 재검증한다.
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
-        // 이미 한 번 건드린 필드는 입력할 때마다 바로바로 재검사합니다.
         if (touched[name]) {
             setFieldErrors((prev) => ({ ...prev, [name]: validators[name](value) }));
         }
     };
 
+    // 필드에서 포커스가 벗어나면 해당 필드를 touched로 표시하고 검증한다.
     const handleBlur = (e) => {
         const { name, value } = e.target;
         setTouched((prev) => ({ ...prev, [name]: true }));
         setFieldErrors((prev) => ({ ...prev, [name]: validators[name](value) }));
     };
 
+    // 제출 전 아이디/비밀번호를 한 번에 검증하고 통과 여부를 반환한다.
     const validateAll = () => {
         const nextErrors = {
             loginId: validators.loginId(form.loginId),
@@ -70,6 +79,7 @@ function LoginPage() {
         return Object.values(nextErrors).every((msg) => !msg);
     };
 
+    // 전체 검증 통과 시 로그인 요청을 보내고, 성공하면 역할에 맞는 화면으로 이동한다.
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
@@ -80,9 +90,7 @@ function LoginPage() {
         try {
             const response = await loginRequest(form);
             login(response);
-            const defaultPath = response.role === 'ADMIN' ? '/admin' : '/main';
-            const redirectTo = location.state?.from?.pathname || defaultPath;
-            navigate(redirectTo, { replace: true });
+            navigate(response.role === 'ADMIN' ? '/admin' : '/main', { replace: true });
         } catch (err) {
             setError(err.message);
         } finally {
@@ -90,8 +98,9 @@ function LoginPage() {
         }
     };
 
+    // 구글 OAuth 로그인 플로우 시작을 위해 백엔드 인증 엔드포인트로 이동한다.
     const handleGoogleLogin = () => {
-        window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+        window.location.href = '/oauth2/authorization/google';
     };
 
     return (
@@ -110,7 +119,25 @@ function LoginPage() {
                     {!error && location.state?.justResetPassword && (
                         <p className="auth-page__success">비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.</p>
                     )}
-                    {error && <p className="auth-page__error" role="alert">{error}</p>}
+
+                    {/* 일반 폼 로그인, 구글 OAuth 로그인 공통 탈퇴 회원 UI */}
+                    {error && (
+                        error === WITHDRAWN_MESSAGE ? (
+                            <div className="auth-page__error" role="alert">
+                                <p>탈퇴한 계정입니다. 다시 가입하시겠습니까?</p>
+                                <button
+                                    type="button"
+                                    className="auth-page__link-btn"
+                                    onClick={() => navigate('/signup')}
+                                    style={{ background: 'none', border: 'none', color: '#007bff', textDecoration: 'underline', cursor: 'pointer', padding: 0, marginTop: '5px' }}
+                                >
+                                    회원가입 하러 가기
+                                </button>
+                            </div>
+                        ) : (
+                            <p className="auth-page__error" role="alert">{error}</p>
+                        )
+                    )}
 
                     <div className="auth-page__field">
                         <label htmlFor="loginId">아이디</label>

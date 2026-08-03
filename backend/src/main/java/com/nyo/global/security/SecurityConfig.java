@@ -22,7 +22,7 @@ import com.nyo.global.oauth2.OAuth2FailureHandler;
 import java.util.List;
 
 /**
- * 💡 FIXED: 3단계(CORS 테스트용 전체 permitAll) 임시 설정을 실제 인증 로직으로 교체.
+ * FIXED: 3단계(CORS 테스트용 전체 permitAll) 임시 설정을 실제 인증 로직으로 교체.
  * - BCrypt 비밀번호 암호화
  * - JWT 기반 Stateless 인증
  * - 구글 OAuth2 소셜 로그인
@@ -38,7 +38,7 @@ public class SecurityConfig {
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final OAuth2FailureHandler oAuth2FailureHandler;      // 추가
 
-    // 💡 application.yml의 CORS 허용 도메인 리스트를 주입받음
+    // application.yml의 CORS 허용 도메인 리스트를 주입받음
     @Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
 
@@ -48,17 +48,19 @@ public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINTS = {
             "/api/users/signup", "/api/users/login",
             "/api/users/check-login-id", "/api/users/check-email", "/api/users/check-nickname",
-            "/api/users/find-id", "/api/users/password/send-code", "/api/users/password/reset",
+            "/api/users/find-id", "/api/users/password/send-code",
+            "/api/users/password/verify-code", "/api/users/password/reset",
             "/oauth2/**", "/login/oauth2/**",
             "/docs/**", "/swagger-ui/**", "/v3/api-docs/**",
             "/api/health/**"
     };
 
-    // 💡 누락되었던 CORS 설정 내용 복구 및 @Bean 등록
+    // 누락되었던 CORS 설정 내용 복구 및 @Bean 등록
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(allowedOrigins);
+        // ngrok처럼 매번 바뀌는 서브도메인을 와일드카드(*)로 허용하려면 Patterns를 써야 한다.
+        config.setAllowedOriginPatterns(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -68,6 +70,7 @@ public class SecurityConfig {
         return source;
     }
 
+    // CORS/CSRF/세션/인가/OAuth2/JWT 필터를 조합해 전체 보안 필터 체인을 구성한다
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -98,7 +101,7 @@ public class SecurityConfig {
             AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
         auth
                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-                .requestMatchers("/api/admin/**").hasRole("ADMIN") // TODO: 관리자 파트 구현 시 활성화
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated();
     }
 }

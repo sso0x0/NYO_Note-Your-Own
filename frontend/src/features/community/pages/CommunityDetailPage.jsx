@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { deletePost, getPost, increasePostViewCount, isPostLiked, likePost, unlikePost } from '../api/post';
 import './CommunityDetailPage.css';
 
+// 게시글 상세 조회, 좋아요 토글, 삭제를 처리하는 페이지
 function CommunityDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ function CommunityDetailPage() {
   const [error, setError] = useState(null);
   const [liked, setLiked] = useState(false);
 
+  // 게시글 id가 바뀔 때마다 조회수를 올린 뒤 상세 정보와 좋아요 여부를 조회한다.
   useEffect(() => {
     let cancelled = false;
 
@@ -22,12 +24,14 @@ function CommunityDetailPage() {
     setError(null);
     setLiked(false);
 
-    getPost(id)
+    // 조회수 증가를 먼저 처리한 뒤 상세 정보를 조회해야 갱신된 숫자가 바로 표시된다.
+    increasePostViewCount(id)
+      .catch(() => {})
+      .then(() => getPost(id))
       .then((data) => {
         if (cancelled) return;
         setPost(data);
         setStatus('success');
-        increasePostViewCount(id).catch(() => {});
         isPostLiked(id)
           .then((value) => {
             if (!cancelled) setLiked(!!value);
@@ -47,6 +51,7 @@ function CommunityDetailPage() {
 
   const isOwner = !!post && auth?.userId === post.userId;
 
+  // 좋아요 상태를 토글하고 화면의 좋아요 수를 낙관적으로 갱신한다.
   const handleToggleLike = async () => {
     try {
       if (liked) {
@@ -63,6 +68,7 @@ function CommunityDetailPage() {
     }
   };
 
+  // 확인 후 게시글을 삭제하고 커뮤니티 목록으로 이동한다.
   const handleDelete = async () => {
     if (!window.confirm('이 게시글을 삭제할까요?')) return;
     try {

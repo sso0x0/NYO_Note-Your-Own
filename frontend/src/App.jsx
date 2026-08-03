@@ -1,3 +1,4 @@
+// 앱 전체 라우트 정의: 공개 페이지(랜딩/로그인/회원가입)와 로그인 필요 페이지(/main, /admin)를 나눠 연결한다.
 import { Route, Routes } from 'react-router-dom';
 import LandingPage from './features/landing/pages/LandingPage';
 import LoginPage from './features/auth/pages/LoginPage';
@@ -11,9 +12,11 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ProtectedLayout from './components/ProtectedLayout';
 import MainPage from './features/main/pages/MainPage';
 import MyPage from './features/mypage/pages/MyPage';
+import InstructorApplyPage from './features/instructor/pages/InstructorApplyPage';
 import AdminSectionRoutes from './features/admin/AdminSectionRoutes';
 import NoteSectionRoutes from './features/note/pages/NoteSectionRoutes';
 import CommunitySectionRoutes from './features/community/pages/CommunitySectionRoutes';
+import ChatPage from './features/chat/pages/ChatPage';
 import './App.css';
 
 function App() {
@@ -34,7 +37,9 @@ function App() {
                     {/* 기존 노트와 커뮤니티 기능을 로그인 후 /main 하위 주소에 연결합니다. */}
                     <Route path="notes/*" element={<NoteSectionRoutes />} />
                     <Route path="community/*" element={<CommunitySectionRoutes />} />
+                    <Route path="chat" element={<ChatPage />} />
                     <Route path="mypage" element={<MyPage />} />
+                    <Route path="instructor/apply" element={<InstructorApplyPage />} />
                 </Route>
 
                 {/* 관리자 화면은 일반 회원용 헤더/레이아웃을 공유하지 않는 완전히 별도의 콘솔입니다. */}

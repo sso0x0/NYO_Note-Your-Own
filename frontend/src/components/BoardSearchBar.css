@@ -1,0 +1,26 @@
+.board-search {
+  display: flex;
+  width: 100%;
+  max-width: 700px;
+  min-width: 0;
+  margin: 0 auto 10px;
+  align-items: center;
+  border: 0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: none;
+}
+.board-search__type { position: relative; z-index: 5; flex: 0 0 128px; align-self: stretch; border-right: 1px solid #eaeaea; }
+.board-search__type-btn { display:flex; width:100%; height:100%; align-items:center; justify-content:space-between; padding:0 16px; border:0; background:transparent; font:inherit; font-size:14px; cursor:pointer; }
+.board-search__type-btn svg { color:#999; transition:transform .2s; }
+.board-search__type-btn[aria-expanded='true'] svg { transform:rotate(180deg); }
+.board-search__menu { position:absolute; z-index:20; top:calc(100% + 8px); left:0; width:100%; margin:0; padding:6px; border:1px solid #eaeaea; border-radius:12px; background:#fff; box-shadow:0 12px 32px rgba(31,41,79,.16); box-sizing:border-box; list-style:none; }
+.board-search__menu button { width:100%; padding:9px 12px; border:0; border-radius:8px; background:transparent; font-size:14px; cursor:pointer; }
+.board-search__menu button:hover { background:#eef0fe; color:#6065fb; }
+.board-search__menu button.is-selected { background:#6065fb; color:#fff; font-weight:600; }
+.board-search__box { position:relative; display:flex; min-width:0; flex:1; align-items:center; }
+.board-search__box > svg { position:absolute; left:20px; pointer-events:none; }
+.board-search__box input { width:100%; min-width:0; padding:16px 44px 16px 50px; border:0; border-radius:0; background:transparent; box-shadow:none; outline:none; font-size:15px; }
+.board-search__clear { position:absolute; right:14px; display:flex; width:22px; height:22px; align-items:center; justify-content:center; padding:0; border:0; border-radius:50%; background:#ececec; color:#666; cursor:pointer; }
+.board-search__submit { flex-shrink:0; margin:6px 6px 6px 0; padding:12px 22px; border:0; border-radius:12px; background:#1c1c1a; color:#fff; font-size:14px; font-weight:600; cursor:pointer; }
+.board-search__submit:hover { background:#6065fb; }

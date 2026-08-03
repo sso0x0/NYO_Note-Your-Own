@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+// 노트에 매핑된 태그 정보를 클라이언트에 내려주는 응답 DTO
 @Schema(description = "노트-태그 매핑 응답 DTO")
 public class NoteTagResponse {
 

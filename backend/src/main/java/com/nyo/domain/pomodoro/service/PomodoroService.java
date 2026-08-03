@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+// 뽀모도로 타이머 기록의 등록/수정/삭제 및 통계 조회를 처리하는 서비스
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -24,6 +25,7 @@ public class PomodoroService {
 
     private final PomodoroRecordRepository pomodoroRecordRepository;
 
+    // 타이머 기록을 새로 등록한다
     @Transactional
     public PomodoroRecordResponse create(Long userId, PomodoroRecordRequest request) {
         validateTimeRange(request.getStartedAt(), request.getEndedAt());
@@ -40,6 +42,7 @@ public class PomodoroService {
         return toResponse(pomodoroRecordRepository.save(record));
     }
 
+    // 본인 소유 확인 후 타이머 기록을 수정한다
     @Transactional
     public PomodoroRecordResponse update(Long userId, Long id, PomodoroRecordRequest request) {
         PomodoroRecord record = pomodoroRecordRepository.findById(id)
@@ -77,6 +80,7 @@ public class PomodoroService {
         pomodoroRecordRepository.deleteByIdInAndUserId(ids, userId);
     }
 
+    // 회원의 모든 타이머 기록을 삭제한다
     @Transactional
     public void deleteAll(Long userId) {
         pomodoroRecordRepository.deleteAllByUserId(userId);
@@ -94,6 +98,7 @@ public class PomodoroService {
         return toResponse(record);
     }
 
+    // 회원의 타이머 기록 목록을 페이징 조회한다
     public PageResponse<PomodoroRecordResponse> getRecords(Long userId, Pageable pageable) {
         return PageResponse.of(
                 pomodoroRecordRepository.findByUserId(userId, pageable).map(this::toResponse));
@@ -116,6 +121,7 @@ public class PomodoroService {
         return PomodoroStudyTimeResponse.builder().totalFocusMinutes(minutes).build();
     }
 
+    // 회원의 전체 누적 집중 시간(분)을 조회한다
     public PomodoroStudyTimeResponse getTotalStudyTime(Long userId) {
         Integer minutes = pomodoroRecordRepository.sumFocusMinutesByUserId(userId);
         return PomodoroStudyTimeResponse.builder().totalFocusMinutes(minutes).build();
@@ -128,6 +134,7 @@ public class PomodoroService {
         }
     }
 
+    // 엔티티를 응답 DTO로 변환한다
     private PomodoroRecordResponse toResponse(PomodoroRecord record) {
         return PomodoroRecordResponse.builder()
                 .id(record.getId())

@@ -1,8 +1,13 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+// 인증 토큰을 자동으로 실어 보내는 fetch 기반 공통 API 요청 함수 모음(apiGet/apiPost/apiPut/apiPatch/apiDelete).
+// 기본값을 현재 접속 origin으로 둬서, localhost든 ngrok 터널 주소든
+// 항상 같은 origin(Vite dev server)으로 요청이 가고 vite.config.js의 프록시가 백엔드로 넘겨준다.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 
 // AuthContext가 로그인 시 이 키로 localStorage에 저장한다. fetch는 React 트리 밖에서
 // 일어나므로 context 대신 여기서 직접 읽는다.
-function getStoredToken() {
+// chat.js의 스트리밍 호출(streamMessage)처럼 이 파일의 apiGet/apiPost 등을 거치지 않고
+// 직접 fetch를 쓰는 곳에서도 같은 토큰 조회/401 처리를 하도록 export한다.
+export function getStoredToken() {
     try {
         const raw = localStorage.getItem('nyo_auth');
         return raw ? JSON.parse(raw)?.accessToken ?? null : null;
@@ -14,7 +19,7 @@ function getStoredToken() {
 // 토큰을 실어 보냈는데도 401이 오면 "세션 만료/무효 토큰"으로 보고 로그인 화면으로 보낸다.
 // 토큰 없이 보낸 요청의 401(예: 로그인 실패)은 여기 해당하지 않는다 — 그건 호출부가 메시지로 보여줘야 한다.
 // AuthContext 밖에서 호출되므로 localStorage를 직접 건드린다.
-function handleUnauthorized() {
+export function handleUnauthorized() {
     localStorage.removeItem('nyo_auth');
     if (window.location.pathname !== '/login') {
         window.location.href = '/login';
@@ -30,6 +35,7 @@ function unwrap(payload) {
     return 'success' in payload && 'data' in payload ? payload.data : payload;
 }
 
+// 쿼리 파라미터를 붙여 GET 요청을 보내고, 401이면 로그인 화면으로 보낸 뒤 unwrap된 데이터를 반환한다.
 export async function apiGet(path, params = {}, { token: tokenOverride } = {}) {
     const url = new URL(path, BASE_URL);
     Object.entries(params).forEach(([key, value]) => {
@@ -54,6 +60,7 @@ export async function apiGet(path, params = {}, { token: tokenOverride } = {}) {
     return unwrap(payload);
 }
 
+// 배열 파라미터는 반복 append로 실어 DELETE 요청을 보내고 unwrap된 결과를 반환한다.
 export async function apiDelete(path, params = {}, { token } = {}) {
     const url = new URL(path, BASE_URL);
     Object.entries(params).forEach(([key, value]) => {
@@ -111,10 +118,12 @@ async function sendJson(method, path, body = {}, { token } = {}) {
     return unwrap(payload);
 }
 
+// JSON 바디로 POST 요청을 보낸다.
 export function apiPost(path, body = {}, options = {}) {
     return sendJson('POST', path, body, options);
 }
 
+// JSON 바디로 PUT 요청을 보낸다.
 export function apiPut(path, body = {}, options = {}) {
     return sendJson('PUT', path, body, options);
 }

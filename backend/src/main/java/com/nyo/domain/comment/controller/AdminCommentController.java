@@ -19,8 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 관리자 전용 댓글 관리 API. SecurityConfig에서 "/api/admin/**" → hasRole("ADMIN")으로 보호되므로
  * 여기 메서드들은 인증/권한 체크를 따로 하지 않는다 (필터 단에서 이미 걸러짐).
- * 댓글 삭제는 기존 DELETE /api/comments/{commentId}가 CommentService.delete에서 이미
- * 작성자 본인 또는 ADMIN 여부를 확인하고 있어 그대로 재사용한다 (별도 admin 삭제 API 불필요).
  */
 @Tag(name = "Admin - Comment", description = "관리자 댓글 관리 API")
 @RestController
@@ -41,6 +39,7 @@ public class AdminCommentController {
         return ApiResponse.ok(commentService.adminGetCommentList(targetType, pageable));
     }
 
+    // 삭제된 댓글을 복구한다.
     @Operation(summary = "삭제된 댓글 복구")
     @PostMapping("/{commentId}/restore")
     public ApiResponse<Void> restoreComment(@PathVariable Long commentId) {

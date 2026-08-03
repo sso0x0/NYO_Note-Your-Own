@@ -26,17 +26,18 @@ public class UserSanction {
     private Long userId;   // 제재 대상 회원
     private Long adminId;  // 제재를 처리한 관리자 (본인 제재는 UserService에서 사전 차단됨)
 
-    // 💡 FIXED: String → enum
+    // FIXED: String → enum
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private SanctionType type;
 
-    private String reason;
+    private String reason; // 제재 사유
 
-    private LocalDateTime startAt;
-    private LocalDateTime endAt;
+    private LocalDateTime startAt; // 제재 시작 시각
+    private LocalDateTime endAt;   // 제재 종료(예정) 시각. null이면 무기한(또는 WARNING처럼 미사용)
     private LocalDateTime createdAt;
 
+    // 제재 이력 생성. startAt/createdAt은 현재 시각으로 자동 채운다.
     @Builder
     public UserSanction(Long userId, Long adminId, SanctionType type, String reason, LocalDateTime endAt) {
         this.userId = userId;

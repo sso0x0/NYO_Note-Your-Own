@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
+import BoardSearchBar from '../../../components/BoardSearchBar'
 import '../components/PostCard.css'
 import './CommunityBoard.css'
 
@@ -8,7 +9,7 @@ const sortOptions = [
     { value: 'createdAt', label: '최신순' },
     { value: 'likeCount', label: '인기순' },
     { value: 'viewCount', label: '조회수순' },
-    { value: 'notice', label: '공지만' },
+    { value: 'notice', label: '공지' },
 ]
 
 const POSTS_PER_PAGE = 10
@@ -16,6 +17,7 @@ const PAGE_WINDOW = 5
 const DEFAULT_MAIN_IMAGE = '/images/nullimg.png'
 const COMMUNITY_SORT_VALUES = new Set(sortOptions.map((option) => option.value))
 
+// 주소창의 쿼리스트링에서 현재 페이지와 정렬 조건을 읽어온다.
 const readListStateFromUrl = () => {
     const params = new URLSearchParams(window.location.search)
     const page = Number.parseInt(params.get('page') ?? '1', 10)
@@ -40,10 +42,12 @@ function getPageNumbers(current, totalPages) {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 }
 
+// 날짜 문자열을 'YYYY-MM-DD' 형태로 잘라서 반환한다.
 function formatShortDate(value) {
     return value ? value.slice(0, 10) : '-'
 }
 
+// 커뮤니티 게시글 목록(검색/정렬/페이지네이션 포함)을 보여주는 화면
 function CommunityBoard({ onCreate, onOpenPost }) {
     const { auth } = useAuth()
     const [posts, setPosts] = useState([])
@@ -58,8 +62,13 @@ function CommunityBoard({ onCreate, onOpenPost }) {
     const [totalPages, setTotalPages] = useState(0)
     const [totalElements, setTotalElements] = useState(0)
     const [notices, setNotices] = useState([])
+    const [searchInput, setSearchInput] = useState('')
+    const [keyword, setKeyword] = useState('')
+    const [searchType, setSearchType] = useState('all')
+    const [appliedSearchType, setAppliedSearchType] = useState('all')
 
-    const loadPosts = useCallback(async (page, sort) => {
+    // 페이지/정렬/검색어 조건으로 서버에서 게시글 목록을 가져와 상태를 갱신한다.
+    const loadPosts = useCallback(async (page, sort, searchKeyword = keyword) => {
         setLoading(true)
         setError('')
         try {
@@ -71,7 +80,12 @@ function CommunityBoard({ onCreate, onOpenPost }) {
                 sort: `${sort === 'notice' ? 'updatedAt' : sort},desc`,
                 noticeOnly: String(sort === 'notice'),
             })
-            const response = await fetch(`/api/posts?${params}`, {
+            if (searchKeyword) {
+                params.set('keyword', searchKeyword)
+                params.set('searchType', appliedSearchType)
+            }
+            const path = searchKeyword ? '/api/posts/search' : '/api/posts'
+            const response = await fetch(`${path}?${params}`, {
                 headers: { Authorization: `Bearer ${auth?.accessToken}` },
             })
             const data = await response.json()
@@ -84,10 +98,12 @@ function CommunityBoard({ onCreate, onOpenPost }) {
             }
 
             setPosts(data.content ?? [])
-            setNotices(data.notices ?? [])
+            setNotices(searchKeyword ? [] : (data.notices ?? []))
             setTotalPages(data.totalPages ?? 0)
             setTotalElements(data.totalElements ?? 0)
-            setMessage(data.totalElements > 0 ? `전체 ${data.totalElements}개의 게시글` : '등록된 게시글이 없습니다.')
+            setMessage(data.totalElements > 0
+                ? (searchKeyword ? `'${searchKeyword}' 검색 결과 ${data.totalElements}건` : `전체 ${data.totalElements}개의 게시글`)
+                : (searchKeyword ? '검색 결과가 없습니다.' : '등록된 게시글이 없습니다.'))
         } catch (error) {
             const errorMessage = `게시글 목록 조회 실패: ${error.message}`
             setMessage(errorMessage)
@@ -95,8 +111,9 @@ function CommunityBoard({ onCreate, onOpenPost }) {
         } finally {
             setLoading(false)
         }
-    }, [auth])
+    }, [auth, keyword, appliedSearchType])
 
+    // 페이지 번호와 정렬 조건을 바꾸고 그 상태를 URL에도 반영한다.
     const movePage = useCallback((page, sort = sortBy) => {
         const safePage = Math.max(1, page)
         // 목록 상태를 URL에 저장해 새로고침하거나 상세 화면에서 돌아와도 같은 위치를 복원합니다.
@@ -156,11 +173,28 @@ function CommunityBoard({ onCreate, onOpenPost }) {
         }
     }, [isSortOpen])
 
+    // 정렬 옵션을 선택하면 1페이지로 이동하고 드롭다운을 닫는다.
     const changeSort = (value) => {
         movePage(1, value)
         setIsSortOpen(false)
     }
 
+    // 검색어와 검색 유형을 확정하고 첫 페이지부터 검색 결과를 조회한다.
+    const submitSearch = (event) => {
+        event.preventDefault()
+        setAppliedSearchType(searchType)
+        setKeyword(searchInput.trim())
+        setCurrentPage(1)
+    }
+
+    // 검색어를 지우고 전체 목록의 첫 페이지로 돌아간다.
+    const clearSearch = () => {
+        setSearchInput('')
+        setKeyword('')
+        setCurrentPage(1)
+    }
+
+    // 게시글 한 건을 목록 행(제목/작성자/조회수/좋아요/날짜)으로 렌더링한다.
     const renderPostItem = (post, keyPrefix = '') => (
         <article className={`post-card${post.notice ? ' post-card--notice' : ''}`} key={`${keyPrefix}${post.id}`}>
             <button
@@ -172,7 +206,12 @@ function CommunityBoard({ onCreate, onOpenPost }) {
                 <div className="post-card__body">
                     <div className="post-card__col post-card__col--title">
                         {post.notice && <span className="post-card__badge">공지</span>}
-                        <h3 className="post-card__title">{post.title}</h3>
+                        <h3 className="post-card__title">
+                            {post.title}
+                            {(post.commentCount ?? 0) > 0 && (
+                                <span className="post-card__comment-count"> [{post.commentCount}]</span>
+                            )}
+                        </h3>
                     </div>
                     <div className="post-card__col post-card__col--author">{post.authorNickname || '알 수 없는 사용자'}</div>
                     <div className="post-card__col post-card__col--views">{post.viewCount ?? 0}</div>
@@ -180,6 +219,12 @@ function CommunityBoard({ onCreate, onOpenPost }) {
                     <div className="post-card__col post-card__col--date">{formatShortDate(post.notice ? post.updatedAt : post.createdAt)}</div>
                 </div>
             </button>
+            {post.thumbnailUrl && (
+                /* 목록 행에 마우스를 올렸을 때만 본문의 첫 이미지로 만든 썸네일을 보여준다. */
+                <div className="post-card__hover-thumb" aria-hidden="true">
+                    <img src={post.thumbnailUrl} alt="" loading="lazy" draggable={false} />
+                </div>
+            )}
         </article>
     )
 
@@ -193,6 +238,15 @@ function CommunityBoard({ onCreate, onOpenPost }) {
             <h2>커뮤니티</h2>
 
             <div className="community-board-page__toolbar">
+                <BoardSearchBar
+                    value={searchInput}
+                    onChange={setSearchInput}
+                    searchType={searchType}
+                    onSearchTypeChange={setSearchType}
+                    onSubmit={submitSearch}
+                    onClear={clearSearch}
+                    placeholder="커뮤니티 글을 검색하세요"
+                />
                 <p className="community-board-page__summary">{message}</p>
 
                 <div className="community-board-page__sort" ref={sortRef}>

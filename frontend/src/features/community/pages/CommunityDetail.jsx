@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../../context/AuthContext'
-import { parseMainImage } from '../../../utils/mainImage'
+import ReportButton from '../../report/components/ReportButton'
 import './CommunityDetail.css'
 
 const EMPTY_HEART_IMAGE = '/images/heart.png'
@@ -13,28 +13,68 @@ function autoGrowTextarea(el) {
   el.style.height = `${el.scrollHeight}px`
 }
 
+// 날짜 값을 한국어 로케일의 날짜/시간 문자열로 변환한다.
+function formatDate(value) {
+  if (!value) return '-'
+  return new Date(value).toLocaleString('ko-KR')
+}
+
+// 댓글 프로필 아바타 색상 팔레트. 매번 렌더링할 때마다 바뀌면 산만하므로
+// 작성자(userId) 기준으로 고정된 색을 골라서 같은 사람은 항상 같은 색이 나오게 한다.
+const AVATAR_PALETTE = [
+  { bg: '#fdeef2', fg: '#e57391' },
+  { bg: '#eef4fd', fg: '#4f83cc' },
+  { bg: '#eafbf0', fg: '#2f9e58' },
+  { bg: '#fff6e0', fg: '#c98a1f' },
+  { bg: '#f3edfd', fg: '#8a5cf6' },
+  { bg: '#fdece8', fg: '#e0553f' },
+  { bg: '#e8fbfa', fg: '#1fa79a' },
+  { bg: '#fdf0f7', fg: '#d1499a' },
+]
+
+// 댓글 작성자를 기준으로 팔레트에서 고정된 아바타 색상을 골라 반환한다.
+function avatarColorFor(comment) {
+  const seed = String(comment.userId ?? comment.authorNickname ?? comment.id ?? '')
+  let hash = 0
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0
+  }
+  const { bg, fg } = AVATAR_PALETTE[hash % AVATAR_PALETTE.length]
+  return { backgroundColor: bg, color: fg }
+}
+
 // 댓글 개수는 최상위 댓글뿐 아니라 중첩된 대댓글까지 모두 포함해서 센다.
+// 답글을 위해 자리표시자로 남아있는 삭제된 댓글은 세지 않는다.
 function countComments(comments) {
   return comments.reduce(
-    (total, comment) => total + 1 + (comment.replies?.length ? countComments(comment.replies) : 0),
+    (total, comment) =>
+      total + (comment.isDeleted ? 0 : 1) + (comment.replies?.length ? countComments(comment.replies) : 0),
     0,
   )
 }
 
+// 댓글 한 건을 렌더링하고, 대댓글은 자기 자신을 재귀 호출해 트리 형태로 그린다.
 function CommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
   const [editing, setEditing] = useState(false)
   const [editContent, setEditContent] = useState(comment.content)
   const isOwner = auth && String(comment.userId) === String(auth.userId)
   const canDelete = !comment.isDeleted && (isOwner || auth?.role === 'ADMIN')
+  const isEdited = !comment.isDeleted && comment.createdAt && comment.updatedAt && comment.createdAt !== comment.updatedAt
+  const isWithdrawnAuthor = comment.authorNickname === '탈퇴한 사용자'
 
+  // 수정한 댓글 내용을 저장하고 성공하면 수정 모드를 종료한다.
   const saveEdit = async () => {
     const saved = await onUpdate(comment, editContent)
     if (saved) setEditing(false)
   }
 
   return (
-      <li className="comment-item">
-        <div className="comment-item__avatar" aria-hidden="true">
+      <li className={`comment-item${comment.isDeleted ? ' comment-item--deleted' : ''}${isWithdrawnAuthor ? ' comment-item--withdrawn' : ''}`}>
+        <div
+            className="comment-item__avatar"
+            aria-hidden="true"
+            style={comment.isDeleted || isWithdrawnAuthor ? undefined : avatarColorFor(comment)}
+        >
           {(comment.authorNickname || '?').charAt(0)}
         </div>
         <div className="comment-body">
@@ -42,6 +82,10 @@ function CommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
             {/* 댓글 nickname 표시: 댓글과 재귀 렌더링되는 대댓글 모두 작성자 nickname을 사용합니다. */}
             <div className="comment-body__header">
               <span className="comment-body__author">{comment.authorNickname || '알 수 없는 사용자'}</span>
+              {!comment.isDeleted && (
+                  <time className="comment-body__date" dateTime={comment.createdAt}>{formatDate(comment.createdAt)}</time>
+              )}
+              {isEdited && <span className="comment-body__edited">(수정됨)</span>}
             </div>
             {editing ? (
                 <div className="comment-edit-form">
@@ -55,10 +99,14 @@ function CommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
                   <button type="button" onClick={saveEdit}>저장</button>
                   <button type="button" onClick={() => setEditing(false)}>취소</button>
                 </div>
-            ) : <p>{comment.content}</p>}
+            ) : <p className={comment.isDeleted ? 'comment-body__deleted-text' : undefined}>{comment.content}</p>}
           </div>
           <div className="comment-body__actions">
             {!comment.isDeleted && <button type="button" onClick={() => onReply(comment)}>답글</button>}
+            {/* 삭제되지 않은 댓글과 답글은 같은 COMMENT 타입으로 신고한다. */}
+            {!comment.isDeleted && !isOwner && (
+              <ReportButton targetType="COMMENT" targetId={comment.id} className="comment-report-button" />
+            )}
             {/* 수정은 작성자만, 삭제는 작성자 또는 DB ROLE이 ADMIN인 사용자에게만 표시합니다. */}
             {!comment.isDeleted && isOwner && !editing && <button type="button" onClick={() => setEditing(true)}>수정</button>}
             {canDelete && <button type="button" className="danger-button" onClick={() => onDelete(comment)}>삭제</button>}
@@ -76,6 +124,7 @@ function CommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
   )
 }
 
+// 게시글 상세: 본문/좋아요/신고와 댓글(대댓글 포함) CRUD를 함께 다룬다.
 function CommunityDetail({ postId, onBack, onEdit }) {
   const { auth } = useAuth()
   const [post, setPost] = useState(null)
@@ -90,6 +139,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
   const [liked, setLiked] = useState(false)
   const [likeLoading, setLikeLoading] = useState(false)
 
+  // 게시글 상세 정보를 서버에서 조회해 상태에 저장한다.
   const loadPost = async () => {
     setLoading(true)
     try {
@@ -112,6 +162,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     }
   }
 
+  // 게시글에 달린 댓글(대댓글 포함) 목록을 조회해 상태에 저장한다.
   const loadComments = async () => {
     try {
       const response = await fetch(`/api/comments/posts/${postId}`, {
@@ -130,6 +181,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     }
   }
 
+  // 현재 사용자가 이 게시글에 좋아요를 눌렀는지 조회한다.
   const loadLikeStatus = async () => {
     const response = await fetch(`/api/posts/${postId}/like`, {
       headers: { Authorization: `Bearer ${auth.accessToken}` },
@@ -137,6 +189,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     if (response.ok) setLiked(await response.json())
   }
 
+  // 게시글 진입 시 조회수를 올리고, 본문/댓글/좋아요 상태를 함께 불러온다.
   useEffect(() => {
     const increaseViewCount = async () => {
       // 상세 페이지에 들어오면 common.view_logs로 하루 1회만 조회수를 올린다.
@@ -186,6 +239,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     }
   }
 
+  // 확인 후 게시글을 삭제하고 목록으로 돌아간다.
   const deletePost = async () => {
     if (!window.confirm('게시글을 삭제할까요?')) {
       return
@@ -212,9 +266,19 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     }
   }
 
+  // 댓글 입력창의 값 변경을 댓글 작성 폼 상태에 반영한다.
   const handleCommentChange = (event) => {
     const { name, value } = event.target
     setCommentForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  // Shift+Enter는 줄바꿈, Enter만 누르면 댓글이 바로 등록되게 한다.
+  // 한글 등 조합 입력 중 Enter로 글자를 완성하는 경우(isComposing)에는 등록되지 않게 막는다.
+  const handleCommentKeyDown = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+      event.preventDefault()
+      event.currentTarget.form?.requestSubmit()
+    }
   }
 
   // 삭제 버튼은 작성자 본인 또는 로그인 정보의 DB 역할이 ADMIN인 경우에만 표시합니다.
@@ -223,8 +287,8 @@ function CommunityDetail({ postId, onBack, onEdit }) {
   )
   // 수정은 관리자 권한과 관계없이 게시글을 작성한 로그인 사용자 본인에게만 허용합니다.
   const canEdit = post && auth && String(post.userId) === String(auth.userId)
-  const mainImage = parseMainImage(post?.thumbnailUrl)
 
+  // 답글 대상 댓글을 지정하고 입력창을 답글 작성 상태로 초기화한다.
   const selectReplyTarget = (comment) => {
     setCommentForm((prev) => ({
       ...prev,
@@ -234,10 +298,12 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     if (commentTextareaRef.current) commentTextareaRef.current.style.height = 'auto'
   }
 
+  // 답글 작성 상태를 취소하고 일반 댓글 입력 상태로 되돌린다.
   const cancelReply = () => {
     setCommentForm((prev) => ({ ...prev, parentCommentId: null }))
   }
 
+  // 입력한 댓글(또는 답글)을 서버에 등록하고 댓글 목록을 새로고침한다.
   const createComment = async (event) => {
     event.preventDefault()
     setLoading(true)
@@ -272,6 +338,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     }
   }
 
+  // 댓글 내용을 수정하고 성공 시 댓글 목록을 새로고침한다.
   const updateComment = async (comment, content) => {
     if (!content.trim()) {
       setMessage('댓글 내용을 입력해 주세요.')
@@ -297,6 +364,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     return true
   }
 
+  // 확인 후 댓글을 삭제하고 댓글 목록을 새로고침한다.
   const deleteComment = async (comment) => {
     if (!window.confirm('댓글을 삭제할까요?')) return
     const response = await fetch(`/api/comments/${comment.id}`, {
@@ -308,11 +376,6 @@ function CommunityDetail({ postId, onBack, onEdit }) {
       return
     }
     await loadComments()
-  }
-
-  const formatDate = (value) => {
-    if (!value) return '-'
-    return new Date(value).toLocaleString('ko-KR')
   }
 
   const renderPostContent = (content) => {
@@ -330,6 +393,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     })
   }
 
+  // 텍스트에서 마크다운 이미지 문법을 찾아 이미지와 텍스트 블록으로 분리해 렌더링한다.
   const renderTextWithImages = (text, keyPrefix) => {
     const imagePattern = /!\[[^\]]*]\((https?:\/\/[^)]+)\)(?:\{width=(\d+)\})?/g
     const blocks = []
@@ -385,17 +449,6 @@ function CommunityDetail({ postId, onBack, onEdit }) {
                   <span>조회수 {post.viewCount ?? 0}</span>
                 </p>
 
-                {mainImage.url && (
-                    <div className="post-detail-page__thumb">
-                      <img
-                          src={mainImage.url}
-                          style={{ width: `${mainImage.width}px` }}
-                          alt="게시글 이미지"
-                          draggable={false}
-                      />
-                    </div>
-                )}
-
                 <div className="post-detail-page__content">{renderPostContent(post.content)}</div>
 
                 {/* 하트 아이콘과 서버의 현재 총 좋아요 수를 하나의 버튼으로 묶어 보여줍니다. */}
@@ -411,6 +464,11 @@ function CommunityDetail({ postId, onBack, onEdit }) {
                     <img src={liked ? FILLED_HEART_IMAGE : EMPTY_HEART_IMAGE} alt="" />
                     <span>{post.likeCount ?? 0}</span>
                   </button>
+                  {/* 좋아요와 같은 줄에서 신고 버튼만 오른쪽 끝에 배치한다. */}
+                  {/* 본인이 작성한 게시글에는 신고 버튼을 표시하지 않는다. */}
+                  {!canEdit && !post.notice && (
+                    <ReportButton targetType="POST" targetId={post.id} className="community-report-button" />
+                  )}
                 </div>
               </>
           ) : (
@@ -435,6 +493,7 @@ function CommunityDetail({ postId, onBack, onEdit }) {
                 value={commentForm.content}
                 onChange={handleCommentChange}
                 onInput={(event) => autoGrowTextarea(event.target)}
+                onKeyDown={handleCommentKeyDown}
                 placeholder="댓글 내용"
             />
             <button type="submit" disabled={loading}>댓글 등록</button>

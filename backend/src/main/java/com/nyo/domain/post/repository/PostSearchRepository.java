@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.annotations.Query;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 
+// 커뮤니티 게시글 Elasticsearch 검색을 위한 레포지토리.
 public interface PostSearchRepository extends ElasticsearchRepository<PostDocument, Long> {
 
     // 제목/본문에 대한 멀티매치 검색 (제목 가중치 3배). 공지글은 애초에 색인되지 않는다.
@@ -23,11 +24,13 @@ public interface PostSearchRepository extends ElasticsearchRepository<PostDocume
             """)
     Page<PostDocument> searchByKeyword(String keyword, Pageable pageable);
 
-    @Query(""" 
+    // 제목만 대상으로 하는 부분 일치(자동완성형) 검색.
+    @Query("""
             { "multi_match": { "query": "?0", "fields": ["title^3"], "type": "bool_prefix" } }
             """)
     Page<PostDocument> searchByTitle(String keyword, Pageable pageable);
 
+    // 본문만 대상으로 하는 부분 일치(자동완성형) 검색.
     @Query("""
             { "multi_match": { "query": "?0", "fields": ["content"], "type": "bool_prefix" } }
             """)
