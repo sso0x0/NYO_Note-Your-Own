@@ -28,7 +28,7 @@
 ### 💬 커뮤니티
 - 게시글·댓글 CRUD, 카테고리/태그 분류
 - 게시글 Elasticsearch 색인 검색
-- **금칙어 필터(`ProhibitedWordFilter`)** 로 부적절한 게시글/댓글 사전 차단
+- **금칙어 필터(`ProhibitedWordFilter`)** 로 부적절한 게시글/댓글 확인 가능
 - 신고(report) 기능으로 사용자 간 콘텐츠 신고 처리
 
 ### 🤖 AI 챗봇
@@ -118,70 +118,159 @@ flowchart TD
     AdminCheck -->|No| Denied["접근 거부"]
 ```
 
-### 전체 아키텍처
+## ERD
+
+총 17개 테이블로 구성되어 있으며, `users`를 중심으로 노트/강의/커뮤니티/신고/챗봇/뽀모도로 도메인이 연결됩니다.
+`likes`, `view_logs`, `images`는 대상 종류(`target_type`)로 노트·게시글·강의를 함께 참조하는 폴리모픽 구조입니다.
 
 ```mermaid
-flowchart LR
-    User["사용자 브라우저"] --> FE["Frontend<br/>React + Vite (5173)"]
-    FE -- "REST API / JWT" --> BE["Backend<br/>Spring Boot (8080)"]
+erDiagram
+    users ||--o{ user_sanctions : "제재 대상"
+    users ||--o{ user_sanctions : "제재 처리 관리자"
+    users ||--o{ lectures : "등록(관리자)"
+    users ||--o{ notes : "작성"
+    users ||--o{ note_histories : "수정"
+    users ||--o{ posts : "작성"
+    users ||--o{ comments : "작성"
+    users ||--o{ likes : "누름"
+    users ||--o{ view_logs : "조회"
+    users ||--o{ pomodoro_records : "기록"
+    users ||--o{ chat_histories : "대화"
+    users ||--o{ reports : "신고"
+    users ||--o{ instructor_applications : "신청"
+    users ||--o{ instructor_applications : "심사 관리자"
 
-    BE --> DB[("Oracle DB<br/>user/post/note/lecture...")]
-    BE --> ES[("Elasticsearch<br/>노트/게시글/강의 검색")]
-    BE --> AI["OpenAI API<br/>챗봇 · 자동 태깅"]
-    BE --> GCS[("GCP Cloud Storage<br/>이미지 업로드")]
-    BE --> SMS["Solapi<br/>SMS 인증"]
-    BE --> GOOGLE["Google OAuth2<br/>소셜 로그인"]
+    categories ||--o{ lectures : "분류"
+    categories ||--o{ instructor_applications : "전문 분야"
+
+    lectures ||--o{ notes : "포함"
+    lectures ||--o{ comments : "강의 댓글"
+    lectures ||--o{ pomodoro_records : "학습 대상"
+    lectures ||--o{ chat_histories : "질문 맥락"
+
+    notes ||--o{ note_histories : "수정 이력"
+    notes ||--o{ note_tags : "태깅"
+    notes ||--o{ images : "첨부"
+    notes ||--o{ pomodoro_records : "학습 대상"
+
+    tags ||--o{ note_tags : "매핑"
+
+    posts ||--o{ comments : "게시글 댓글"
+    posts ||--o{ images : "첨부"
+
+    comments ||--o{ comments : "대댓글(parent)"
+
+    chat_histories ||--o{ chat_histories : "이어지는 질문(root)"
+
+    users {
+        NUMBER id PK
+        VARCHAR2 login_id UK
+        VARCHAR2 email UK
+        VARCHAR2 nickname UK
+        VARCHAR2 role
+        VARCHAR2 status
+    }
+    user_sanctions {
+        NUMBER id PK
+        NUMBER user_id FK
+        NUMBER admin_id FK
+        VARCHAR2 type
+    }
+    categories {
+        NUMBER id PK
+        VARCHAR2 name UK
+    }
+    lectures {
+        NUMBER id PK
+        NUMBER category_id FK
+        NUMBER created_by FK
+        VARCHAR2 title
+        VARCHAR2 status
+    }
+    notes {
+        NUMBER id PK
+        NUMBER lecture_id FK
+        NUMBER user_id FK
+        VARCHAR2 title
+        CLOB content
+    }
+    note_histories {
+        NUMBER id PK
+        NUMBER note_id FK
+        NUMBER editor_id FK
+    }
+    tags {
+        NUMBER id PK
+        VARCHAR2 name UK
+    }
+    note_tags {
+        NUMBER note_id PK_FK
+        NUMBER tag_id PK_FK
+        NUMBER is_ai_generated
+    }
+    posts {
+        NUMBER id PK
+        NUMBER user_id FK
+        VARCHAR2 title
+        CLOB content
+    }
+    comments {
+        NUMBER id PK
+        NUMBER post_id FK
+        NUMBER lecture_id FK
+        NUMBER user_id FK
+        NUMBER parent_comment_id FK
+    }
+    likes {
+        NUMBER id PK
+        NUMBER user_id FK
+        VARCHAR2 target_type
+        NUMBER target_id
+    }
+    view_logs {
+        NUMBER id PK
+        NUMBER user_id FK
+        VARCHAR2 target_type
+        NUMBER target_id
+    }
+    pomodoro_records {
+        NUMBER id PK
+        NUMBER user_id FK
+        NUMBER lecture_id FK
+        NUMBER note_id FK
+        NUMBER focus_minutes
+    }
+    chat_histories {
+        NUMBER id PK
+        NUMBER user_id FK
+        NUMBER lecture_id FK
+        NUMBER root_question_id FK
+        VARCHAR2 sender_role
+    }
+    images {
+        NUMBER id PK
+        NUMBER note_id FK
+        NUMBER post_id FK
+        VARCHAR2 image_url
+    }
+    reports {
+        NUMBER id PK
+        NUMBER reporter_id FK
+        VARCHAR2 target_type
+        NUMBER target_id
+        VARCHAR2 status
+    }
+    instructor_applications {
+        NUMBER id PK
+        NUMBER user_id FK
+        NUMBER category_id FK
+        NUMBER reviewed_by FK
+        VARCHAR2 status
+    }
 ```
 
-### 로그인 흐름 (JWT / OAuth2)
-
-```mermaid
-sequenceDiagram
-    participant U as 사용자
-    participant FE as Frontend
-    participant BE as Backend
-    participant G as Google OAuth2
-    participant DB as Oracle DB
-
-    alt 이메일 로그인
-        U->>FE: 이메일/비밀번호 입력
-        FE->>BE: POST /api/auth/login
-        BE->>DB: 사용자 조회 및 비밀번호 검증
-        BE-->>FE: JWT 액세스 토큰 발급
-    else 구글 소셜 로그인
-        U->>FE: 구글로 로그인 클릭
-        FE->>G: OAuth2 인가 요청
-        G-->>BE: 인가 코드 콜백
-        BE->>DB: 사용자 조회/생성
-        BE-->>FE: JWT 발급 (/oauth2/redirect)
-    end
-    FE->>BE: 이후 요청 시 Authorization 헤더로 JWT 전달
-```
-
-### AI 챗봇 스트리밍 흐름
-
-```mermaid
-sequenceDiagram
-    participant U as 사용자
-    participant FE as Frontend
-    participant BE as Backend
-    participant AI as OpenAI API
-    participant DB as Oracle DB
-
-    U->>FE: 질문 입력 후 전송
-    FE->>BE: 챗봇 요청 (SSE 연결)
-    BE->>DB: 이전 대화 이력(ChatHistory) 조회
-    BE->>AI: 프롬프트 + 이력 전달
-    AI-->>BE: 답변 스트리밍(chunk) 응답
-    BE-->>FE: 스트리밍 chunk 실시간 전달
-    FE-->>U: 답변 실시간 렌더링
-    opt 중단 버튼 클릭
-        U->>FE: 스트리밍 중단 요청
-        FE->>BE: 중단 시그널 전송
-        BE->>AI: 요청 취소
-    end
-    BE->>DB: 최종 대화 내용 저장
-```
+> `likes.target_type`, `view_logs.target_type`, `images`(note_id/post_id 중 하나), `comments`(post_id/lecture_id 중 하나)는
+> DB 레벨 FK가 아닌 폴리모픽/조건부 참조라 위 다이어그램에서는 대표 관계만 표시했습니다.
 
 ## 사전 준비물
 
