@@ -1,7 +1,8 @@
-# NYO (Note Your Own)
+# NYO (Note Your Own) 
 온라인 강의를 들으며 남긴 학습 노트를 강의 단위로 모아 공유하는 학습 플랫폼입니다.
 노트 · 뽀모도로 · 강의 · 커뮤니티 · AI 챗봇 기능을 제공하고 있으며,
 백엔드(Spring Boot)와 프론트엔드(React)로 구성되어 있습니다.
+- GitHub: https://github.com/sso0x0/NYO_Note-Your-Own
 
 ## 주요 기능
 
