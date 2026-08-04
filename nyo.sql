@@ -13,7 +13,7 @@
 -- 9. posts : 커뮤니티 게시글
 -- 10. comments : 댓글 / 대댓글 (self-reference)
 -- 11. likes : 노트/게시글/강의 공용 좋아요 (폴리모픽)
--- 12. view_logs : 조회수 중복 방지 로그 (노트/게시글/강의 공용)
+-- 12. view_logs : 조회수 로그 (노트/게시글/강의 공용)
 -- 13. pomodoro_records : 뽀모도로 학습 타이머 기록
 -- 14. chat_histories : LLM+RAG 학습 챗봇 대화 내역
 -- 15. images : 노트/게시글 공용 첨부 이미지 (폴리모픽)
@@ -21,6 +21,7 @@
 -- 17. instructor_applications : 강사 등록 신청 (승인 전 심사용)
 
 -- ============================================================
+
 -- ------------------------------------------------------------
 -- 1. users : 회원 정보
 -- ------------------------------------------------------------
@@ -97,7 +98,7 @@ COMMENT ON COLUMN user_sanctions.end_at IS '정지 해제 예정일';
 COMMENT ON COLUMN user_sanctions.created_at IS '레코드 생성일';
 
 -- ------------------------------------------------------------
--- 3. categories : 카테고리 (프론트/백/CS/빅데이터, 계층형 지원)
+-- 3. categories : 카테고리 (프론트/백/CS/빅데이터)
 -- ------------------------------------------------------------
 CREATE TABLE categories (
                             id              NUMBER(20) 		 GENERATED ALWAYS AS IDENTITY PRIMARY KEY, -- 카테고리 PK
@@ -269,7 +270,8 @@ CREATE TABLE posts (
                        created_at      DATE             DEFAULT SYSDATE NOT NULL, -- 작성일
                        updated_at      DATE             DEFAULT SYSDATE NOT NULL, -- 수정일
                        CONSTRAINT fk_post_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, -- 작성자 FK (회원 삭제 시 게시글도 같이 삭제)
-                       CONSTRAINT chk_post_deleted CHECK (is_deleted IN (0, 1)) -- is_deleted 값 제한 (0/1)
+                       CONSTRAINT chk_post_deleted CHECK (is_deleted IN (0, 1)), -- is_deleted 값 제한 (0/1)
+                       CONSTRAINT chk_post_notice CHECK (is_notice IN (0, 1)) -- is_notice 값 제한 (0/1)
 );
 CREATE INDEX idx_post_created ON posts(created_at DESC); -- 최신순 게시글 목록 조회 최적화
 CREATE INDEX idx_post_like ON posts(like_count DESC); -- 좋아요순 게시글 목록 조회 최적화
@@ -346,29 +348,27 @@ COMMENT ON COLUMN likes.target_id IS '대상 PK';
 COMMENT ON COLUMN likes.created_at IS '좋아요 누른 시각';
 
 -- ------------------------------------------------------------
--- 12. view_logs : 조회수 중복 방지 로그 (노트/게시글/강의 공용)
+-- 12. view_logs : 조회수 로그 (노트/게시글/강의 공용)
 -- ------------------------------------------------------------
 CREATE TABLE view_logs (
                            id              NUMBER(20) 		GENERATED ALWAYS AS IDENTITY PRIMARY KEY, -- 조회 로그 PK
-                           user_id         NUMBER(20) 		NULL, -- 조회한 회원 FK (비로그인은 NULL)
+                           user_id         NUMBER(20) 		NOT NULL, -- 조회한 회원 FK (비로그인은 NULL)
                            target_type     VARCHAR2(10) 	NOT NULL, -- 조회 대상 종류 ('NOTE', 'POST', 'LECTURE')
                            target_id       NUMBER(20) 		NOT NULL, -- 대상 PK
                            viewed_date     DATE       		NOT NULL, -- 조회한 날짜
                            created_at      DATE       		DEFAULT SYSDATE NOT NULL, -- 로그 생성 시각
-                           CONSTRAINT fk_viewlog_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL, -- 조회한 회원 FK (회원 삭제 시 user_id만 NULL 처리, 로그는 유지)
+                           CONSTRAINT fk_viewlog_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, -- 조회한 회원 FK (회원 삭제 시 조회 로그도 같이 삭제)
                            CONSTRAINT chk_viewlog_type CHECK (target_type IN ('NOTE', 'POST', 'LECTURE')) -- target_type 허용 값 제한
 );
-CREATE INDEX idx_viewlog_target ON view_logs(target_type, target_id); -- 대상별 조회 로그 조회(중복 방지 체크) 최적화
+CREATE INDEX idx_viewlog_target ON view_logs(target_type, target_id); -- 대상별 조회 로그 조회 최적화
 
-COMMENT ON TABLE view_logs IS '조회수 중복 방지 로그';
+COMMENT ON TABLE view_logs IS '조회수 로그';
 COMMENT ON COLUMN view_logs.id IS '조회 로그 PK';
 COMMENT ON COLUMN view_logs.user_id IS '조회한 회원 FK';
 COMMENT ON COLUMN view_logs.target_type IS '조회 대상 종류';
 COMMENT ON COLUMN view_logs.target_id IS '대상 PK';
 COMMENT ON COLUMN view_logs.viewed_date IS '조회한 날짜';
 COMMENT ON COLUMN view_logs.created_at IS '로그 생성 시각';
-
-SELECT * FROM view_logs;
 
 -- ------------------------------------------------------------
 -- 13. pomodoro_records : 뽀모도로 학습 타이머 기록
@@ -416,6 +416,7 @@ CREATE TABLE chat_histories (
                                 recommended_lecture_ids VARCHAR2(200), -- AI가 추천한 강의 ID 목록 (콤마 구분 문자열)
                                 CONSTRAINT fk_chat_user    FOREIGN KEY (user_id)    REFERENCES users(id) ON DELETE CASCADE, -- 질문한/답변받는 회원 FK (회원 삭제 시 대화 내역도 같이 삭제)
                                 CONSTRAINT fk_chat_lecture FOREIGN KEY (lecture_id) REFERENCES lectures(id) ON DELETE SET NULL, -- 관련 강의 FK (강의 삭제 시 lecture_id만 NULL 처리)
+                                CONSTRAINT fk_chat_root    FOREIGN KEY (root_question_id) REFERENCES chat_histories(id) ON DELETE SET NULL, -- 루트 질문 FK (해당 대화 삭제 시 root_question_id만 NULL 처리)
                                 CONSTRAINT chk_chat_role   CHECK (sender_role IN ('USER', 'ASSISTANT')) -- sender_role 허용 값 제한
 );
 -- 사용자별, 강의별 대화 내역 조회가 빈번할 것이므로 복합 인덱스 추가
@@ -469,15 +470,15 @@ COMMENT ON COLUMN images.created_at IS '업로드 시각';
 -- ------------------------------------------------------------
 
 CREATE TABLE reports (
-                         id 				NUMBER 			GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, -- 신고 고유 번호 PK
-                         reporter_id 	NUMBER 			NOT NULL, -- 신고한 사용자 ID
+                         id 				NUMBER(20) 		GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, -- 신고 고유 번호 PK
+                         reporter_id 	NUMBER(20) 		NOT NULL, -- 신고한 사용자 ID
                          target_type 	VARCHAR2(20) 	NOT NULL, -- 신고 대상 종류(NOTE, POST, COMMENT)
-                         target_id 		NUMBER 			NOT NULL, -- 신고 대상의 고유 ID
+                         target_id 		NUMBER(20) 		NOT NULL, -- 신고 대상의 고유 ID
                          reason 			VARCHAR2(1000) 	NOT NULL, -- 사용자가 입력한 신고 사유
                          status 			VARCHAR2(20) 	DEFAULT 'PENDING' NOT NULL, -- 관리자 확인 상태(PENDING, REVIEWED)
-                         created_at 		TIMESTAMP 		DEFAULT CURRENT_TIMESTAMP NOT NULL, -- 신고 접수 일시
-                         updated_at 		TIMESTAMP 		DEFAULT CURRENT_TIMESTAMP NOT NULL, -- 신고 상태 수정 일시
-                         CONSTRAINT fk_reports_reporter FOREIGN KEY (reporter_id) REFERENCES users(id), -- 신고한 사용자 FK
+                         created_at 		DATE 		    DEFAULT SYSDATE NOT NULL, -- 신고 접수 일시
+                         updated_at 		DATE 		    DEFAULT SYSDATE NOT NULL, -- 신고 상태 수정 일시
+                         CONSTRAINT fk_reports_reporter FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE CASCADE, -- 신고한 사용자 FK (회원 삭제 시 신고 이력도 같이 삭제)
                          CONSTRAINT ck_reports_target_type CHECK (target_type IN ('NOTE', 'POST', 'COMMENT')), -- target_type 허용 값 제한
                          CONSTRAINT ck_reports_status CHECK (status IN ('PENDING', 'REVIEWED')), -- status 허용 값 제한
                          CONSTRAINT uk_reports_reporter_target UNIQUE (reporter_id, target_type, target_id) -- 동일 사용자의 동일 대상 중복 신고 방지

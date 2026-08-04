@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getLectureList, getPopularLectures, searchLectures } from '../../lecture/api/lecture';
 import { getCategoryList } from '../../lecture/api/category';
 import { getNoteListByCategory, getPopularNotes, searchNotes } from '../../note/api/note';
@@ -92,6 +92,7 @@ function CategoryIcon({ name = '' }) {
 // 메인 페이지: 통합 검색, 카테고리 탐색, 인기 강의/노트/커뮤니티 하이라이트를 보여준다.
 function MainPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
   const [searchType, setSearchType] = useState('all');
@@ -255,6 +256,13 @@ function MainPage() {
     setSearchType('all');
     setAppliedSearchType('all');
   };
+
+  // 로고를 눌러 같은 /main 경로로 다시 이동해도 location.key는 매번 새로 발급되므로,
+  // 이를 감지해 검색 상태를 초기화하고 인기 목록 화면으로 되돌린다.
+  useEffect(() => {
+    handleReset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
 
   // 앞뒤로 원본 리스트를 하나씩 더 이어붙여서, 끝에 닿아도 반대편으로 튀지 않고 계속 이어지는 것처럼 보이게 한다.
   const extendedLectures = useMemo(

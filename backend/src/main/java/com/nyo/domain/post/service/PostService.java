@@ -196,6 +196,11 @@ public class PostService {
         return toResponse(getPost(postId));
     }
 
+    // 마이페이지 - 내가 작성한 게시글 목록
+    public PageResponse<PostResponse> getMyPosts(Long userId, Pageable pageable) {
+        return toPageResponse(postRepository.findByUserIdAndIsDeleted(userId, 0, pageable));
+    }
+
     // 관리자 게시글 관리 목록: 공지 여부와 관계없이 최신순으로 페이징하고, 작성자 상세 정보(이메일/권한 등)를 함께 내려준다.
     public Page<PostAdminResponse> adminGetPostList(Pageable pageable) {
         // 관리자 목록에는 삭제된 게시글도 포함해 isDeleted 상태를 확인할 수 있게 한다.
