@@ -306,8 +306,12 @@ JWT_SECRET=임의의_긴_시크릿_문자열
 GOOGLE_CLIENT_ID=구글_클라이언트_ID
 GOOGLE_CLIENT_SECRET=구글_클라이언트_시크릿
 
-# CORS (프론트 주소)
+# CORS (프론트 주소, ngrok으로 외부 접속 테스트 시 ngrok 주소도 추가)
 CORS_ALLOWED_ORIGINS=http://localhost:5173
+
+# 구글 OAuth2 리다이렉트 (ngrok으로 테스트할 때만 필요, 로컬만 쓸 땐 생략 가능 - 기본값이 {baseUrl}/login/oauth2/code/google)
+# GOOGLE_REDIRECT_URI=https://본인_ngrok_주소/login/oauth2/code/google
+# OAUTH2_FRONTEND_REDIRECT_URI=https://본인_ngrok_주소/oauth2/redirect
 
 # Elasticsearch
 ELASTICSEARCH_URI=http://localhost:9200
@@ -371,10 +375,35 @@ npm run dev
 | `npm run lint` | ESLint 검사 |
 | `npm run preview` | 빌드 결과 미리보기 |
 
-## 4. 자주 발생하는 문제
+## 4. ngrok으로 구글 로그인(OAuth2) 테스트하기
+
+구글 OAuth2는 로컬(`localhost`) 접속만으로는 다른 기기에서 확인하거나 배포 환경과 동일하게 테스트하기 어렵습니다.
+그래서 `ngrok`으로 프론트(`5173`)를 외부에 노출시켜 테스트합니다. 백엔드(`8080`)는 따로 터널을 열 필요 없이,
+[vite.config.js](frontend/vite.config.js)의 프록시 설정(`/api`, `/oauth2/authorization`, `/login/oauth2` → `localhost:8080`)이 알아서 넘겨줍니다.
+
+**개발할 때마다 아래 순서로 3개를 모두 띄워야 합니다.**
+
+1. 백엔드 실행 (`8080`)
+2. 프론트 dev 서버 실행 (`5173`)
+3. ngrok 터널 실행
+
+```powershell
+& "$env:LOCALAPPDATA\ngrok\ngrok.exe" http --domain=본인_ngrok_고정도메인 5173
+```
+
+- `--domain` 플래그 없이 `ngrok http 5173`만 실행하면 무료 플랜은 **재시작할 때마다 주소가 랜덤으로 바뀝니다.** 고정 도메인(ngrok 대시보드에서 무료로 1개 발급 가능)을 예약해서 `--domain`으로 지정해야 매번 같은 주소를 씁니다.
+- ngrok 주소가 바뀌면 아래 세 곳을 전부 새 주소로 맞춰야 합니다.
+  - Google Cloud Console OAuth 클라이언트의 **승인된 리디렉션 URI**
+  - `.env`의 `GOOGLE_REDIRECT_URI`, `OAUTH2_FRONTEND_REDIRECT_URI`
+  - `.env`의 `CORS_ALLOWED_ORIGINS`
+
+## 5. 자주 발생하는 문제
 
 - **`ORA-` 관련 DB 연결 에러**: Oracle XE 서비스가 켜져 있는지, `.env`의 계정 정보가 맞는지 확인하세요.
 - **`.env` 인식이 안 될 때**: `.env` 파일 위치가 `backend/.env`가 맞는지 확인해주세요. (`me.paulschwarz:spring-dotenv` 라이브러리가 이 파일을 읽어옵니다.)
 - **검색이 안 될 때**: `docker-compose up -d`로 Elasticsearch가 떠 있는지, `ELASTICSEARCH_URI`가 맞는지 확인하세요.
 - **AI 챗봇 응답이 안 올 때**: `OPENAI_API_KEY`가 설정됐는지 확인하세요.
 - **포트 충돌 (8080 / 5173 / 9200 / 5601)**: 다른 프로세스가 해당 포트를 쓰고 있지 않은지 확인하세요.
+- **구글 로그인 콜백이 `404`(`ERR_NGROK_3200`, "endpoint is offline")**: ngrok 터널이 꺼져있거나 로컬-클라우드 연결이 끊긴 상태입니다. ngrok을 껐다가(또는 좀비 프로세스가 있으면 종료 후) 다시 실행하세요.
+- **ngrok 실행 시 `ERR_NGROK_334`("already online")**: 같은 고정 도메인을 물고 있는 ngrok 프로세스가 이미 실행 중입니다. 작업 관리자(또는 `Get-Process ngrok`)로 남아있는 프로세스를 찾아 종료한 뒤 다시 실행하세요.
+- **구글 로그인 실패 사유가 `authorization_request_not_found`**: 로그인 시작(`/oauth2/authorization/google`)과 구글 콜백(`/login/oauth2/code/google`) 사이에 백엔드가 재시작됐거나, ngrok 주소가 도중에 바뀌어 세션이 끊긴 경우입니다. 브라우저 쿠키를 지우거나 시크릿 창에서 로그인 버튼부터 다시 시도하세요.
