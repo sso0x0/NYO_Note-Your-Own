@@ -21,6 +21,11 @@ export function getMyLectures(params = {}) {
   return apiGet('/api/lectures/mine', params);
 }
 
+// 마이페이지 "수강 강의" 탭: 내가 수강신청한 강의 목록.
+export function getMyEnrolledLectures(params = {}) {
+  return apiGet('/api/lectures/enrolled', params);
+}
+
 // 강의 상세 조회.
 export function getLecture(id) {
   return apiGet(`/api/lectures/${id}`);

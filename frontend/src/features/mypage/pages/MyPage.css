@@ -648,12 +648,12 @@
 .mypage__post-badge {
     display: inline-block;
     margin-right: 6px;
-    padding: 2px 8px;
+    padding: 4px 12px;
     border-radius: 999px;
-    font-size: 10px;
-    font-weight: 700;
-    color: #fff;
-    background: var(--mp-accent);
+    font-size: 13px;
+    font-weight: 600;
+    color: #e5484d;
+    background: #fdeaea;
 }
 
 .mypage__post-col--author,

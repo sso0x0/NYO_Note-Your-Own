@@ -19,6 +19,9 @@ public interface LectureService {
     // 강사 본인이 등록 신청한 강의 목록 조회 (마이페이지 "강의 등록" 탭, 페이징)
     Page<LectureResponse> getMyLectures(Long userId, Pageable pageable);
 
+    // 마이페이지 "수강 강의" 탭: 내가 수강신청한 강의 목록 조회 (수강신청한 순서, 페이징)
+    Page<LectureResponse> getEnrolledLectures(Long userId, Pageable pageable);
+
     // 강사의 강의 등록 신청을 관리자가 승인 (일반 목록/검색에 노출)
     void approveLecture(Long lectureId, Long adminId);
 

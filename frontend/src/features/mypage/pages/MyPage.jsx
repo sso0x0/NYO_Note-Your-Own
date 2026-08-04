@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getMyInfo, updateMyProfile, sendPhoneVerificationCode, verifyPhoneVerificationCode, withdraw } from '../api/mypage';
 import { getMyNotes, getLikedNotes } from '../../note/api/note';
-import { getPostList, getMyComments } from '../../community/api/post';
-import { getLectureList, isEnrolled, createMyLecture, getMyLectures } from '../../lecture/api/lecture';
+import { getMyPosts, getMyComments } from '../../community/api/post';
+import { getMyEnrolledLectures, createMyLecture, getMyLectures } from '../../lecture/api/lecture';
 import { getCategoryList } from '../../lecture/api/category';
 import { getMyInstructorApplications } from '../../instructor/api/instructorApplication';
 import { getRecordsByPeriod, getTodayStudyTime, getTotalStudyTime } from '../../pomodoro/api/pomodoro';
@@ -51,8 +51,6 @@ const PHONE_PATTERN = /^01[0-9]-?\d{3,4}-?\d{4}$/;
 const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).+$/;
 
 const LIST_SIZE = 8;
-const POST_SCAN_SIZE = 50;
-const LECTURE_SCAN_SIZE = 30;
 const POMODORO_PERIOD_SIZE = 100;
 const PAGE_SIZE = 5;
 
@@ -206,8 +204,8 @@ function MyPage() {
             getMyInfo(),
             getMyNotes({ size: LIST_SIZE }),
             getLikedNotes({ size: LIST_SIZE }),
-            getPostList({ size: POST_SCAN_SIZE, sort: 'createdAt' }),
-            getLectureList({ size: LECTURE_SCAN_SIZE }),
+            getMyPosts({ size: LIST_SIZE }),
+            getMyEnrolledLectures({ size: LIST_SIZE }),
             getTodayStudyTime(),
             getTotalStudyTime(),
             getRecordsByPeriod({ startDate: pomodoroRange.start, endDate: pomodoroRange.end, size: POMODORO_PERIOD_SIZE }).catch(() => ({ content: [] })),
@@ -216,7 +214,7 @@ function MyPage() {
             getCategoryList().catch(() => []),
             getMyLectures({ size: LIST_SIZE }).catch(() => ({ content: [] })),
         ])
-            .then(async ([me, mine, liked, posts, lectures, todayStudyTime, totalStudyTime, initialPomodoroRecords, comments, instructorApplicationList, categoryList, myLectureApplicationList]) => {
+            .then(([me, mine, liked, posts, lectures, todayStudyTime, totalStudyTime, initialPomodoroRecords, comments, instructorApplicationList, categoryList, myLectureApplicationList]) => {
                 if (cancelled) return;
                 setProfile(me);
                 setForm({ name: me.name ?? '', nickname: me.nickname ?? '', email: me.email ?? '', phone: me.phone ?? '', currentPassword: '', newPassword: '', newPasswordConfirm: '' });
@@ -231,17 +229,8 @@ function MyPage() {
                 setLectureCategories(categoryList ?? []);
                 setMyLectureApplications(myLectureApplicationList?.content ?? []);
 
-                const mineOnly = (posts?.content ?? []).filter(
-                    (post) => post.authorNickname === me.nickname
-                );
-                setMyPosts(mineOnly.slice(0, LIST_SIZE));
-
-                const lectureList = lectures?.content ?? [];
-                const enrolledFlags = await Promise.all(
-                    lectureList.map((lecture) => isEnrolled(lecture.id).catch(() => false))
-                );
-                const enrolledOnly = lectureList.filter((_, index) => enrolledFlags[index]);
-                if (!cancelled) setMyLectures(enrolledOnly.slice(0, LIST_SIZE));
+                setMyPosts(posts?.content ?? []);
+                setMyLectures(lectures?.content ?? []);
 
                 setStatus('success');
             })

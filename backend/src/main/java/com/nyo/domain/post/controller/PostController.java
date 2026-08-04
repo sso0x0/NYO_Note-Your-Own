@@ -56,6 +56,14 @@ public class PostController {
         return postService.canCreateNotice(SecurityUtil.getCurrentUserId());
     }
 
+    // 마이페이지 - 내가 작성한 게시글 목록 (JWT 인증 필요, SecurityConfig에서 별도 permitAll 없음)
+    @GetMapping("/me")
+    public PageResponse<PostResponse> getMyPosts(
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return postService.getMyPosts(SecurityUtil.getCurrentUserId(), pageable);
+    }
+
     // 게시글 검색 (제목/본문 대상, Elasticsearch 기반). 공지글은 검색 대상에서 제외된다.
     @GetMapping("/search")
     public PageResponse<PostResponse> searchPosts(

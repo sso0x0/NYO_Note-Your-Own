@@ -65,3 +65,8 @@ export function unlikePost(postId) {
 export function getMyComments({ page = 0, size = 10 } = {}) {
   return apiGet('/api/comments/me', { page, size });
 }
+
+// 마이페이지 "게시글" 탭: 내가 작성한 게시글 목록
+export function getMyPosts({ page = 0, size = 10 } = {}) {
+  return apiGet('/api/posts/me', { page, size });
+}

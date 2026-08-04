@@ -47,10 +47,11 @@
 
 .lecture-detail-page__hero {
   display: flex;
-  /* 신청 전후 문구가 달라져도 썸네일과 아래 구분선의 좌표가 바뀌지 않게 정확한 높이로 고정한다. */
+  /* 신청 전후 문구가 달라져도 썸네일과 아래 구분선의 좌표가 바뀌지 않게 최소 높이로 고정한다.
+     설명이 길어 내용이 넘치면 min-height 덕분에 박스가 함께 늘어나 버튼-구분선 여백이 유지된다. */
   align-items: flex-start;
-  /* 250px 내용 높이 아래에 구분선까지 28px 여백을 별도로 확보한다. */
-  height: 278px;
+  /* 250px 내용 높이 아래에 구분선까지 28px 여백을 기본으로 확보한다. */
+  min-height: 278px;
   gap: 28px;
   padding-bottom: 28px;
   margin-bottom: 28px;
@@ -88,7 +89,7 @@
 .lecture-detail-page__info {
   flex: 1;
   min-width: 0;
-  height: 250px;
+  min-height: 250px;
   display: flex;
   flex-direction: column;
 }

@@ -169,6 +169,27 @@ public class LectureServiceImpl implements LectureService {
                 .map(LectureResponse::from);
     }
 
+    // 마이페이지 "수강 강의" 탭: likes 테이블의 ENROLL 기록을 신청 순서대로 가져온 뒤 강의를 재조립한다.
+    // (findLiked()에서 쓰는 것과 동일한 패턴 - NoteService.findLiked 참고)
+    @Override
+    public Page<LectureResponse> getEnrolledLectures(Long userId, Pageable pageable) {
+        Page<Like> likePage = likeRepository.findByUserIdAndTargetType(userId, TargetType.ENROLL, pageable);
+        List<Long> ids = likePage.getContent().stream().map(Like::getTargetId).toList();
+
+        Map<Long, Lecture> lecturesById = ids.isEmpty()
+                ? Map.of()
+                : lectureRepository.findAllByIdInAndIsDeletedFalse(ids).stream()
+                        .collect(Collectors.toMap(Lecture::getId, Function.identity()));
+
+        List<LectureResponse> content = ids.stream()
+                .map(lecturesById::get)
+                .filter(Objects::nonNull)
+                .map(LectureResponse::from)
+                .toList();
+
+        return new PageImpl<>(content, pageable, likePage.getTotalElements());
+    }
+
     // 강의 등록 신청 승인
     @Override
     @Transactional

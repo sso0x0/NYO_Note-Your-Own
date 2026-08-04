@@ -88,6 +88,15 @@ public class LectureController {
         return ApiResponse.ok(lectureService.getMyLectures(SecurityUtil.getCurrentUserId(), pageable));
     }
 
+    // 마이페이지 "수강 강의" 탭: 내가 수강신청한 강의 목록 (수강신청한 순서, 페이징)
+    @Operation(summary = "내 수강신청 강의 목록", description = "현재 로그인한 사용자가 수강신청한 강의를 페이징하여 조회합니다.")
+    @GetMapping("/enrolled")
+    public ApiResponse<Page<LectureResponse>> getEnrolledLectures(
+            @PageableDefault(size = 10) Pageable pageable) {
+        warnIfPageSizeExceeded(pageable);
+        return ApiResponse.ok(lectureService.getEnrolledLectures(SecurityUtil.getCurrentUserId(), pageable));
+    }
+
     // 하나의 강의만 조회 (id 기준, 삭제된 강의는 404)
     @Operation(summary = "강의 단건 조회", description = "id로 강의를 조회합니다. 삭제된 강의는 조회되지 않습니다(404).")
     @GetMapping("/{id}")

@@ -39,6 +39,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     Page<Post> findByUserIdInAndIsDeletedAndIsNotice(
             List<Long> userIds, Integer isDeleted, Integer isNotice, Pageable pageable);
 
+    // 마이페이지 - 내가 작성한 게시글 목록
+    Page<Post> findByUserIdAndIsDeleted(Long userId, Integer isDeleted, Pageable pageable);
+
     // 조회수만 직접 증가시켜 BaseEntity.updatedAt이 바뀌지 않게 한다.
     @Modifying
     @Query("update Post p set p.viewCount = p.viewCount + 1 where p.id = :id and p.isDeleted = 0")
