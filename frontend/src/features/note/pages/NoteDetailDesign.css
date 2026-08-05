@@ -316,7 +316,7 @@
     border: 0;
     border-radius: 0;
     background: transparent;
-    color: #1c1c1a;
+    color: #ff4f4f;
     font-size: 13px;
     font-weight: 600;
     text-decoration: none;
@@ -325,8 +325,9 @@
 .note-detail-page .note-like-summary .note-report-button:hover,
 .note-detail-page .note-like-summary .note-report-button:focus-visible {
     background: transparent;
-    color: #ff4f4f;
-    text-decoration: underline;
+    font-weight: 700;
+    -webkit-text-stroke: 0.5px currentColor;
+    text-decoration: none;
 }
 
 .note-detail-page .note-detail-chat {

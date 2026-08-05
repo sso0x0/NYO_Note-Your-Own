@@ -778,6 +778,12 @@
     color: #fff;
 }
 
+/* 답글 버튼은 검정 대신 연한 파란색으로 강조한다 (앱 전체 포커스/링크 톤과 통일). */
+.lecture-watch-page .comment-panel .comment-body__actions button.comment-reply-button:hover {
+    background: #eef4fd;
+    color: #2563eb;
+}
+
 .lecture-watch-page .comment-panel .comment-body__actions .danger-button {
     color: #ff4f4f;
 }

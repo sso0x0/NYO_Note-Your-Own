@@ -76,6 +76,10 @@ public class UserService {
         User user = userRepository.findByLoginId(request.getLoginId())
                 .orElseThrow(() -> loginFailed(request.getLoginId()));
 
+        if (user.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw loginFailed(request.getLoginId());
+        }
+
         // 정지 기간이 이미 끝났으면 로그인 시점에 자동으로 ACTIVE로 되돌림
         reactivateIfSuspensionExpired(user);
 

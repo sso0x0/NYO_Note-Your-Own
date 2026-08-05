@@ -160,7 +160,7 @@ function LectureCommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
                     ) : <p className={comment.isDeleted ? 'comment-body__deleted-text' : undefined}>{comment.content}</p>}
                 </div>
                 <div className="comment-body__actions">
-                    {!comment.isDeleted && <button type="button" onClick={() => onReply(comment)}>답글</button>}
+                    {!comment.isDeleted && <button type="button" className="comment-reply-button" onClick={() => onReply(comment)}>답글</button>}
                     {!comment.isDeleted && isOwner && !editing && <button type="button" onClick={() => setEditing(true)}>수정</button>}
                     {canDelete && <button type="button" className="danger-button" onClick={() => onDelete(comment)}>삭제</button>}
                 </div>

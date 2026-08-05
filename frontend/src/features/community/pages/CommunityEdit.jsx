@@ -6,7 +6,9 @@ import {
 } from '../../../utils/contentImages'
 import { useAuth } from '../../../context/AuthContext'
 import RichTextEditor from '../../../components/RichTextEditor'
+import TextColorPicker from '../../note/components/TextColorPicker'
 import { storeMainImageWidth } from '../../../utils/mainImage'
+import './CommunityCreate.css'
 
 // 게시글 수정 폼: 기존 게시글을 불러와 채운 뒤 수정 내용을 저장한다.
 function CommunityEdit({ postId, onBack, onSaved }) {
@@ -20,6 +22,7 @@ function CommunityEdit({ postId, onBack, onSaved }) {
   const [message, setMessage] = useState('게시글을 불러오는 중입니다.')
   const [loading, setLoading] = useState(false)
   const [canCreateNotice, setCanCreateNotice] = useState(false)
+  const [textColor, setTextColor] = useState('#000000')
   const contentRef = useRef(null)
 
   // 기존 게시글 정보를 불러와 폼을 채우고, 공지 작성 권한도 함께 확인한다.
@@ -97,6 +100,16 @@ function CommunityEdit({ postId, onBack, onSaved }) {
     event.target.value = ''
   }
 
+  const applyTextStyle = (styleName) => {
+    // 선택한 본문에 볼드 또는 밑줄을 적용하고, 이미 적용된 상태라면 해제한다.
+    contentRef.current?.applyTextStyle(styleName)
+  }
+
+  const applyTextColor = (color) => {
+    // 선택한 글자에 팔레트에서 고른 색상을 적용한다.
+    contentRef.current?.applyColor(color)
+  }
+
   // 본문 이미지를 업로드하고 수정 내용을 서버에 전송해 게시글을 갱신한다.
   const updatePost = async (event) => {
     event.preventDefault()
@@ -145,47 +158,64 @@ function CommunityEdit({ postId, onBack, onSaved }) {
   }
 
   return (
-    <>
-      <header className="note-header">
+    <section className="community-write-page">
+      <header className="community-write-page__header">
         <div>
+          <span className="community-write-page__eyebrow">COMMUNITY</span>
           <h1>게시글 수정</h1>
+          {/* 게시글 작성 페이지와 같은 뒤로가기 버튼 디자인을 맞춘다. */}
+          <button type="button" className="community-write-page__back" onClick={onBack}>← 상세</button>
         </div>
-        <button type="button" onClick={onBack}>상세</button>
       </header>
 
-      <section className="note-write-panel">
-        <form className="note-write-form" onSubmit={updatePost}>
-          <label>
-            제목
-            <input name="title" value={form.title} onChange={handleChange} />
-          </label>
-
+      <form className="community-write-page__form" onSubmit={updatePost}>
+        <div className="community-write-page__titlebar">
+          <input
+            className="community-write-page__title"
+            name="title"
+            value={form.title}
+            onChange={handleChange}
+            placeholder="제목을 입력하세요"
+          />
           {canCreateNotice && (
             // 관리자 공지 수정: ADMIN만 공지 여부를 변경할 수 있습니다.
-            <label className="notice-checkbox">
+            <label className="community-write-page__notice">
               <input type="checkbox" name="notice" checked={form.notice} onChange={handleChange} />
-              공지로 설정
+              공지
             </label>
           )}
+        </div>
 
-          {/* 파일 입력과 편집기를 label 하나로 감싸면 편집기 클릭도 파일 선택 클릭으로 전달된다.
-              일반 컨테이너로 분리해 실제 파일 입력을 눌렀을 때만 파일 선택 창이 열리게 한다. */}
-          <div className="note-content-field">
-            <span className="note-field-label">내용</span>
-            <input type="file" accept="image/*" onChange={handleContentImageChange} disabled={loading} />
-            <RichTextEditor
-              ref={contentRef}
-              value={form.content}
-              onChange={(content) => setForm((prev) => ({ ...prev, content }))}
-            />
+        {message && <p className="community-write-page__message">{message}</p>}
+
+        <div className="community-write-page__toolbar">
+          <div className="community-write-page__toolbar-group">
+            <label className="community-write-page__image-button" title="이미지 삽입">
+              이미지
+              <input type="file" accept="image/*" onChange={handleContentImageChange} disabled={loading} hidden />
+            </label>
+            <button type="button" onClick={() => applyTextStyle('bold')} title="볼드"><strong>B</strong></button>
+            <button type="button" onClick={() => applyTextStyle('underline')} title="밑줄"><u>U</u></button>
+            <TextColorPicker value={textColor} onChange={setTextColor} onApply={applyTextColor} />
           </div>
+        </div>
 
-          {/* 수정 요청 중에는 버튼을 비활성화해 같은 변경이 중복 저장되지 않게 합니다. */}
-          <button type="submit" disabled={loading}>{loading ? '저장 중...' : '수정 저장'}</button>
-        </form>
-        {message && <p className="note-message">{message}</p>}
-      </section>
-    </>
+        <div className="community-write-page__editor">
+          <RichTextEditor
+            ref={contentRef}
+            value={form.content}
+            onChange={(content) => setForm((prev) => ({ ...prev, content }))}
+          />
+        </div>
+
+        {/* 수정 요청 중에는 버튼을 비활성화해 같은 변경이 중복 저장되지 않게 합니다. */}
+        <div className="community-write-page__actions">
+          <button type="submit" className="community-write-page__submit" disabled={loading}>
+            {loading ? '저장 중...' : '수정하기'}
+          </button>
+        </div>
+      </form>
+    </section>
   )
 }
 
