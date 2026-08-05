@@ -1,16 +1,17 @@
 .report-open-button {
   border: 0;
   background: transparent;
-  /* 모든 사용자 신고 버튼은 기본 검은색, 마우스를 올리면 빨간색으로 통일한다. */
-  color: #1c1c1a;
+  /* 모든 사용자 신고 버튼은 기본 빨간색, 마우스를 올리면 굵게 통일한다. */
+  color: #ff4f4f;
   cursor: pointer;
   font-size: 13px;
 }
 
 .report-open-button:hover,
 .report-open-button:focus-visible {
-  color: #ff4f4f;
-  text-decoration: underline;
+  /* 한글 폰트에 진짜 굵은 글자모양이 없어 font-weight만으론 안 굵어지므로 테두리로 굵게 보이게 한다. */
+  font-weight: 700;
+  -webkit-text-stroke: 0.5px currentColor;
 }
 
 .report-modal-backdrop {
@@ -27,12 +28,13 @@
   width: min(480px, 100%);
   padding: 24px;
   border-radius: 14px;
-  background: #fff;
+  background: var(--bg);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
 .report-modal h2 {
   margin: 0 0 16px;
+  color: var(--text-h);
   font-size: 20px;
 }
 
@@ -41,22 +43,24 @@
   width: 100%;
   resize: vertical;
   padding: 12px;
-  border: 1px solid #d7dce3;
+  border: 1px solid var(--border);
   border-radius: 8px;
+  color: var(--text-h);
+  background: var(--bg);
   font: inherit;
   line-height: 1.5;
 }
 
 .report-modal__counter {
   margin-top: 6px;
-  color: #888;
+  color: var(--text);
   font-size: 12px;
   text-align: right;
 }
 
 .report-modal__error {
   margin: 8px 0 0;
-  color: #d9363e;
+  color: #d92d20;
   font-size: 13px;
 }
 
@@ -69,14 +73,20 @@
 
 .report-modal__actions button {
   padding: 9px 16px;
-  border: 1px solid #d7dce3;
+  border: 1px solid var(--border);
   border-radius: 7px;
-  background: #fff;
+  background: var(--bg);
+  color: var(--text-h);
   cursor: pointer;
 }
 
+.report-modal__actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .report-modal__actions .report-modal__submit {
-  border-color: #ff4f4f;
-  background: #ff4f4f;
+  border-color: #d92d20;
+  background: #d92d20;
   color: #fff;
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../../context/AuthContext'
 import ReportButton from '../../report/components/ReportButton'
+import { parseTextColors } from '../../../utils/textColor'
 import './CommunityDetail.css'
 
 const EMPTY_HEART_IMAGE = '/images/heart.png'
@@ -102,7 +103,7 @@ function CommentItem({ comment, auth, onReply, onUpdate, onDelete }) {
             ) : <p className={comment.isDeleted ? 'comment-body__deleted-text' : undefined}>{comment.content}</p>}
           </div>
           <div className="comment-body__actions">
-            {!comment.isDeleted && <button type="button" onClick={() => onReply(comment)}>답글</button>}
+            {!comment.isDeleted && <button type="button" className="comment-reply-button" onClick={() => onReply(comment)}>답글</button>}
             {/* 삭제되지 않은 댓글과 답글은 같은 COMMENT 타입으로 신고한다. */}
             {!comment.isDeleted && !isOwner && (
               <ReportButton targetType="COMMENT" targetId={comment.id} className="comment-report-button" />
@@ -403,7 +404,11 @@ function CommunityDetail({ postId, onBack, onEdit }) {
     while ((match = imagePattern.exec(text)) !== null) {
       const textBeforeImage = text.slice(lastIndex, match.index)
       if (textBeforeImage) {
-        blocks.push(<p className="note-text-block" key={`${keyPrefix}-text-${blocks.length}`}>{textBeforeImage}</p>)
+        blocks.push(
+            <p className="note-text-block" key={`${keyPrefix}-text-${blocks.length}`}>
+              {renderColoredText(textBeforeImage, `${keyPrefix}-color-${blocks.length}`)}
+            </p>
+        )
       }
 
       blocks.push(
@@ -420,11 +425,32 @@ function CommunityDetail({ postId, onBack, onEdit }) {
 
     const restText = text.slice(lastIndex)
     if (restText) {
-      blocks.push(<p className="note-text-block" key={`${keyPrefix}-text-rest`}>{restText}</p>)
+      blocks.push(
+          <p className="note-text-block" key={`${keyPrefix}-text-rest`}>
+            {renderColoredText(restText, `${keyPrefix}-color-rest`)}
+          </p>
+      )
     }
 
     return blocks
   }
+
+  // 게시글 저장 문법([color=..], [bold] 등)을 실제 스타일이 적용된 텍스트로 변환한다.
+  const renderColoredText = (text, keyPrefix) => (
+      parseTextColors(text).map((part, index) => (
+          <span
+              style={{
+                color: part.color || undefined,
+                fontWeight: part.bold ? 700 : undefined,
+                fontStyle: part.italic ? 'italic' : undefined,
+                textDecoration: part.underline ? 'underline' : undefined,
+              }}
+              key={`${keyPrefix}-${index}`}
+          >
+          {part.text}
+        </span>
+      ))
+  )
 
   return (
       <div className="post-detail-page">
