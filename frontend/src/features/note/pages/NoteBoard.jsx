@@ -267,9 +267,9 @@ function NoteBoard({ onOpenNote }) {
             <nav className="note-board-page__crumbs" aria-label="현재 위치">
                 <Link to="/main">메인</Link>
                 <span>/</span>
-                <span className="is-current">노트 게시판</span>
+                <span className="is-current">노트 목록</span>
             </nav>
-            <h2>노트 게시판</h2>
+            <h2>노트 목록</h2>
             <div className="note-board-page__search-row">
                 <BoardSearchBar
                     value={searchInput}
